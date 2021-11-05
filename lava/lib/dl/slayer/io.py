@@ -15,12 +15,12 @@ class Event():
     Members:
         * x (numpy int array): x index of spike event.
         * y (numpy int array): y index of spike event
-            (not used if the spatial dimension is 1).
+          (not used if the spatial dimension is 1).
         * c (numpy int array): channel index of spike event.
         * t (numpy double array): timestamp of spike event.
-            Time is assumed to be in ms.
+          Time is assumed to be in ms.
         * p (numpy int or double array): payload of spike event.
-            None for binary spike.
+          None for binary spike.
         * graded (bool): flag to indicate graded or binary spike.
 
     Parameters
@@ -36,8 +36,8 @@ class Event():
     payload : int array or float array or None
         payload of event. None for binary event. Defaults to None.
 
-    Usage
-    -----
+    Examples
+    --------
 
     >>> td_event = Event(x_event, y_event, c_event, t_event)
     """
@@ -104,8 +104,8 @@ class Event():
         np array
             spike tensor.
 
-        Usage
-        -----
+        Examples
+        --------
 
         >>> spike = td_event.to_tensor()
         """
@@ -153,8 +153,8 @@ class Event():
         numpy or torch tensor
             spike tensor.
 
-        Usage
-        -----
+        Examples
+        --------
 
         >>> spike = td_event.fill_tensor( torch.zeros((2, 240, 180, 5000)) )
         """
@@ -453,8 +453,8 @@ class Event():
         repeat : bool
             flag to enable repeat of animation. Defaults to False.
 
-        Usage
-        -----
+        Examples
+        --------
 
         >>> self.show()
         """
@@ -503,8 +503,8 @@ class Event():
         anim
             matplotlib anim object.
 
-        Usage
-        -----
+        Examples
+        --------
 
         >>> anim = self.anim()
         """
@@ -556,11 +556,11 @@ def tensor_to_event(spike_tensor, sampling_time=1):
 
     Returns
     -------
-    event
+    Event
         spike event
 
-    Usage
-    -----
+    Examples
+    --------
 
     >>> td_event = tensor_to_Event(spike)
     """
@@ -618,11 +618,11 @@ def read_1d_spikes(filename):
 
     Returns
     -------
-    event
+    Event
         spike event.
 
-    Usage
-    -----
+    Examples
+    --------
 
     >>> td_event = read_1d_spikes(file_path)
     """
@@ -649,7 +649,7 @@ def encode_1d_spikes(filename, td_event):
         * First 16 bits (bits 39-24) represent the neuronID.
         * Bit 23 represents the sign of spike event: 0=>OFF event, 1=>ON event.
         * the last 23 bits (bits 22-0) represent the spike event timestamp in
-            microseconds.
+          microseconds.
 
     Parameters
     ----------
@@ -658,11 +658,8 @@ def encode_1d_spikes(filename, td_event):
     td_event : event
         spike event object
 
-    Usage
-    -----
-
-    Returns
-    -------
+    Examples
+    --------
 
     >>> encode_1d_spikes(file_path, td_event)
     """
@@ -698,7 +695,7 @@ def read_2d_spikes(filename):
         * Next 8 bits (bits 31-24) represent the yID of the neuron.
         * Bit 23 represents the sign of spike event: 0=>OFF event, 1=>ON event.
         * The last 23 bits (bits 22-0) represent the spike event timestamp in
-            microseconds.
+          microseconds.
 
     Parameters
     ----------
@@ -707,11 +704,11 @@ def read_2d_spikes(filename):
 
     Returns
     -------
-    event
+    Event
         spike event.
 
-    Usage
-    -----
+    Examples
+    --------
 
     >>> td_event = read_2d_spikes(file_path)
     """
@@ -741,7 +738,7 @@ def encode_2d_spikes(filename, td_event):
         * Next 8 bits (bits 31-24) represent the yID of the neuron.
         * Bit 23 represents the sign of spike event: 0=>OFF event, 1=>ON event.
         * The last 23 bits (bits 22-0) represent the spike event timestamp in
-            microseconds.
+          microseconds.
 
     Parameters
     ----------
@@ -750,11 +747,8 @@ def encode_2d_spikes(filename, td_event):
     td_event : event
         spike event object
 
-    Usage
-    -----
-
-    Returns
-    -------
+    Examples
+    --------
 
     >>> encode_2d_spikes(file_path, td_event)
     """
@@ -796,11 +790,11 @@ def read_np_spikes(filename, fmt='xypt', time_unit=1e-3):
 
     Returns
     -------
-    event
+    Event
         spike object.
 
-    Usage
-    -----
+    Examples
+    --------
 
     >>> td_event = read_np_spikes(file_path)
     >>> td_event = read_np_spikes(file_path, fmt='xypt')
@@ -846,8 +840,8 @@ def encode_np_spikes(filename, td_event, fmt='xypt', time_unit=1e-3):
     time_unit : float
         scale factor that converts the data to seconds. Defaults to 1e-3.
 
-    Usage
-    -----
+    Examples
+    --------
 
     >>> encode_np_spikes(file_path, td_event)
     >>> encode_np_spikes(file_path, td_event, fmt='xypt')

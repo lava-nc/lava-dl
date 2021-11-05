@@ -171,8 +171,8 @@ class Neuron(torch.nn.Module):
         torch.tensor
             quantized weight.
 
-        Usage
-        -----
+        Examples
+        --------
         It can be used like a normal function. But the intended use is as
         follows
 

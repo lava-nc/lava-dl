@@ -181,8 +181,8 @@ def conv(input, filter, sampling_time=1):
     torch tensor
         convolution output. Output shape is same as input.
 
-    Usage
-    -----
+    Examples
+    --------
 
     >>> output = conv(input, filter)
     """
@@ -210,8 +210,8 @@ def corr(input, filter, sampling_time=1):
     torch tensor
         correlation output. Output shape is same as input.
 
-    Usage
-    -----
+    Examples
+    --------
 
     >>> output = corr(input, filter)
     """

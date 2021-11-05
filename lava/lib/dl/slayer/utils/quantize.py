@@ -39,8 +39,8 @@ def quantize(input, step=1):
     torch tensor
         quantized tensor
 
-    Usage
-    -----
+    Examples
+    --------
 
     >>> # Quantize in step of 0.5
     >>> x_quantized = quantize(x, step=0.5)

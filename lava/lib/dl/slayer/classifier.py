@@ -28,8 +28,8 @@ class Rate(torch.nn.Module):
 
         \\text{prediction: } p &= \\arg\\max(\\bf r)
 
-    Usage
-    -----
+    Examples
+    --------
 
     >>> classifier = Rate
     >>> prediction = classifier(spike)
@@ -59,8 +59,8 @@ class Rate(torch.nn.Module):
         torch tensor
             spike rate.
 
-        Usage
-        -----
+        Examples
+        --------
 
         >>> rate = classifier.rate(spike)
         >>> rate = Rate.rate(spike)
@@ -89,8 +89,8 @@ class Rate(torch.nn.Module):
         torch tensor
             confidence.
 
-        Usage
-        -----
+        Examples
+        --------
 
         >>> confidence = classifier.confidence(spike)
         >>> confidence = Rate.confidence(spike)
@@ -119,8 +119,8 @@ class Rate(torch.nn.Module):
         torch tensor
             indices of max spike activity.
 
-        Usage
-        -----
+        Examples
+        --------
 
         >>> prediction = classifier.predict(spike)
         >>> prediction = Rate.predict(spike)
@@ -159,11 +159,8 @@ class MovingWindow(torch.nn.Module):
     eps : float
         infinitesimal value. Defaults to 1e-6.
 
-    Usage
-    -----
-
-    Returns
-    -------
+    Examples
+    --------
 
     >>> classifier = MovingWindow(20)
     >>> prediction = classifier(spike)
@@ -188,8 +185,8 @@ class MovingWindow(torch.nn.Module):
         torch tensor
             spike rate.
 
-        Usage
-        -----
+        Examples
+        --------
 
         >>> rate = classifier.rate(spike)
         """
@@ -211,8 +208,8 @@ class MovingWindow(torch.nn.Module):
         torch tensor
             output confidence.
 
-        Usage
-        -----
+        Examples
+        --------
 
         >>> confidence = classifier.confidence(spike)
         """
@@ -247,8 +244,8 @@ class MovingWindow(torch.nn.Module):
         torch tensor
             output prediction.
 
-        Usage
-        -----
+        Examples
+        --------
 
         >>> prediction = classifier.predict(spike)
         """

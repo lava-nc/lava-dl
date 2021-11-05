@@ -23,8 +23,8 @@ def replicate(input, num_steps):
     torch tensor
         input replicated num_steps times in time
 
-    Usage
-    -----
+    Examples
+    --------
 
     >>> input = torch.rand(2, 3, 4)
     >>> out = replicate(input, 10)

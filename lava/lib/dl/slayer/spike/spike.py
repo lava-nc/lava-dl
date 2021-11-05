@@ -51,8 +51,8 @@ class Spike(torch.autograd.Function):
     torch tensor
         spike tensor
 
-    Usage
-    -----
+    Examples
+    --------
 
     >>> spike = Spike.apply(v, th, tau_rho, scale_rho, False, 0, 1)
     """

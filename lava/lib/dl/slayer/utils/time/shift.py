@@ -103,8 +103,8 @@ def shift(input, shift_val, sampling_time=1):
     torch tensor
         shifted output
 
-    Usage
-    -----
+    Examples
+    --------
 
     >>> output = shift(input, 7)
     >>> output = shift(torch.rand(1, 10, 100), torch.arange(10))

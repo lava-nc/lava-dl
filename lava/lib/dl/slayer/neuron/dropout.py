@@ -19,8 +19,8 @@ class Dropout(torch.nn.Dropout3d):
     inplace : bool
         inplace operation flag. Default is False.
 
-    Usage
-    -----
+    Examples
+    --------
 
     >>> drop = Dropout(0.2, inplace=True)
     >>> output = drop(input)

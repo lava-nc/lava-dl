@@ -1,7 +1,8 @@
 # Copyright (C) 2021 Intel Corporation
 # SPDX-License-Identifier:  BSD-3-Clause
 
-"""Loss module"""
+"""This module provides some pre-built loss methods to be used with
+spike-train. Standard PyTorch loss are also compatible."""
 
 import torch
 import torch.nn.functional as F
@@ -44,7 +45,7 @@ class SpikeTime(torch.nn.Module):
         self.reduction = reduction
 
     def forward(self, input, desired):
-        """
+        """Forward computation of loss.
         """
         return F.mse_loss(
             self.filter(input).flatten(),
@@ -107,7 +108,7 @@ class SpikeRate(torch.nn.Module):
             self.window = None
 
     def forward(self, input, label):
-        """
+        """Forward computation of loss.
         """
         input = input.reshape(input.shape[0], -1, input.shape[-1])
         if self.window is None:  # one label for each sample in a batch
@@ -177,7 +178,7 @@ class SpikeMax(torch.nn.Module):
         self.reduction = reduction
 
     def forward(self, input, label):
-        """
+        """Forward computation of loss.
         """
         input = input.reshape(input.shape[0], -1, input.shape[-1])
         if self.window is None:  # one label for each sample in a batch

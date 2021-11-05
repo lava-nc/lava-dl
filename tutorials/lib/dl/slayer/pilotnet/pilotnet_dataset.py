@@ -30,8 +30,8 @@ class PilotNetDataset(Dataset):
         If true, the train/test split is ignored and the temporal sequence of
         the data is preserved. Defaults to False.
 
-    Usage
-    -----
+    Examples
+    --------
 
     >>> dataset = PilotNetDataset()
     >>> images, gts = dataeset[0]

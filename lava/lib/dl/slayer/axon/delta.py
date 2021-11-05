@@ -185,8 +185,8 @@ class Delta(torch.nn.Module):
     error_state : torch tensor
         error state of delta unit.
 
-    Usage
-    -----
+    Examples
+    --------
         >> delta = Delta(threshold=1)
         >> y = delta(x) # differential threshold encoding
 

@@ -26,8 +26,8 @@ def delay(input, delay_val=1, sampling_time=1):
     torch.tensor
         delayed signal
 
-    Usage
-    -----
+    Examples
+    --------
         >> x_delayed = delay(x, 2) # delay x by 2 timesteps
 
     """
@@ -54,8 +54,8 @@ class Delay(torch.nn.Module):
     delay : torch parameter
         the delay parameter.
 
-    Usage
-    -----
+    Examples
+    --------
         >> axon_delay = Delay()
         >> x_delayed = axon_delay(x)
     """
