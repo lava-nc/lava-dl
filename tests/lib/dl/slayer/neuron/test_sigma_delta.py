@@ -43,44 +43,46 @@ spike_input = torch.autograd.Variable(
     torch.zeros([5, 4, len(time)]), requires_grad=True
 ).to(device)
 spike_input[..., np.random.randint(spike_input.shape[-1], size=5)] = 1
+
 real_weight = torch.FloatTensor(
     5 * np.random.random(size=spike_input.shape[-1]) - 0.5
 ).reshape(
     [1, 1, spike_input.shape[-1]]
-).to(device)weight = torch.FloatTensor(
+).to(device)
+
+imag_weight = torch.FloatTensor(
     5 * np.random.random(size=spike_input.shape[-1]) - 0.5
 ).reshape(
     [1, 1, spike_input.shape[-1]]
-).to(device)pike_input.shape[-1]]
-    ).to(device)
+).to(device)
 
 # initialize neuron
 neuron = rf.Neuron(
-        threshold,
-        [period_min, period_max],
-        [decay_min, decay_max],
-        persistent_state=True,
-        shared_param=False,
-    ).to(device)
+    threshold,
+    [period_min, period_max],
+    [decay_min, decay_max],
+    persistent_state=True,
+    shared_param=False,
+).to(device)
 
 sd_neuron = sigma_delta.Neuron(
-        threshold=threshold,
-        activation=lambda x: x,
-        persistent_state=True
-    ).to(device)
+    threshold=threshold,
+    activation=lambda x: x,
+    persistent_state=True
+).to(device)
 sd_neuron.debug = True
 
 quantized_real_weight = neuron.quantize_8bit(real_weight)
 quantized_imag_weight = neuron.quantize_8bit(imag_weight)
 
 re_spike = torch.autograd.Variable(
-        quantized_real_weight * spike_input,
-        requires_grad=True,
-    )
+    quantized_real_weight * spike_input,
+    requires_grad=True,
+)
 im_spike = torch.autograd.Variable(
-        quantized_imag_weight * spike_input,
-        requires_grad=True,
-    )
+    quantized_imag_weight * spike_input,
+    requires_grad=True,
+)
 
 # get the neuron response for full input
 real, _ = neuron.dynamics((re_spike, im_spike))
@@ -146,17 +148,18 @@ class TestCUBA(unittest.TestCase):
         real_sigma1 = sd_neuron.sigma(sd_neuron.delta(real[..., ind:]))
 
         real_sigma_error = (
-                torch.norm(real_sigma[..., :ind] - real_sigma0)
-                + torch.norm(real_sigma[..., ind:] - real_sigma1)
-            ).item()
+            torch.norm(real_sigma[..., :ind] - real_sigma0)
+            + torch.norm(real_sigma[..., ind:] - real_sigma1)
+        ).item()
 
         if verbose:
             print(ind)
             if real_sigma_error >= 1e-5:
                 print('Persistent real_sigma states')
                 print(
-                    real_sigma[0, 0, ind - 10: ind + 10].\
-                        cpu().data.numpy().tolist()
+                    real_sigma[
+                        0, 0, ind - 10: ind + 10
+                    ].cpu().data.numpy().tolist()
                 )
                 print(real_sigma0[0, 0, -10:].cpu().data.numpy().tolist())
                 print(real_sigma1[0, 0, :10].cpu().data.numpy().tolist())

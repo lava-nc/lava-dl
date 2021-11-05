@@ -206,7 +206,7 @@ class LearningStats:
                 print('\033[2K' + str(h))
                 self.lines_printed += 1
 
-        print(epoch_str + iter_str + progress_str + profile_str + " "*8)
+        print(epoch_str + iter_str + progress_str + profile_str + " " * 8)
         self.lines_printed += 1
         for line in self.__str__().split('| '):
             print(line)

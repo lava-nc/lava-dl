@@ -3,6 +3,7 @@
 
 """Tensor time manipulation utilities."""
 
-__all__ = []
 from .replicate import replicate
 from .shift import shift
+
+__all__ = ['replicate', 'shift']

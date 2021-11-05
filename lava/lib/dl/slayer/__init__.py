@@ -1,18 +1,28 @@
 # Copyright (C) 2021 Intel Corporation
 # SPDX-License-Identifier:  BSD-3-Clause
 
-__all__ = [
-        'neuron',
-        'axon',
-        'dendrite',
-        'spike',
-        'synapse',
-        'block',
-        'classifier',
-        'loss',
-        'io',
-        'auto',
-        'utils'
-    ]
+from . import neuron
+from . import axon
+from . import dendrite
+from . import spike
+from . import synapse
+from . import block
+from . import classifier
+from . import loss
+from . import io
+from . import auto
+from . import utils
 
-from . import *
+__all__ = [
+    'neuron',
+    'axon',
+    'dendrite',
+    'spike',
+    'synapse',
+    'block',
+    'classifier',
+    'loss',
+    'io',
+    'auto',
+    'utils'
+]

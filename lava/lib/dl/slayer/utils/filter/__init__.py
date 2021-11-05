@@ -3,6 +3,7 @@
 """Time dimension filtering utilities.
 """
 
-__all__ = []
 from .conv import conv, corr
 from .fir import FIR, FIRBank
+
+__all__ = ['conv', 'corr', 'FIR', 'FIRBank']

@@ -174,7 +174,9 @@ class TestRF(unittest.TestCase):
             print(ind)
             if spike_error >= 1e-5:
                 print('Persistent spike states')
-                print(spike[0, 0, ind - 10:ind + 10].cpu().data.numpy().tolist())
+                print(
+                    spike[0, 0, ind - 10:ind + 10].cpu().data.numpy().tolist()
+                )
                 print(spike0[0, 0, -10:].cpu().data.numpy().tolist())
                 print(spike1[0, 0, :10].cpu().data.numpy().tolist())
             if real_error >= 1e-5:
