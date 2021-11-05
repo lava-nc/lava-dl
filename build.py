@@ -13,7 +13,7 @@ use_plugin('pypi:pybuilder_bandit')
 
 name = "lava-nc/lava-dl"
 default_task = ["analyze", "publish"]
-version = "0.2.0"
+version = "0.1.0"
 summary = "A library of deep learning tools, which consists of lava.lib.dl.slayer and lava.lib.dl.netx for training and deployment of event-based deep neural networks on traditional as well as neuromorphic backends. Lava-DL is part of Lava Framework "
 url = "https://lava-nc.org"
 license = ["BSD-3-Clause"]
@@ -21,7 +21,7 @@ license = ["BSD-3-Clause"]
 
 @init
 def set_properties(project):
-    project.set_property("dir_source_main_python", "lava")
+    project.set_property("dir_source_main_python", "src")
     project.set_property("dir_source_unittest_python", "tests")
     project.set_property("dir_source_main_scripts", "scripts")
     project.set_property("dir_docs", "docs")
@@ -63,7 +63,7 @@ def set_properties(project):
 
 @init(environments="unit")
 def set_properties_unit(project):
-    project.set_property("dir_source_main_python", "lava")
+    project.set_property("dir_source_main_python", "src")
     project.set_property("dir_source_unittest_python", "tests")
     project.set_property("dir_source_main_scripts", "scripts")
     project.set_property("dir_docs", "docs")
