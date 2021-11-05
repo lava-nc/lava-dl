@@ -225,7 +225,7 @@ class _AdResDynamics(torch.autograd.Function):
                     real_state, imag_state, ref_state, th_state,
                     th_scale, th0, w_scale
                 )
-            print('Fwd Checking')
+            # print('Fwd Checking')
             for i in range(real.shape[1]):
                 if (
                     torch.norm(real[0, i] - _real[0, i]) > 1e-6
@@ -281,7 +281,7 @@ class _AdResDynamics(torch.autograd.Function):
                     grad_real, grad_imag, real, imag, sin_decay, cos_decay
                 )
 
-            print('Bwd Checking')
+            # print('Bwd Checking')
             for i in range(grad_real_input.shape[1]):
                 if (
                     torch.norm(

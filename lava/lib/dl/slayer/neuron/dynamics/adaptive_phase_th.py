@@ -199,7 +199,7 @@ class _APTHDynamics(torch.autograd.Function):
                 th_state, th_decay, th_scale, th0,
                 w_scale
             )
-            print('Fwd Checking')
+            # print('Fwd Checking')
             for i in range(threshold.shape[1]):
                 if (
                     torch.norm(

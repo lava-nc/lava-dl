@@ -197,7 +197,7 @@ class _ResDynamics(torch.autograd.Function):
                 real_state, imag_state,
                 threshold, w_scale
             )
-            print('Fwd Checking')
+            # print('Fwd Checking')
             for i in range(real.shape[1]):
                 if torch.norm(real[0, i] - _real[0, i]) > 1e-6:
                     print('real:', i, torch.norm(real[0, i] - _real[0, i]))
@@ -252,7 +252,7 @@ class _ResDynamics(torch.autograd.Function):
                     grad_real, grad_imag, real, imag, sin_decay, cos_decay
                 )
 
-            print('Bwd Checking')
+            # print('Bwd Checking')
             for i in range(grad_real_input.shape[1]):
                 if torch.norm(
                     grad_real_input[0, i] - _grad_real_input[0, i]

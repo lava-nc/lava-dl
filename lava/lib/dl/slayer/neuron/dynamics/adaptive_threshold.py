@@ -196,7 +196,7 @@ class _ATHDynamics(torch.autograd.Function):
                 th_state, th_decay, th_scale, th0,
                 w_scale
             )
-            print('Fwd Checking')
+            # print('Fwd Checking')
             for i in range(threshold.shape[1]):
                 if (
                     torch.norm(threshold[0, i] - _threshold[0, i]) > 1e-6

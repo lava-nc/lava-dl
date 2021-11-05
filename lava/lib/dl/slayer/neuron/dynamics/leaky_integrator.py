@@ -133,7 +133,7 @@ class _LIDynamics(torch.autograd.Function):
             _output, *_ = Accelerated.leaky_integrator.fwd(
                 input, decay, state, threshold, w_scale
             )
-            print('Fwd Checking')
+            # print('Fwd Checking')
             for i in range(output.shape[1]):
                 if torch.norm(output[0, i] - _output[0, i]) > 1e-6:
                     print('output:', i, torch.norm(
@@ -168,7 +168,7 @@ class _LIDynamics(torch.autograd.Function):
                 grad_output, output, decay
             )
 
-            print('Bwd Checking')
+            # print('Bwd Checking')
             for i in range(grad_input.shape[1]):
                 diff = torch.abs(grad_input[0, i] - _grad_input[0, i])
                 rel_diff = diff / grad_input[0, i].max()
