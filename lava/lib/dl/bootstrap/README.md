@@ -52,4 +52,4 @@ It provides `lava.lib.dl.slayer.block` based network definition interface.
 It provides utilities for sampling SNN data points and pievewise linear ANN fit.
 
 ### `bootstrap.routine`
-`bootstrap.routine.Scheduler` provides an easy scheduling utility to seamlessly switch between SAMPLING | FIT | ANN | SNN mode. It also provides ANN-SNN bootstrap **hybrid traiing** utility as well determined by crossover point.
+`bootstrap.routine.Scheduler` provides an easy scheduling utility to seamlessly switch between SAMPLING | FIT | ANN | SNN mode. It also provides ANN-SNN bootstrap **hybrid training** utility as well determined by crossover point.
