@@ -1,6 +1,8 @@
-# Lava-dl-SLAYER
+# Lava-DL SLAYER
 
-`lava.lib.dl.slayer` is an enhanced version of [SLAYER](https://github.com/bamsumit/slayerPytorch). It now supports a wide variety of learnable event-based _neuron models_, _synapse_, _axon_, and _dendrite_ properties. Other enhancements include various utilities useful during training for event IO, visualization,and filtering as well as logging of training statistics. Here are the key new feature highlights:
+`lava.lib.dl.slayer` is an enhanced version of [SLAYER](https://github.com/bamsumit/slayerPytorch). It now supports a wide variety of learnable event-based _neuron models_, _synapse_, _axon_, and _dendrite_ properties. Other enhancements include various utilities useful during training for event IO, visualization,and filtering as well as logging of training statistics. 
+
+**Highlight Features**
 
 * Resonator, Adaptive leaky neuron dynamics in addtion to conventional Leaky neuron dynamics
 * Sigma-Delta wrapper around arbitrary neuron dynamics
@@ -11,6 +13,22 @@
 * Complex valued synapses
 * Sparse connectivity with connection masking
 * Runtime shape identification (eliminates the need for _a priori_ architecture shape calculation)
+* Just-In-Time compilation of CUDA acccelerated code.
+* Block interface for easy description of network.
+* Easy network export to hdf5 interface format.
+
+## Tutorials
+
+**End to End**
+* [Oxford spike train regression](dummy_link) TODO: UPDATE LINK
+* [NMNIST digit classification](dummy_link) TODO: UPDATE LINK
+* [PilotNet steering angle prediction](dummy_link) TODO: UPDATE LINK
+
+**Deep Dive**
+* [Dynamics and Neurons](dummy_link) TODO: UPDATE LINK
+
+
+## Modules
 
 The overall feature organization is described below.
 

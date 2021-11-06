@@ -14,7 +14,7 @@ class Sigma(torch.nn.Module):
     persistent_state : bool
         flag to enable persistent state. Defaults to False.
 
-    Atrributes
+    Attributes
     ----------
     persistent_state
     shape : torch shape

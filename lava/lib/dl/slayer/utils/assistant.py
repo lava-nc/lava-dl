@@ -1,7 +1,8 @@
 # Copyright (C) 2021 Intel Corporation
 # SPDX-License-Identifier:  BSD-3-Clause
 
-"""Assistant for automatically load network from network description."""
+"""Assistant utility for automatically load network from network
+description."""
 
 import torch
 

@@ -28,7 +28,8 @@ def delay(input, delay_val=1, sampling_time=1):
 
     Examples
     --------
-        >> x_delayed = delay(x, 2) # delay x by 2 timesteps
+
+    >>> x_delayed = delay(x, 2) # delay x by 2 timesteps
 
     """
     return _delayFunctionNoGradient.apply(input, delay_val, sampling_time)
@@ -56,8 +57,8 @@ class Delay(torch.nn.Module):
 
     Examples
     --------
-        >> axon_delay = Delay()
-        >> x_delayed = axon_delay(x)
+    >>> axon_delay = Delay()
+    >>> x_delayed = axon_delay(x)
     """
     # It only operates on channel dimension, by design
     # def __init__(self, sampling_time=1, max_delay=None, grad_scale=(1<<12)):

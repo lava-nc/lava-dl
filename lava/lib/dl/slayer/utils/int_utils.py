@@ -1,7 +1,7 @@
 # Copyright (C) 2021 Intel Corporation
 # SPDX-License-Identifier:  BSD-3-Clause
 
-"""Int shift utilities."""
+"""Integer bit shift utilities."""
 
 import torch
 

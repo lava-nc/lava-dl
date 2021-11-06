@@ -4,4 +4,4 @@
 from .spike import Spike
 from . import complex
 
-__all__ = [Spike, complex]
+__all__ = ['Spike', 'complex']

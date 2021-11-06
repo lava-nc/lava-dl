@@ -59,6 +59,7 @@ class AbstractBlock(torch.nn.Module):
     def _forward_ann(self, x):
         """Forward computation in ANN mode.
         """
+        # TODO: Add time flattenning logic based on input's time dim
         z = self._forward_synapse(x)
 
         if self.neuron.norm is not None:
@@ -81,6 +82,7 @@ class AbstractBlock(torch.nn.Module):
         sample : bool
             flag to enable SNN rate data points. Defaults to False.
         """
+        # TODO: Add time expansion logic based on input's time dim
         z = self._forward_synapse(x)
         x = self.neuron(z)
         if sample is True:

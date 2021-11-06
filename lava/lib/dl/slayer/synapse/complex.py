@@ -79,8 +79,7 @@ class Dense(ComplexLayer):
 
     Attributes
     ----------
-    real
-    : slayer.synapse.Dense
+    real : slayer.synapse.Dense
         real synapse.
     imag : slayer.synapse.Dense
         imaginary synapse.

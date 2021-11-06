@@ -126,21 +126,20 @@ class Delta(torch.nn.Module):
     The thresholds are learnable, individually or as a group.
 
     .. math::
-
-        \\Delta x[t] &= x[t] - x[t-1] + r[t-1] \\
+        \\Delta x[t] &= x[t] - x[t-1] + r[t-1] \\\\
         y[t] &= \\begin{cases}
-            \\Delta x[t] \\text{ if } \\Delta x[t] \\geq \\vartheta \\\\
-            0 \\text{ otherwise}
-        \\end{cases}\\
-        r[t] &= \\Delta x[t] - y[t]\\
+            \\Delta x[t] &\\text{ if } \\Delta x[t] \\geq \\vartheta \\\\
+            0 &\\text{ otherwise}
+        \\end{cases}\\\\
+        r[t] &= \\Delta x[t] - y[t]
 
     For cumulative error, output evaluation is changed to
 
     .. math::
-        e[t] &= e[t] + \\Delta x[t]\\
+        e[t] &= e[t] + \\Delta x[t]\\\\
         y[t] &= \\begin{cases}
-            \\Delta x[t] \\text{ if } e[t] \\geq \\vartheta \\
-            0 \\text{ otherwise}
+            \\Delta x[t] &\\text{ if } e[t] \\geq \\vartheta \\\\
+            0 &\\text{ otherwise}
         \\end{cases}
 
     Parameters

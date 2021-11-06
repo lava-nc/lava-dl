@@ -57,43 +57,52 @@ class Neuron(torch.nn.Module):
     complex : bool, optional
         flag to indicate real or complex neuron. Defaul
 
+    Attributes
+    ----------
     Neuron Attributes
-    -----------------
-    threshold
+        threshold
 
+
+    Attributes
+    ----------
     Gradient Attributes
-    -------------------
-    tau_grad
-    scale_grad
+        * tau_grad
+        * scale_grad
 
+    Attributes
+    ----------
     Scaling Atrributes
-    ------------------
-    p_scale
-    w_scale
-    s_scale
+        * p_scale
+        * w_scale
+        * s_scale
 
+    Attributes
+    ----------
     Normalization Attributes
-    ------------------------
-    norm
+        * norm
 
+    Attributes
+    ----------
     Dropout Attributes
-    ------------------
-    dropout
+        * dropout
 
+    Attributes
+    ----------
     State Attributes
-    ----------------
-    persistent_state
+        * persistent_state
 
+    Attributes
+    ----------
     Group Attributes
-    ----------------
-    shared_param
-    complex
+        * shared_param
+        * complex
 
+    Attributes
+    ----------
     Debug Attributes
-    ----------------
-    debug : book
-        It is False by default. There shall be no constructor access to this
-        flag. If desired, it should be explicitly set.
+        * debug : bool
+            It is False by default. There shall be no constructor access to this
+            flag. If desired, it should be explicitly set.
     """
     def __init__(
         self, threshold,

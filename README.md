@@ -1,6 +1,15 @@
 # Lava DL
 
-__`lava-dl`__ is a library of deep learning tools, which consists of `lava.lib.dl.slayer` and `lava.lib.dl.netx` for training and deployment of event-based deep neural networks on traditional as well as neuromorphic backends.
+__`lava-dl`__ is a library of deep learning tools within Lava that support  offline training, online training and inference methods for various Deep Event-Based Networks.
+
+The library presently consists of 
+1. `lava.lib.dl.slayer` for natively training Deep Event-Based Networks.
+2. `lava.lib.dl.bootstrap` for training rate coded SNNs.
+
+Coming soon to the library
+1. `lava.lib.dl.netx` for training and deployment of event-based deep neural networks on traditional as well as neuromorphic backends.
+
+More tools will be added in the future.
 
 ## Lava-dl Workflow
 
@@ -8,9 +17,94 @@ __`lava-dl`__ is a library of deep learning tools, which consists of `lava.lib.d
 <img src="https://user-images.githubusercontent.com/11490108/135362329-a6cf89e7-9d9e-42e5-9f33-102537463e63.png" alt="Drawing" style="max-height: 400px;"/>
 </p>
 
+## Installation
+
+### Cloning Lava-DL and Running from Source
+
+We highly recommend cloning the repository and using pybuilder to setup lava.
+ You will need to install pybuilder for the same.
+
+**Note:** We assume you have already setup Lava with virtual environment.
+[TODO:verify on Windows and MacOS]
+
+#### [Linux/MacOS]
+```bash
+$ git clone git@github.com:lava-dl/lava.git
+$ cd lava-dl
+$ pip install -r build-requirements.txt
+$ pip install -r requirements.txt
+$ export PYTHONPATH=~/lava-dl #TODO change with directory restructure
+$ pyb -E unit
+```
+#### [Windows]
+```cmd
+cd %HOMEPATH%
+git clone git@github.com:lava-dl/lava.git
+cd lava
+pip install -r build-requirements.txt
+pip install -r requirements.txt
+set PYTHONPATH=%HOMEPATH%\lava #TODO change with directory resturcture
+pyb -E unit
+```
+
+You should expect the following output after running the unit tests:
+```
+PyBuilder version 0.13.3
+Build started at 2021-11-05 18:44:51
+------------------------------------------------------------
+[INFO]  Installing or updating plugin "pypi:pybuilder_bandit, module name 'pybuilder_bandit'"
+[INFO]  Processing plugin packages 'pybuilder_bandit' to be installed with {}
+[INFO]  Activated environments: unit
+[INFO]  Building lava-nc/lava-dl version 0.2.0
+......  PyBuilder Logs ...
+[INFO]  Running unit tests
+[INFO]  Executing unit tests from Python modules in /home/user/lava-dl/tests
+[INFO]  Executed 80 unit tests
+[INFO]  All unit tests passed.
+......  PyBuilder Logs ...
+------------------------------------------------------------
+BUILD SUCCESSFUL
+------------------------------------------------------------
+Build Summary
+             Project: lava-nc/lava-dl
+             Version: 0.2.0
+      Base directory: /home/user/lava-dl
+        Environments: unit
+               Tasks: prepare [45089 ms] analyze [660 ms] compile_sources [0 ms] run_unit_tests [184641 ms] package [1086 ms] run_integration_tests [0 ms] verify [0 ms] publish [15128 ms]
+Build finished at 2021-11-05 18:49:25
+Build took 273 seconds (273800 ms)
+```
+
+### [Alternative] Installing Lava from Binaries
+
+[TODO: verify] If you only need the lava package in your python environment, we will publish
+Lava releases via
+[GitHub Releases](https://github.com/lava-nc/lava-dl/releases). Please download
+the package and install it.
+
+Open a python terminal and run:
+
+#### [Windows/MacOS/Linux]
+```bash
+$ python3 -m venv python3_venv
+$ pip install -U pip
+$ pip install lava-nc-0.1.0.tar.gz
+```
+
+## Getting Started
+
+**End to end tutorials**
+* [Oxford spike train regression](dummy_link) TODO: UPDATE LINK
+* [MNIST digit classification](dummy_link) TODO: UPDATE LINK
+* [NMNIST digit classification](dummy_link) TODO: UPDATE LINK
+* [PilotNet steering angle prediction](dummy_link) TODO: UPDATE LINK
+
+**Deep dive tutorials**
+* [Dynamics and Neurons](dummy_link) TODO: UPDATE LINK
+
 ## __`lava.lib.dl.slayer`__ 
 
-`lava.lib.dl.slayer` is an enhanced version of [SLAYER](https://github.com/bamsumit/slayerPytorch). Most noteworthy enhancements are: support for _recurrent network structures_, a wider variety of _neuron models_ and _synaptic connections_ (a complete list of features is [here](https://github.com/lava-nc/lava-dl/blob/main/lib/dl/slayer/README.md)). This version of SLAYER is built on top of the [PyTorch](https://pytorch.org/) deep learning framework, similar to its predecessor. For smooth integration with Lava, `lava.lib.dl.slayer` supports exporting trained models using the platform independent __hdf5 network exchange__ format. 
+`lava.lib.dl.slayer` is an enhanced version of [SLAYER](https://github.com/bamsumit/slayerPytorch). Most noteworthy enhancements are: support for _recurrent network structures_, a wider variety of _neuron models_ and _synaptic connections_ (a complete list of features is [here_TODO:UPDATE](https://github.com/lava-nc/lava-dl/blob/main/lib/dl/slayer/README.md)). This version of SLAYER is built on top of the [PyTorch](https://pytorch.org/) deep learning framework, similar to its predecessor. For smooth integration with Lava, `lava.lib.dl.slayer` supports exporting trained models using the platform independent __hdf5 network exchange__ format. 
 
 In future versions, SLAYER will get completely integrated into Lava to train Lava Processes directly. This will eliminate the need for explicitly exporting and importing the trained networks. 
 
@@ -54,13 +148,78 @@ class Network(torch.nn.Module):
 __Training__
 ```python
 net = Network()
+assistant = slayer.utils.Assistant(net, error, optimizer, stats)
 ...
 for epoch in range(epochs):
     for i, (input, ground_truth) in enumerate(train_loader):
-        out = net(input)
+        output = assistant.train(input, ground_truth)
         ...
     for i, (input, ground_truth) in enumerate(test_loader):
-        out = net(input)
+        output = assistant.test(input, ground_truth)
+        ...
+```
+__Export the network__
+```python
+net.export_hdf5('network.net')
+```
+
+## __`lava.lib.dl.bootstrap`__
+
+`lava.lib.dl.bootstrap` enables rapid training of rate based SNNs by translating them to equivalent dynamic ANN representation which leads to SNN performance close to the equivalent ANN and low latency inference. It also supports _hybrid training_ with ANN-SNN mixed network to minimize the ANN to SNN performance gap. This method is independent of the SNN model being used.
+
+It has similar API as `lava.lib.dl.slayer` and supports exporting trained models using the platform independent __hdf5 network exchange__ format.
+
+### Example Code
+
+__Import modules__
+```python
+import lava.lib.dl.bootstrap as bootstrap
+```
+__Network Description__
+```python
+# like any standard pyTorch network
+class Network(torch.nn.Module):
+    def __init__(self):
+        ...
+        self.blocks = torch.nn.ModuleList([# sequential network blocks 
+                bootstrap.block.cuba.Input(sdnn_params), 
+                bootstrap.block.cuba.Conv(sdnn_params,  3, 24, 3),
+                bootstrap.block.cuba.Conv(sdnn_params, 24, 36, 3),
+                bootstrap.block.cuba.Conv(rf_params, 36, 64, 3),
+                bootstrap.block.cuba.Conv(sdnn_cnn_params, 64, 64, 3),
+                bootstrap.block.cuba.Flatten(),
+                bootstrap.block.cuba.Dense(alif_params, 64*40, 100),
+                bootstrap.block.cuba.Dense(cuba_params, 100, 10),
+            ])
+
+    def forward(self, x, mode):
+        ...
+        for block, m in zip(self.blocks, mode):
+            x = block(x, mode=m)
+
+        return x
+
+    def export_hdf5(self, filename):
+        # network export to hdf5 format
+        h = h5py.File(filename, 'w')
+        layer = h.create_group('layer')
+        for i, b in enumerate(self.blocks):
+            b.export_hdf5(layer.create_group(f'{i}'))
+```
+__Training__
+```python
+net = Network()
+scheduler = bootstrap.routine.Scheduler()
+...
+for epoch in range(epochs):
+    for i, (input, ground_truth) in enumerate(train_loader):
+        mode = scheduler.mode(epoch, i, net.training)
+        output = net.forward(input, mode)
+        ...
+        loss.backward()
+    for i, (input, ground_truth) in enumerate(test_loader):
+        mode = scheduler.mode(epoch, i, net.training)
+        output = net.forward(input, mode)
         ...
 ```
 __Export the network__
