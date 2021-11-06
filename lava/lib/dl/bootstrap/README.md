@@ -35,7 +35,7 @@ In Bootstrap training. An SNN is used to jumpstart an equivalent ANN model which
 With `bootstrap.block` interface, some of the layers in the network can be run in SNN and rest in ANN. We define **crossover** layer which splits layers earlier than it to always SNN and rest to ANN-SNN bootstrap mode.
 
 <p align="center">
-<img src="https://user-images.githubusercontent.com/29907126/140595186-ab8f419b-4033-4db9-a3da-912c41b38f36.png" alt="Drawing" style="max-height: 250px;"/>
+<img src="https://user-images.githubusercontent.com/29907126/140595438-142a68a5-83be-4131-a979-5c7b750b1055.png" alt="Drawing" style="max-height: 250px;"/>
 </p>
 
 ## Tutorials
