@@ -14,7 +14,7 @@ More tools will be added in the future.
 ## Lava-dl Workflow
 
 <p align="center">
-<img src="https://user-images.githubusercontent.com/11490108/135362329-a6cf89e7-9d9e-42e5-9f33-102537463e63.png" alt="Drawing" style="max-height: 400px;"/>
+<img src="https://user-images.githubusercontent.com/29907126/140595074-3611a523-d7ab-4544-a6f5-d4b52b570648.png" alt="Drawing" style="max-height: 400px;"/>
 </p>
 
 ## Installation
