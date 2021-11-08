@@ -4,7 +4,7 @@ __`lava-dl`__ is a library of deep learning tools within Lava that support  offl
 
 There are two main strategies for training Deep Event-Based Networks: _direct training_ and _ANN to SNN converison_. 
 
-Directly training the network utilizes the information of precise events in time. It is very accurate and results in efficient networks. However, the training these networks take a lot of time and resources.
+Directly training the network utilizes the information of precise events in time. It is very accurate and results in efficient networks. However, training these networks take a lot of time and resources.
 
 On the other hand, ANN to SNN conversion is especially suitable for rate coded SNNs where we can leverage the fast training of ANN. These converted SNNs, however, require increased latency compared to directly trained SNNs.
 
