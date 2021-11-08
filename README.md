@@ -48,7 +48,7 @@ $ git clone git@github.com:lava-dl/lava.git
 $ cd lava-dl
 $ pip install -r build-requirements.txt
 $ pip install -r requirements.txt
-$ export PYTHONPATH=~/lava-dl #TODO change with directory restructure
+$ export PYTHONPATH=~/lava-dl/src
 $ pyb -E unit
 ```
 #### [Windows]
@@ -58,7 +58,7 @@ git clone git@github.com:lava-dl/lava.git
 cd lava
 pip install -r build-requirements.txt
 pip install -r requirements.txt
-set PYTHONPATH=%HOMEPATH%\lava #TODO change with directory resturcture
+set PYTHONPATH=%HOMEPATH%\lava\src
 pyb -E unit
 ```
 
