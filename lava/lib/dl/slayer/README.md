@@ -33,7 +33,7 @@
 The overall feature organization is described below.
 
 ### Spike (`slayer.spike`)
-SLAYER supports binary as well as graded spikes, which are amenable to backpropagation. This opens a door for a new class of neuron behavior.
+SLAYER supports binary as well as graded spikes, which are amenable to backpropagation. This opens the door for a new class of neuron behavior.
 
 ### Neuron (`slayer.neuron`)
 Neuron models in SLAYER are built around custom CUDA accelerated fundamental linear dynamics. Each neuron model has individually learnable parameters from its neural dynamicsas well as persistent state behavior between iterations. Following neuron dynamics are supported.
@@ -77,8 +77,8 @@ SLAYER supports dense, conv, and pool synaptic connections. Masking is possible 
 
 ### Axon (`slayer.axon`)
 
-* learnable axonal delay (`slayer.axon.Delay`)
-* learnable delta encoder (`slayer.axon.Delta`)
+* Learnable axonal delay (`slayer.axon.Delay`)
+* Learnable delta encoder (`slayer.axon.Delta`)
 
 ### Dendrite (`slayer.dendrite`)
 

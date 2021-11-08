@@ -2,7 +2,18 @@
 
 __`lava-dl`__ is a library of deep learning tools within Lava that support  offline training, online training and inference methods for various Deep Event-Based Networks.
 
-The library presently consists of 
+There are two main strategies for training Deep Event-Based Networks: _direct training_ and _ANN to SNN converison_. 
+
+Directly training the network utilizes the information of precise events in time. It is very accurate and results in efficient networks. However, the training these networks take a lot of time and resources.
+
+On the other hand, ANN to SNN conversion is especially suitable for rate coded SNNs where we can leverage the fast training of ANN. These converted SNNs, however, require increased latency compared to directly trained SNNs.
+
+Lava-DL provides improved [SLAYER](https://github.com/bamsumit/slayerPytorch) for direct training of deep event based networks and a new ANN-SNN accelerated training approach called [Bootstrap:TODO](link_here) to mitigate low latency issue of conventional ANN-SNN methods for training Deep Event-Based Networks.
+
+The Lava-DL training api's are independent of core Lava api since there is no native support for backpropagation in Lava processes. However, these training libraries support platform independent hdf5 network description protocol. Lava-DL also includes Network exchange library (coming soon...) that automatically generates the trained network using Lava processes and enables inference of the deep networks through lava on various backends.
+
+The library presently consists of
+
 1. `lava.lib.dl.slayer` for natively training Deep Event-Based Networks.
 2. `lava.lib.dl.bootstrap` for training rate coded SNNs.
 
@@ -11,11 +22,15 @@ Coming soon to the library
 
 More tools will be added in the future.
 
-## Lava-dl Workflow
+## Lava-DL Workflow
 
 <p align="center">
 <img src="https://user-images.githubusercontent.com/29907126/140595634-a97886c6-280a-4771-830b-ae47a9324612.png" alt="Drawing" style="max-height: 400px;"/>
 </p>
+
+Typical Lava-DL workflow consists of two parts:
+* **Training:** using `lava.lib.dl.{slayer/bootstrap}` which results in a _hdf5 network description_. Training usually consists of iterative cycle of architecture design, hyperparameter tuning, and backpropagation training.
+* **Inference:** using `lava.lib.dl.netx` which generates lava proces from the hdf5 network description of the trained network and enables inference on different backends.
 
 ## Installation
 
@@ -165,7 +180,9 @@ net.export_hdf5('network.net')
 
 ## __`lava.lib.dl.bootstrap`__
 
-`lava.lib.dl.bootstrap` enables rapid training of rate based SNNs by translating them to equivalent dynamic ANN representation which leads to SNN performance close to the equivalent ANN and low latency inference. It also supports _hybrid training_ with ANN-SNN mixed network to minimize the ANN to SNN performance gap. This method is independent of the SNN model being used.
+In general ANN-SNN conversion methods for rate based SNN result in high latency of the network. This is because the rate interpretation of a spiking neuron using ReLU acitvation unit breaks down for short inference times. 
+
+`lava.lib.dl.bootstrap` enables rapid training of rate based SNNs by translating them to equivalent dynamic ANN representation which leads to SNN performance close to the equivalent ANN and low latency inference. More details [here:TODO](link). It also supports _hybrid training_ with ANN-SNN mixed network to minimize the ANN to SNN performance gap. This method is independent of the SNN model being used.
 
 It has similar API as `lava.lib.dl.slayer` and supports exporting trained models using the platform independent __hdf5 network exchange__ format.
 

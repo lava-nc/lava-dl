@@ -1,6 +1,8 @@
 # Lava-DL Bootstrap
 
-`lava.lib.dl.bootstrap` accelerates rate coded Spiking Neural Network (SNN) training using by dynamically estimating the equivalent ANN transfer function of a spiking layer with a picewise linear model at regular interval and using the ANN equivlent network to train the original SNN. 
+In general ANN-SNN conversion methods for rate based SNN result in high latency of the network. This is because the rate interpretation of a spiking neuron using ReLU acitvation unit breaks down for short inference times. 
+
+`lava.lib.dl.bootstrap` accelerates rate coded Spiking Neural Network (SNN) training by dynamically estimating the equivalent ANN transfer function of a spiking layer with a picewise linear model at regular interval and using the ANN equivlent network to train the original SNN. 
 
 **Highlight features**
 
@@ -21,7 +23,7 @@ The underlying principle for ANN-SNN conversion is that the ReLU activation func
 In Bootstrap training. An SNN is used to jumpstart an equivalent ANN model which is then used to accelerate SNN training. There is no restriction on the type of spiking neuron or it's reset behavior. It consists of following steps:
 
 <p align="center">
-<img src="https://user-images.githubusercontent.com/29907126/140595174-2feb6946-bf64-4188-a6ea-eeb693a3052d.png" alt="Drawing" style="max-height: 300px;"/>
+<img src="https://user-images.githubusercontent.com/29907126/140595174-2feb6946-bf64-4188-a6ea-eeb693a3052d.png" alt="Drawing" style="height: 400px;"/>
 </p>
 
 * Input output data points are first collected from the network running as an SNN: **`bootstrap.mode.SNN`**.
@@ -32,10 +34,12 @@ In Bootstrap training. An SNN is used to jumpstart an equivalent ANN model which
 
 ## Hybridization
 
+The dynamic estimation of ANN activation function may still not be enough to reduce the gap between SNN and it's equivalent ANN, especially when the inference timesteps are low and the networks grow deep. In such a scenario, one can look at a hybrid approach of directly training a part of the network as SNN layers/blocks while acclearating the rest of the layers/blocks with bootstrap training.
+
 With `bootstrap.block` interface, some of the layers in the network can be run in SNN and rest in ANN. We define **crossover** layer which splits layers earlier than it to always SNN and rest to ANN-SNN bootstrap mode.
 
 <p align="center">
-<img src="https://user-images.githubusercontent.com/29907126/140596065-e72e1340-351d-4e5f-b4e0-8b77ed95eb9a.png" alt="Drawing" style="max-height: 250px;"/>
+<img src="https://user-images.githubusercontent.com/29907126/140596065-e72e1340-351d-4e5f-b4e0-8b77ed95eb9a.png" alt="Drawing" style="height: 350px;"/>
 </p>
 
 ## Tutorials
