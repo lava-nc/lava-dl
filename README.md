@@ -4,7 +4,7 @@ __`lava-dl`__ is a library of deep learning tools within Lava that support  offl
 
 There are two main strategies for training Deep Event-Based Networks: _direct training_ and _ANN to SNN converison_. 
 
-Directly training the network utilizes the information of precise events in time. It is very accurate and results in efficient networks. However, training these networks take a lot of time and resources.
+Directly training the network utilizes the information of precise timing of events. Direct training is very accurate and results in efficient networks. However, directly training networks take a lot of time and resources.
 
 On the other hand, ANN to SNN conversion is especially suitable for rate coded SNNs where we can leverage fast training of ANNs. These converted SNNs, however, typically require increased latency compared to directly trained SNNs.
 
@@ -29,7 +29,7 @@ More tools will be added in the future.
 </p>
 
 Typical Lava-DL workflow:
-* **Training:** using `lava.lib.dl.{slayer/bootstrap}` which results in a _hdf5 network description_. Training usually consists of iterative cycle of architecture design, hyperparameter tuning, and backpropagation training.
+* **Training:** using `lava.lib.dl.{slayer/bootstrap}` which results in a _hdf5 network description_. Training usually follows an iterative cycle of architecture design, hyperparameter tuning, and backpropagation training.
 * **Inference:** using `lava.lib.dl.netx` which generates lava proces from the hdf5 network description of the trained network and enables inference on different backends.
 
 ## Installation

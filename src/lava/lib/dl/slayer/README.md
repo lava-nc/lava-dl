@@ -36,7 +36,7 @@ The overall feature organization is described below.
 SLAYER supports binary as well as graded spikes, which are amenable to backpropagation. This opens the door for a new class of neuron behavior.
 
 ### Neuron (`slayer.neuron`)
-Neuron models in SLAYER are built around custom CUDA accelerated fundamental linear dynamics. Each neuron model has individually learnable parameters from its neural dynamicsas well as persistent state behavior between iterations. Following neuron dynamics are supported.
+Neuron models in SLAYER are built around custom CUDA accelerated fundamental linear dynamics. Each neuron model has individually learnable parameters from its neural dynamics as well as persistent state behavior between iterations. The following neuron dynamics are supported.
 * Leaky Integrator
 * Resonator
 * Adaptive Integrator with Refractory Dynamics
