@@ -132,12 +132,13 @@ class Neuron(torch.nn.Module):
         self.persistent_state = persistent_state
         self.requires_grad = requires_grad
         self.debug = False
-        assert self.s_scale >= self.w_scale, (
-            'State scale is expected to be greater than weight scale. '
-            'Found following\n'
-            f'state scale = {self.s_scale}\n'
-            f'weight scale = {self.w_scale}\n'
-        )
+        if self.s_scale < self.w_scale:
+            raise AssertionError(
+                'State scale is expected to be greater than weight scale. '
+                'Found following\n'
+                f'state scale = {self.s_scale}\n'
+                f'weight scale = {self.w_scale}\n'
+            )
         self.complex = complex  # by default the neuron is not complex
 
         if norm is not None:

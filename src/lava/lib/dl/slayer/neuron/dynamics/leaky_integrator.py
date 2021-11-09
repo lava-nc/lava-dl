@@ -29,9 +29,11 @@ class Accelerated:
                     'Leaky Integrator accelerated module does not exist. '
                     'Initializing with JIT compilation.'
                 )
-            assert torch.cuda.is_available(), \
-                'CUDA acceleration of Leaky Integrator failed. '\
-                'CUDA is not available in the system.'
+            if not torch.cuda.is_available():
+                raise Exception(
+                    'CUDA acceleration of Leaky Integrator failed. '
+                    'CUDA is not available in the system.'
+                )
             if jitconfig.TORCH_CUDA_ARCH_LIST is not None:
                 os.environ['TORCH_CUDA_ARCH_LIST'] = \
                     jitconfig.TORCH_CUDA_ARCH_LIST
@@ -149,8 +151,8 @@ class _LIDynamics(torch.autograd.Function):
 
                     # this is due to int32 value underflow
                     if (output[output != _output] * w_scale).min() > -524287:
-                        assert False
-                    assert False
+                        raise Exception
+                    raise Exception
 
         ctx.save_for_backward(output, decay)
 
@@ -188,7 +190,7 @@ class _LIDynamics(torch.autograd.Function):
                         _grad_input[0, i, ind:ind + 50],
                         rel_diff[ind:ind + 50],
                     )
-                    assert False
+                    raise Exception
             if torch.norm(
                 grad_decay - _grad_decay
             ) / torch.numel(grad_decay) > 1e-2:
@@ -200,7 +202,7 @@ class _LIDynamics(torch.autograd.Function):
                     grad_decay[grad_decay != _grad_decay],
                     _grad_decay[grad_decay != _grad_decay],
                 )
-                assert False
+                raise Exception
 
         return grad_input, grad_decay, None, None, None
 

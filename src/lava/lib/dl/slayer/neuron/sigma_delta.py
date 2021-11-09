@@ -210,9 +210,11 @@ class Neuron(base.Neuron):
             axon = self.drop(axon)
 
         if self.shape is None:
-            assert self.sigma.shape == self.delta.shape, \
-                f'The shape of sigma and delta do not match. '\
-                f'Found {self.sigma.shape=} and {self.delta.shape=}.'
+            if self.sigma.shape != self.delta.shape:
+                raise AssertionError(
+                    f'The shape of sigma and delta do not match. '
+                    f'Found {self.sigma.shape=} and {self.delta.shape=}.'
+                )
             self.shape = self.sigma.shape
 
         return axon

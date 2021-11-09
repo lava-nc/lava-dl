@@ -378,10 +378,14 @@ class AbstractTimeDecimation(torch.nn.Module):
         super(AbstractTimeDecimation, self).__init__()
 
         self.count_log = count_log
-        assert factor > 0,\
-            f'Expected factor to be a positive integer. Found {factor=}.'
-        assert (factor & (factor - 1)) == 0,\
-            f'Expected factor to be a power of 2. Found {factor=}.'
+        if factor == 0:
+            raise AssertionError(
+                f'Expected factor to be a positive integer. Found {factor=}.'
+            )
+        if (factor & (factor - 1)) != 0:
+            raise AssertionError(
+                f'Expected factor to be a power of 2. Found {factor=}.'
+            )
         self.factor = int(factor)
 
     def forward(self, x):

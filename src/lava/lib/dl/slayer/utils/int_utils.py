@@ -22,8 +22,10 @@ def right_shift_to_zero(x, bits):
         right shift to zero result.
 
     """
-    assert x.dtype == torch.int32 or x.dtype == torch.int64, \
-        f'Expected torch.int32 or torch.int64 data, found {x.dtype}.'
+    if not(x.dtype == torch.int32 or x.dtype == torch.int64):
+        raise Exception(
+            f'Expected torch.int32 or torch.int64 data, found {x.dtype}.'
+        )
     x_sign = 2 * (x > 0) - 1
     # return x_sign * (x_sign * x >> bits) # This seems to return torch.int64!
     return (x_sign * ((x_sign * x) >> bits)).to(x.dtype)

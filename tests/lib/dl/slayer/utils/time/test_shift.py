@@ -35,8 +35,10 @@ class TestShift(unittest.TestCase):
         error = torch.abs(
             output[..., shift_steps:] - input[..., :-shift_steps]
         ).sum()
-        assert error < 1e-6, \
+        self.assertTrue(
+            error < 1e-6,
             f'Error in positive shift. Expected error<1e-6. Found {error=}.'
+        )
         if torch.cuda.is_available():
             out_cuda = shift(input.to(device), shift_steps)
             error_cuda = torch.abs(
@@ -46,9 +48,11 @@ class TestShift(unittest.TestCase):
             if verbose is True:
                 print(f'{input=}')
                 print(f'{out_cuda=}')
-            assert error_cuda < 1e-6, \
-                f'Error in positive shift. Expected error_cuda<1e-6. '\
+            self.assertTrue(
+                error_cuda < 1e-6,
+                f'Error in positive shift. Expected error_cuda<1e-6. '
                 f'Found {error_cuda=}.'
+            )
 
     def test_shift_negative(self):
         shift_steps = -10
@@ -59,8 +63,10 @@ class TestShift(unittest.TestCase):
         if verbose is True:
             print(f'{input=}')
             print(f'{output=}')
-        assert error < 1e-6, \
+        self.assertTrue(
+            error < 1e-6,
             f'Error in negative shift. Expected error<1e-6. Found {error=}.'
+        )
         if torch.cuda.is_available():
             out_cuda = shift(input.to(device), shift_steps)
             error_cuda = torch.abs(
@@ -70,9 +76,11 @@ class TestShift(unittest.TestCase):
             if verbose is True:
                 print(f'{input=}')
                 print(f'{out_cuda=}')
-            assert error_cuda < 1e-6, \
-                f'Error in negative shift. Expected error_cuda<1e-6. '\
+            self.assertTrue(
+                error_cuda < 1e-6,
+                f'Error in negative shift. Expected error_cuda<1e-6. '
                 f'Found {error_cuda=}.'
+            )
 
     def test_shift(self):
         shift_steps = torch.arange(input.shape[1]).to(input.dtype) \
@@ -92,8 +100,10 @@ class TestShift(unittest.TestCase):
             print(f'{output=}')
             print(f'{gt=}')
         error = np.abs(output - gt).sum()
-        assert error < 1e-6, \
+        self.assertTrue(
+            error < 1e-6,
             f'Error in shift. Expected error<1e-6. Found {error=}.'
+        )
         if torch.cuda.is_available():
             out_cuda = shift(
                 input.to(device),
@@ -102,6 +112,8 @@ class TestShift(unittest.TestCase):
             if verbose is True:
                 print(f'{out_cuda=}')
             error_cuda = np.abs(out_cuda - gt).sum()
-            assert error_cuda < 1e-6, \
-                f'Error in shift. Expected error_cuda<1e-6. '\
+            self.assertTrue(
+                error_cuda < 1e-6,
+                f'Error in shift. Expected error_cuda<1e-6. '
                 f'Found {error_cuda=}.'
+            )

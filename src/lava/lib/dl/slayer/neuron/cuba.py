@@ -129,12 +129,16 @@ class Neuron(base.Neuron):
         self.graded_spike = graded_spike
 
         if self.shared_param is True:
-            assert np.isscalar(current_decay) is True,\
-                f'Expected current decay to be a scalar when shared_param is '\
-                f'True. Found {current_decay=}.'
-            assert np.isscalar(voltage_decay) is True,\
-                f'Expected voltage decay to be a scalar when shared_param is '\
-                f'True. Found {voltage_decay=}.'
+            if np.isscalar(current_decay) is False:
+                raise AssertionError(
+                    f'Expected current decay to be a scalar when shared_param '
+                    f'is True. Found {current_decay=}.'
+                )
+            if np.isscalar(voltage_decay) is False:
+                raise AssertionError(
+                    f'Expected voltage decay to be a scalar when shared_param '
+                    f'is True. Found {voltage_decay=}.'
+                )
             self.register_parameter(
                 'current_decay',
                 torch.nn.Parameter(
@@ -154,9 +158,11 @@ class Neuron(base.Neuron):
                 self.current_decay_min = current_decay * 0.99
                 self.current_decay_max = current_decay * 1.01
             else:
-                assert len(current_decay) == 2,\
-                    f'Expected current decay to be of length 2 i.e. '\
-                    f'[min, max]. Found {current_decay=}.'
+                if len(current_decay) != 2:
+                    raise AssertionError(
+                        f'Expected current decay to be of length 2 i.e. '
+                        f'[min, max]. Found {current_decay=}.'
+                    )
                 self.current_decay_min = current_decay[0]
                 self.current_decay_max = current_decay[1]
 
@@ -164,9 +170,11 @@ class Neuron(base.Neuron):
                 self.voltage_decay_min = voltage_decay * 0.99
                 self.voltage_decay_max = voltage_decay * 1.01
             else:
-                assert len(voltage_decay) == 2,\
-                    f'Expected voltage decay to be of length 2 i.e. '\
-                    f'[min, max]. Found {voltage_decay=}.'
+                if len(voltage_decay) != 2:
+                    raise AssertionError(
+                        f'Expected voltage decay to be of length 2 i.e. '
+                        f'[min, max]. Found {voltage_decay=}.'
+                    )
                 self.voltage_decay_min = voltage_decay[0]
                 self.voltage_decay_max = voltage_decay[1]
 
@@ -278,10 +286,12 @@ class Neuron(base.Neuron):
         """
         if self.shape is None:
             self.shape = input.shape[1:-1]
-            assert len(self.shape) > 0, \
-                f"Expected input to have at least 3 dimensions: "\
-                f"[Batch, Spatial dims ..., Time]. "\
-                f"It's shape is {input.shape}."
+            if len(self.shape) == 0:
+                raise AssertionError(
+                    f"Expected input to have at least 3 dimensions: "
+                    f"[Batch, Spatial dims ..., Time]. "
+                    f"It's shape is {input.shape}."
+                )
             self.num_neurons = np.prod(self.shape)
             if self.shared_param is False:
                 current_decay = self.current_decay_min \
@@ -304,9 +314,11 @@ class Neuron(base.Neuron):
                 del self.voltage_decay_min
                 del self.voltage_decay_max
         else:
-            assert input.shape[1:-1] == self.shape, \
-                f'Input tensor shape ({input.shape}) does not match with '\
-                f'Neuron shape ({self.shape}).'
+            if input.shape[1:-1] != self.shape:
+                raise AssertionError(
+                    f'Input tensor shape ({input.shape}) does not match with '
+                    f'Neuron shape ({self.shape}).'
+                )
 
         dtype = self.current_state.dtype
         device = self.current_state.device

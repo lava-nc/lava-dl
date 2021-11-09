@@ -132,15 +132,22 @@ class Neuron(base.Neuron):
         # It is possible to set period < 4, but it will get quantized.
         # So the result might not be as desired for period = 2 and 3.
         if self.shared_param is True:
-            assert np.isscalar(decay) is True,\
-                f'Expected decay to be a scalar when shared_param is True. '\
-                f'Found {decay=}.'
-            assert np.isscalar(period) is True,\
-                f'Expected period to be a scalar when shared_param is True. '\
-                f'Found {period=}.'
-            assert period >= 4, \
-                f'Neuron period less than 4 does not make sense. '\
-                f'Found {period=}.'
+            if np.isscalar(decay) is False:
+                raise AssertionError(
+                    f'Expected decay to be a scalar when shared_param is True.'
+                    f' Found {decay=}.'
+                )
+            if np.isscalar(period) is False:
+                raise AssertionError(
+                    f'Expected period to be a scalar when shared_param is'
+                    f' True. Found {period=}.'
+                )
+            if period < 4:
+                raise AssertionError(
+                    f'Neuron period less than 4 does not make sense. '
+                    f'Found {period=}.'
+                )
+
             sin_decay = np.sin(2 * np.pi / period) * (1 - decay)
             cos_decay = np.cos(2 * np.pi / period) * (1 - decay)
             self.register_parameter(
@@ -173,18 +180,24 @@ class Neuron(base.Neuron):
             )
         else:
             if np.isscalar(period) is True:  # 1% jitter for now
-                assert period >= 4, \
-                    f'Neuron period less than 4 does not make sense. '\
-                    f'Found {period=}.'
+                if period < 4:
+                    raise AssertionError(
+                        f'Neuron period less than 4 does not make sense. '
+                        f'Found {period=}.'
+                    )
                 self.period_min = period * 0.99
                 self.period_max = period * 1.01
             else:
-                assert len(period) == 2,\
-                    f'Expected period to be of length 2 i.e. [min, max]. '\
-                    f'Found {period=}.'
-                assert min(period) >= 4, \
-                    f'Neuron period less than 4 does not make sense. '\
-                    f'Found {period=}.'
+                if len(period) != 2:
+                    raise AssertionError(
+                        f'Expected period to be of length 2 i.e. [min, max]. '
+                        f'Found {period=}.'
+                    )
+                if min(period) < 4:
+                    raise AssertionError(
+                        f'Neuron period less than 4 does not make sense. '
+                        f'Found {period=}.'
+                    )
                 self.period_min = period[0]
                 self.period_max = period[1]
 
@@ -192,9 +205,11 @@ class Neuron(base.Neuron):
                 self.decay_min = decay * 0.99
                 self.decay_max = decay * 1.01
             else:
-                assert len(decay) == 2,\
-                    f'Expected decay to be of length 2 i.e. [min, max]. '\
-                    f'Found {decay=}.'
+                if len(decay) != 2:
+                    raise AssertionError(
+                        f'Expected decay to be of length 2 i.e. [min, max]. '
+                        f'Found {decay=}.'
+                    )
                 self.decay_min = decay[0]
                 self.decay_max = decay[1]
 
@@ -202,9 +217,11 @@ class Neuron(base.Neuron):
                 self.threshold_decay_min = threshold_decay
                 self.threshold_decay_max = threshold_decay
             else:
-                assert len(threshold_decay) == 2,\
-                    f'Expected threshold decay to be of length 2 i.e. '\
-                    f'[min, max]. Found {threshold_decay=}.'
+                if len(threshold_decay) != 2:
+                    raise AssertionError(
+                        f'Expected threshold decay to be of length 2 i.e. '
+                        f'[min, max]. Found {threshold_decay=}.'
+                    )
                 self.threshold_decay_min = threshold_decay[0]
                 self.threshold_decay_max = threshold_decay[1]
 
@@ -212,9 +229,11 @@ class Neuron(base.Neuron):
                 self.refractory_decay_min = refractory_decay
                 self.refractory_decay_max = refractory_decay
             else:
-                assert len(refractory_decay) == 2,\
-                    f'Expected refractory decay to be of length 2 i.e. '\
-                    f'[min, max]. Found {refractory_decay=}.'
+                if len(refractory_decay) != 2:
+                    raise AssertionError(
+                        f'Expected refractory decay to be of length 2 i.e. '
+                        f'[min, max]. Found {refractory_decay=}.'
+                    )
                 self.refractory_decay_min = refractory_decay[0]
                 self.refractory_decay_max = refractory_decay[1]
 
@@ -392,10 +411,12 @@ class Neuron(base.Neuron):
         real_input, imag_input = input
         if self.shape is None:
             self.shape = real_input.shape[1:-1]
-            assert len(self.shape) > 0, \
-                f"Expected input to have at least 3 dimensions: "\
-                f"[Batch, Spatial dims ..., Time]. "\
-                f"It's shape is {real_input.shape}."
+            if len(self.shape) == 0:
+                raise AssertionError(
+                    f"Expected input to have at least 3 dimensions: "
+                    f"[Batch, Spatial dims ..., Time]. "
+                    f"It's shape is {real_input.shape}."
+                )
             self.num_neurons = np.prod(self.shape)
             if self.shared_param is False:
                 if self.log_init is False:
@@ -444,12 +465,16 @@ class Neuron(base.Neuron):
                 del self.refractory_decay_min
                 del self.refractory_decay_max
         else:
-            assert real_input.shape[1:-1] == self.shape, \
-                f'Real input tensor shape ({real_input.shape}) '\
-                f'does not match with Neuron shape ({self.shape}).'
-        assert real_input.shape == imag_input.shape, \
-            f'Real input tensor shape ({imag_input.shape}) does not match '\
-            f'with imaginary input shape ({imag_input.shape}).'
+            if real_input.shape[1:-1] != self.shape:
+                raise AssertionError(
+                    f'Real input tensor shape ({real_input.shape}) '
+                    f'does not match with Neuron shape ({self.shape}).'
+                )
+        if real_input.shape != imag_input.shape:
+            raise AssertionError(
+                f'Real input tensor shape ({imag_input.shape}) does not match '
+                f'with imaginary input shape ({imag_input.shape}).'
+            )
 
         dtype = self.real_state.dtype
         device = self.real_state.device

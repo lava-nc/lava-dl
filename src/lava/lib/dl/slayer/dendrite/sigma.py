@@ -40,14 +40,18 @@ class Sigma(torch.nn.Module):
         """
         if self.shape is None:
             self.shape = input.shape[1:-1]
-            assert len(self.shape) > 0, \
-                f"Expected input to have at least 3 dimensions: "\
-                f"[Batch, Spatial dims ..., Time]. "\
-                f"It's shape is {input.shape}."
+            if len(self.shape) == 0:
+                raise AssertionError(
+                    f"Expected input to have at least 3 dimensions: "
+                    f"[Batch, Spatial dims ..., Time]. "
+                    f"It's shape is {input.shape}."
+                )
         else:
-            assert input.shape[1:-1] == self.shape, \
-                f'Input tensor shape ({input.shape}) '\
-                f'does not match with Neuron shape ({self.shape}).'
+            if input.shape[1:-1] != self.shape:
+                raise AssertionError(
+                    f'Input tensor shape ({input.shape}) '
+                    f'does not match with Neuron shape ({self.shape}).'
+                )
 
         if self.pre_state.shape[0] != input.shape[0]:
             # persistent state cannot proceed due to change in batch dimension.

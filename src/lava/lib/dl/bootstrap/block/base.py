@@ -36,9 +36,11 @@ class AbstractBlock(torch.nn.Module):
             # axonal delays are not allowed.
             self.delay = None
         if hasattr(self, 'synapse'):
-            assert self.synapse.complex is False, \
-                f'Only real synapses are supported. '\
-                f'Found {self.synapse.complex=}.'
+            if self.synapse.complex is True:
+                raise AssertionError(
+                    f'Only real synapses are supported. '
+                    f'Found {self.synapse.complex=}.'
+                )
 
     def fit(self):
         """Fit the sampling points to estimate piecewise linear model."""

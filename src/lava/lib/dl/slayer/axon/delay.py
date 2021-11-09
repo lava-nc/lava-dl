@@ -107,10 +107,12 @@ class Delay(torch.nn.Module):
 
         """
         if self.init is False:
-            assert len(input.shape) > 2, \
-                f"Expected input to have at least 3 dimensions: "\
-                f"[Batch, Spatial dims ..., Time]. "\
-                f"It's shape is {input.shape}."
+            if len(input.shape) <= 2:
+                raise AssertionError(
+                    f"Expected input to have at least 3 dimensions: "
+                    f"[Batch, Spatial dims ..., Time]. "
+                    f"It's shape is {input.shape}."
+                )
 
             self.delay.data = torch.rand(
                 input.shape[1],
@@ -121,9 +123,11 @@ class Delay(torch.nn.Module):
 
         self.clamp()
 
-        assert self.shape[0] == input.shape[1], \
-            f"Expected input to have same number of channels as delays. "\
-            f"Expected {self.shape[0]}, found {input.shape[1]}."
+        if self.shape[0] != input.shape[1]:
+            raise AssertionError(
+                f"Expected input to have same number of channels as delays. "
+                f"Expected {self.shape[0]}, found {input.shape[1]}."
+            )
 
         if np.prod(input.shape[1:-1]) == self.shape[0]:
             return _delayFunction.apply(

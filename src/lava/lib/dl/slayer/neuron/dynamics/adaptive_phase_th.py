@@ -30,9 +30,11 @@ class Accelerated:
                     'Adaptive Phase Threshold accelerated module does not',
                     'exist. Initializing with JIT compilation.'
                 )
-            assert torch.cuda.is_available(), \
-                'CUDA acceleration of Adaptive Phase Threshold failed. '\
-                'CUDA is not available in the system.'
+            if not torch.cuda.is_available():
+                raise Exception(
+                    'CUDA acceleration of Adaptive Phase Threshold failed. '
+                    'CUDA is not available in the system.'
+                )
             if jitconfig.TORCH_CUDA_ARCH_LIST is not None:
                 os.environ['TORCH_CUDA_ARCH_LIST'] = \
                     jitconfig.TORCH_CUDA_ARCH_LIST
@@ -218,7 +220,7 @@ class _APTHDynamics(torch.autograd.Function):
                     print(refractory[0, i, :50] * w_scale)
                     print(_refractory[0, i, :50] * w_scale)
 
-                    assert False
+                    raise Exception
 
         return threshold, refractory
 

@@ -28,9 +28,11 @@ class Accelerated:
                     'Conv accelerated module does not exist. '
                     'Initializing with JIT compilation'
                 )
-            assert torch.cuda.is_available(), \
-                'CUDA acceleration of time-conv failed. '\
-                'CUDA is not available in the system.'
+            if not torch.cuda.is_available():
+                raise Exception(
+                    'CUDA acceleration of time-conv failed. '
+                    'CUDA is not available in the system.'
+                )
             if jitconfig.TORCH_CUDA_ARCH_LIST is not None:
                 os.environ['TORCH_CUDA_ARCH_LIST'] = \
                     jitconfig.TORCH_CUDA_ARCH_LIST

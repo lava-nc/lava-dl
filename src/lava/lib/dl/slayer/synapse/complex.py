@@ -41,8 +41,11 @@ class ComplexLayer(torch.nn.Module):
     def pre_hook_fx(self):
         """Returns the pre-hook function for synapse operation. Typically
         intended to define the quantization method."""
-        assert id(self.real.preHookFx) == id(self.imag.preHookFx), \
-            'Quantization method of real and imaginary weights must be same.'
+        if id(self.real.preHookFx) != id(self.imag.preHookFx):
+            raise Exception(
+                'Quantization method of real and imaginary weights '
+                'must be same.'
+            )
         return self.real.preHookFx
 
     @pre_hook_fx.setter

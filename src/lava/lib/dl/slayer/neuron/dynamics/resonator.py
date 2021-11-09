@@ -28,9 +28,11 @@ class Accelerated:
                     'Resonator accelerated module does not exist. '
                     'Initializing with JIT compilation.'
                 )
-            assert torch.cuda.is_available(), \
-                'CUDA acceleration of Resonator failed. '\
-                'CUDA is not available in the system.'
+            if not torch.cuda.is_available():
+                raise Exception(
+                    'CUDA acceleration of Resonator failed. '
+                    'CUDA is not available in the system.'
+                )
             if jitconfig.TORCH_CUDA_ARCH_LIST is not None:
                 os.environ['TORCH_CUDA_ARCH_LIST'] = \
                     jitconfig.TORCH_CUDA_ARCH_LIST
@@ -214,7 +216,7 @@ class _ResDynamics(torch.autograd.Function):
                         real[real != _real] * w_scale,
                         _real[real != _real] * w_scale
                     )
-                    assert False
+                    raise Exception
                 if torch.norm(imag[0, i] - _imag[0, i]) > 1e-6:
                     print('real:', i)
                     print(real[0, i, :50] * w_scale)
@@ -230,7 +232,7 @@ class _ResDynamics(torch.autograd.Function):
                         imag[imag != _imag] * w_scale,
                         _imag[imag != _imag] * w_scale
                     )
-                    assert False
+                    raise Exception
 
         ctx.save_for_backward(real, imag, sin_decay, cos_decay)
 
@@ -274,7 +276,7 @@ class _ResDynamics(torch.autograd.Function):
                         grad_real_input[grad_real_input != _grad_real_input],
                         _grad_real_input[grad_real_input != _grad_real_input]
                     )
-                    assert False
+                    raise Exception
                 if torch.norm(
                     grad_imag_input[0, i] - _grad_imag_input[0, i]
                 ) / torch.numel(grad_imag_input[0, i]) > 1e-6:
@@ -294,7 +296,7 @@ class _ResDynamics(torch.autograd.Function):
                         grad_imag_input[grad_imag_input != _grad_imag_input],
                         _grad_imag_input[grad_imag_input != _grad_imag_input]
                     )
-                    assert False
+                    raise Exception
                 if torch.norm(
                     grad_sin_decay - _grad_sin_decay
                 ) / torch.numel(grad_sin_decay) > 1e-2:
@@ -308,7 +310,7 @@ class _ResDynamics(torch.autograd.Function):
                         grad_sin_decay[grad_sin_decay != _grad_sin_decay],
                         _grad_sin_decay[grad_sin_decay != _grad_sin_decay],
                     )
-                    assert False
+                    raise Exception
                 if torch.norm(
                     grad_cos_decay - _grad_cos_decay
                 ) / torch.numel(grad_cos_decay) > 1e-2:
@@ -322,7 +324,7 @@ class _ResDynamics(torch.autograd.Function):
                         grad_cos_decay[grad_cos_decay != _grad_cos_decay],
                         _grad_cos_decay[grad_cos_decay != _grad_cos_decay],
                     )
-                    assert False
+                    raise Exception
 
         return grad_real_input, grad_imag_input, \
             grad_sin_decay, grad_cos_decay, None, None, None, None
@@ -418,25 +420,27 @@ def _res_dynamics_bwd(grad_real, grad_imag, real, imag, sin_decay, cos_decay):
             print(grad_real[..., n + 1])
             print(grad_imag[..., n + 1])
 
-            assert False, 'Stopping here.'
+            raise Exception('Stopping here.')
 
-    assert torch.sum(torch.isnan(grad_real)) == 0, 'grad_real has NaN.'
-    assert torch.sum(torch.isnan(grad_imag)) == 0, 'grad_imag has NaN.'
+    if torch.sum(torch.isnan(grad_real)) > 0:
+        raise Exception('grad_real has NaN.')
+    if torch.sum(torch.isnan(grad_imag)) > 0:
+        raise Exception('grad_imag has NaN.')
 
-    assert torch.sum(torch.isnan(grad_real_input)) == 0, \
-        'grad_real_input has NaN.'
-    assert torch.sum(torch.isnan(grad_imag_input)) == 0, \
-        'grad_imag_input has NaN.'
+    if torch.sum(torch.isnan(grad_real_input)) > 0:
+        raise Exception('grad_real_input has NaN.')
+    if torch.sum(torch.isnan(grad_imag_input)) > 0:
+        raise Exception('grad_imag_input has NaN.')
 
     grad_sin_decay = -grad_real_input[..., 1:] * imag[..., :-1] \
         + grad_imag_input[..., 1:] * real[..., :-1]
     grad_cos_decay = grad_real_input[..., 1:] * real[..., :-1] \
         + grad_imag_input[..., 1:] * imag[..., :-1]
 
-    assert torch.sum(torch.isnan(grad_sin_decay)) == 0, \
-        'grad_sin_decay has NaN.'
-    assert torch.sum(torch.isnan(grad_cos_decay)) == 0, \
-        'grad_cos_decay has NaN.'
+    if torch.sum(torch.isnan(grad_sin_decay)) > 0:
+        raise Exception('grad_sin_decay has NaN.')
+    if torch.sum(torch.isnan(grad_cos_decay)) > 0:
+        raise Exception('grad_cos_decay has NaN.')
 
     if torch.numel(cos_decay) == 1:  # shared parameters
         grad_sin_decay = torch.sum(

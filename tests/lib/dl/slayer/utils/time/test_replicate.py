@@ -24,5 +24,7 @@ class TestReplicate(unittest.TestCase):
             print(f'{output[..., 0]=}')
             print(f'{output[..., 1]=}')
             print(f'{output[..., 2]=}')
-        assert error < 1e-6, \
-            f'Error in replication. Expected error<1e-6. Found {error=}.'
+        if error > 1e-6:
+            raise Exception(
+                f'Error in replication. Expected error<1e-6. Found {error=}.'
+            )

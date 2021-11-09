@@ -12,8 +12,10 @@ class Input(cuba_block.Input, AbstractBlock):
         """
         """
         super(Input, self).__init__(*args, **kwargs)
-        assert self.neuron is not None, \
-            f'Expected valid neuron in block. Found {self.neuron=}.'
+        if self.neuron is None:
+            raise AssertionError(
+                f'Expected valid neuron in block. Found {self.neuron=}.'
+            )
 
     def _forward_synapse(self, x):
         """Forward computation of synapse

@@ -25,9 +25,11 @@ class Accelerated:
                     'Shift accelerated module does not exist. '
                     'Initializing with JIT compilation'
                 )
-            assert torch.cuda.is_available(), \
-                'CUDA acceleration of time-shift failed. '\
-                'CUDA is not available in the system.'
+            if not torch.cuda.is_available():
+                raise Exception(
+                    'CUDA acceleration of time-shift failed. '
+                    'CUDA is not available in the system.'
+                )
             if jitconfig.TORCH_CUDA_ARCH_LIST is not None:
                 os.environ['TORCH_CUDA_ARCH_LIST'] = \
                     jitconfig.TORCH_CUDA_ARCH_LIST
@@ -44,8 +46,11 @@ class Accelerated:
 def _shift_group(input, shift_val, sampling_time=1):
     """
     """
-    assert len(input.shape) > 1,\
-        f'Expected input to have at least two dimension. Found {input.shape=}.'
+    if len(input.shape) <= 1:
+        raise AssertionError(
+            f'Expected input to have at least two dimension. '
+            f'Found {input.shape=}.'
+        )
     if hasattr(shift_val, 'grad'):
         shift_val = shift_val.item()
     shift_blocks = int(shift_val / sampling_time)
@@ -66,9 +71,11 @@ def _shift_group(input, shift_val, sampling_time=1):
 def _shift_individual(input, shift_val, sampling_time=1):
     """
     """
-    assert np.prod(input.shape[1:-1]) == shift_val.numel(), \
-        f'Expected spatial dimension of input and shift_val to be same. '\
-        f'Found {input.shape=}, {shift_val.shape=}.'
+    if np.prod(input.shape[1:-1]) != shift_val.numel():
+        raise AssertionError(
+            f'Expected spatial dimension of input and shift_val to be same. '
+            f'Found {input.shape=}, {shift_val.shape=}.'
+        )
     out_shape = input.shape
     input = input.reshape(input.shape[0], -1, input.shape[-1])
     output = torch.zeros_like(input)
@@ -110,9 +117,11 @@ def shift(input, shift_val, sampling_time=1):
     >>> output = shift(torch.rand(1, 10, 100), torch.arange(10))
     """
     if hasattr(shift_val, 'grad') and shift_val.numel() > 1:
-        assert np.prod(input.shape[1:-1]) == shift_val.numel(), \
-            f'Expected spatial dimension of input and shift_val to be same.\
-            Found {input.shape=}, {shift_val.shape=}.'
+        if np.prod(input.shape[1:-1]) != shift_val.numel():
+            raise Exception(
+                f'Expected spatial dimension of input and shift_val to be '
+                f'same. Found {input.shape=}, {shift_val.shape=}.'
+            )
         if input.is_cuda is False:
             return _shift_individual(input, shift_val, sampling_time)
         else:

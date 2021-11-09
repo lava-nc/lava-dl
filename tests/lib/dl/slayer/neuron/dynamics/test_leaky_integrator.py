@@ -9,8 +9,6 @@ import torch
 import torch.nn.functional as F
 import lava.lib.dl.slayer as slayer
 
-print(dir(slayer))
-
 verbose = True if (('-v' in sys.argv) or ('--verbose' in sys.argv)) else False
 
 seed = np.random.randint(1000)

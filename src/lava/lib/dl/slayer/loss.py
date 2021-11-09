@@ -95,10 +95,15 @@ class SpikeRate(torch.nn.Module):
         moving_window=None, reduction='sum'
     ):
         super(SpikeRate, self).__init__()
-        assert true_rate >= 0 and true_rate <= 1, \
-            f'Expected true rate to be between 0 and 1. Found {true_rate=}'
-        assert false_rate >= 0 and false_rate <= 1, \
-            f'Expected false rate to be between 0 and 1. Found {false_rate=}'
+        if not (true_rate >= 0 and true_rate <= 1):
+            raise AssertionError(
+                f'Expected true rate to be between 0 and 1. Found {true_rate=}'
+            )
+        if not (false_rate >= 0 and false_rate <= 1):
+            raise AssertionError(
+                f'Expected false rate to be between 0 and 1. '
+                f'Found {false_rate=}'
+            )
         self.true_rate = true_rate
         self.false_rate = false_rate
         self.reduction = reduction

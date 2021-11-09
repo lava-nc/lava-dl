@@ -28,7 +28,7 @@ def get_classes(neuron_type=None):
     if neuron_type is None or neuron_type == 'cuba' or neuron_type == 'LOIHI':
         return neuron.cuba, block.cuba
 
-    assert False, f'{neuron_type=} is not implemented.'
+    raise Exception(f'{neuron_type=} is not implemented.')
 
 
 def get_neuron_params(neuron_handle, neuron_class):
@@ -224,7 +224,7 @@ class SequentialNetwork(torch.nn.Module):
         elif block_type == 'pool':
             self.blocks.append(self.pool_block(layer_handle))
         else:
-            assert False, f'{block_type=} is not implemented.'
+            raise Exception(f'{block_type=} is not implemented.')
 
     def forward(self, spike):
         """

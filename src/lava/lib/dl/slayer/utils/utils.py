@@ -32,8 +32,10 @@ def diagonal_mask(dim, num_diagonals):
         mask tensor
 
     """
-    assert num_diagonals > 0, \
-        f'Expected positive number of diagonals. Found {num_diagonals=}.'
+    if num_diagonals == 0:
+        raise Exception(
+            f'Expected positive number of diagonals. Found {num_diagonals=}.'
+        )
     mask = torch.eye(dim)
     for i in range(num_diagonals // 2):
         d = i + 1
