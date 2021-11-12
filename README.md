@@ -59,7 +59,7 @@ $ pyb -E unit
 ```cmd
 cd %HOMEPATH%
 git clone git@github.com:lava-dl/lava.git
-cd lava-dlss
+cd lava-dl
 pip install -r build-requirements.txt
 pip install -r requirements.txt
 set PYTHONPATH=%PYTHONPATH%;%cd%\src
