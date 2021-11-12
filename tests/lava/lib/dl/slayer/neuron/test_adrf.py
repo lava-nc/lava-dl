@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 import torch.nn.functional as F
-from lava.lib.dl.slayer.neuron import rf
+from lava.lib.dl.slayer.neuron import adrf
 
 verbose = True if (('-v' in sys.argv) or ('--verbose' in sys.argv)) else False
 
@@ -33,6 +33,8 @@ else:
 threshold = 1
 decay = np.random.random() * 0.1
 period = np.random.randint(4, 50)
+threshold_decay = np.random.random()
+refractory_decay = np.random.random()
 
 # create input
 time = torch.FloatTensor(np.arange(200)).to(device)
@@ -40,7 +42,7 @@ time = torch.FloatTensor(np.arange(200)).to(device)
 spike_input = torch.autograd.Variable(
     torch.zeros([5, 4, len(time)]), requires_grad=True
 ).to(device)
-spike_input[..., np.random.randint(spike_input.shape[-1], size=5)] = 1
+spike_input.data[..., np.random.randint(spike_input.shape[-1], size=5)] = 1
 
 real_weight = torch.FloatTensor(
     5 * np.random.random(size=spike_input.shape[-1]) - 0.5
@@ -55,19 +57,27 @@ imag_weight = torch.FloatTensor(
 ).to(device)
 
 # initialize neuron
-neuron = rf.Neuron(threshold, period, decay, persistent_state=True).to(device)
+neuron = adrf.Neuron(
+    threshold=threshold,
+    threshold_step=0.5 * threshold,
+    period=period,
+    decay=decay,
+    threshold_decay=threshold_decay,
+    refractory_decay=refractory_decay,
+    persistent_state=True,
+).to(device)
 quantized_real_weight = neuron.quantize_8bit(real_weight)
 quantized_imag_weight = neuron.quantize_8bit(imag_weight)
 neuron.debug = True
 
-real, imag = neuron.dynamics((
+real, imag, th, ref = neuron.dynamics((
     quantized_real_weight * spike_input,
     quantized_imag_weight * spike_input
 ))
-spike = neuron.spike(real, imag)
+spike = neuron.spike(real, imag, th, ref)
 
 
-class TestRF(unittest.TestCase):
+class TestAdRF(unittest.TestCase):
     def test_input_range(self):
         # not doing it for output spikes because RF neurons
         # tend to spike sparsely.
@@ -86,6 +96,8 @@ class TestRF(unittest.TestCase):
         _ = neuron.frequency
         _ = neuron.cx_sin_decay
         _ = neuron.cx_cos_decay
+        _ = neuron.cx_threshold_decay
+        _ = neuron.cx_refractory_decay
         _ = neuron.scale
         _ = neuron.shape
         _ = neuron.device
@@ -97,6 +109,8 @@ class TestRF(unittest.TestCase):
         spike_var = torch.norm(torch.var(spike, dim=0)).item()
         real_var = torch.norm(torch.var(real, dim=0)).item()
         imag_var = torch.norm(torch.var(imag, dim=0)).item()
+        th_var = torch.norm(torch.var(th, dim=0)).item()
+        ref_var = torch.norm(torch.var(ref, dim=0)).item()
         self.assertTrue(
             spike_var < 1e-5,
             f'Spike variation across batch dimension is inconsistent. '
@@ -112,6 +126,16 @@ class TestRF(unittest.TestCase):
             f'Voltage variation across batch dimension is inconsistent. '
             f'Variance was {imag_var}. Expected 0.'
         )
+        self.assertTrue(
+            th_var < 1e-5,
+            f'Threshold variation across batch dimension is inconsistent. '
+            f'Variance was {th_var}. Expected 0.'
+        )
+        self.assertTrue(
+            ref_var < 1e-5,
+            f'Refractory variation across batch dimension is inconsistent. '
+            f'Variance was {ref_var}. Expected 0.'
+        )
 
     def test_integer_states(self):
         # there should be no quantization error when
@@ -121,6 +145,14 @@ class TestRF(unittest.TestCase):
         )
         imag_error = torch.norm(
             torch.floor(imag * neuron.s_scale) - imag * neuron.s_scale
+        )
+        th_error = torch.norm(
+            torch.floor(th * neuron.s_scale)
+            - th * neuron.s_scale
+        )
+        ref_error = torch.norm(
+            torch.floor(ref * neuron.s_scale)
+            - ref * neuron.s_scale
         )
 
         self.assertTrue(
@@ -135,25 +167,40 @@ class TestRF(unittest.TestCase):
             f'De-Scaling must result in integer states. '
             f'Error was {imag_error}'
         )
+        self.assertTrue(
+            th_error < 1e-5,
+            f'Threshold calculation has issues with scaling. '
+            f'De-Scaling must result in integer states. '
+            f'Error was {th_error}'
+        )
+        self.assertTrue(
+            ref_error < 1e-5,
+            f'Refractory calculation has issues with scaling. '
+            f'De-Scaling must result in integer states. '
+            f'Error was {ref_error}'
+        )
 
     def test_persistent_state(self):
         # clear previous persistent state
         neuron.real_state *= 0
         neuron.imag_state *= 0
+        neuron.threshold_state *= 0
+        neuron.threshold_state += neuron.threshold  # stable at th0
+        neuron.refractory_state *= 0
 
         # break the calculation into two parts: before ind and after ind
         ind = int(np.random.random() * spike_input.shape[-1])
         # ind = 57
-        real0, imag0 = neuron.dynamics((
+        real0, imag0, th0, ref0 = neuron.dynamics((
             quantized_real_weight[..., :ind] * spike_input[..., :ind],
             quantized_imag_weight[..., :ind] * spike_input[..., :ind]
         ))
-        spike0 = neuron.spike(real0, imag0)
-        real1, imag1 = neuron.dynamics((
+        spike0 = neuron.spike(real0, imag0, th0, ref0)
+        real1, imag1, th1, ref1 = neuron.dynamics((
             quantized_real_weight[..., ind:] * spike_input[..., ind:],
             quantized_imag_weight[..., ind:] * spike_input[..., ind:]
         ))
-        spike1 = neuron.spike(real1, imag1)
+        spike1 = neuron.spike(real1, imag1, th1, ref1)
 
         spike_error = (
             torch.norm(spike[..., :ind] - spike0)
@@ -166,6 +213,14 @@ class TestRF(unittest.TestCase):
         imag_error = (
             torch.norm(imag[..., :ind] - imag0)
             + torch.norm(imag[..., ind:] - imag1)
+        ).item()
+        th_error = (
+            torch.norm(th[..., :ind] - th0)
+            + torch.norm(th[..., ind:] - th1)
+        ).item()
+        ref_error = (
+            torch.norm(ref[..., :ind] - ref0)
+            + torch.norm(ref[..., ind:] - ref1)
         ).item()
 
         if verbose:
@@ -198,6 +253,28 @@ class TestRF(unittest.TestCase):
                 ).cpu().data.numpy().astype(int).tolist())
                 print((
                     neuron.s_scale * imag1[0, 0, :10]
+                ).cpu().data.numpy().astype(int).tolist())
+            if th_error >= 1e-5:
+                print('Persistent threshold states')
+                print((
+                    neuron.s_scale * th[0, 0, ind - 10:ind + 10]
+                ).cpu().data.numpy().astype(int).tolist())
+                print((
+                    neuron.s_scale * th0[0, 0, -10:]
+                ).cpu().data.numpy().astype(int).tolist())
+                print((
+                    neuron.s_scale * th1[0, 0, :10]
+                ).cpu().data.numpy().astype(int).tolist())
+            if ref_error >= 1e-5:
+                print('Persistent refractory states')
+                print((
+                    neuron.s_scale * ref[0, 0, ind - 10:ind + 10]
+                ).cpu().data.numpy().astype(int).tolist())
+                print((
+                    neuron.s_scale * ref0[0, 0, -10:]
+                ).cpu().data.numpy().astype(int).tolist())
+                print((
+                    neuron.s_scale * ref1[0, 0, :10]
                 ).cpu().data.numpy().astype(int).tolist())
 
         if verbose:
@@ -255,22 +332,75 @@ class TestRF(unittest.TestCase):
                 )
                 plt.xlabel('time')
                 plt.legend()
+
+                plt.figure()
+                plt.plot(
+                    time.cpu().data.numpy(),
+                    th[0, 0].cpu().data.numpy(),
+                    label='threshold'
+                )
+                plt.plot(
+                    time[:ind].cpu().data.numpy(),
+                    th0[0, 0].cpu().data.numpy(),
+                    label=':ind'
+                )
+                plt.plot(
+                    time[ind:].cpu().data.numpy(),
+                    th1[0, 0].cpu().data.numpy(),
+                    label='ind:'
+                )
+                plt.xlabel('time')
+                plt.legend()
+
+                plt.figure()
+                plt.plot(
+                    time.cpu().data.numpy(),
+                    ref[0, 0].cpu().data.numpy(),
+                    label='refractory'
+                )
+                plt.plot(
+                    time[:ind].cpu().data.numpy(),
+                    ref0[0, 0].cpu().data.numpy(),
+                    label=':ind'
+                )
+                plt.plot(
+                    time[ind:].cpu().data.numpy(),
+                    ref1[0, 0].cpu().data.numpy(),
+                    label='ind:'
+                )
+                plt.xlabel('time')
+                plt.legend()
                 plt.show()
 
         self.assertTrue(
             spike_error < 1e-5,
             f'Persistent state has errors in spike calculation. '
-            f'Error was {spike_error}'
+            f'Error was {spike_error}.'
+            f'{seed=}'
         )
         self.assertTrue(
             real_error < 1e-5,
             f'Persistent state has errors in real calculation. '
-            f'Error was {real_error}'
+            f'Error was {real_error}.'
+            f'{seed=}'
         )
         self.assertTrue(
             imag_error < 1e-5,
             f'Persistent state has errors in imag calculation. '
-            f'Error was {imag_error}'
+            f'Error was {imag_error}.'
+            f'{seed=}'
+        )
+        self.assertTrue(
+            th_error < 1e-5,
+            f'Persistent state has errors in threshold calculation. '
+            f'Error was {th_error}.'
+            f'{seed=}'
+        )
+        self.assertTrue(
+            ref_error < 1e-5,
+            f'Persistent state has errors in refractory calculation. '
+            f'Error was {ref_error}.'
+            f'{seed=}'
         )
 
     def test_backward(self):

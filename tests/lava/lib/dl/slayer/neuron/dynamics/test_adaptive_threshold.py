@@ -45,7 +45,7 @@ spike_input = torch.autograd.Variable(
     torch.zeros([5, 4, len(time)]),
     requires_grad=True
 ).to(device)
-spike_input[..., np.random.randint(spike_input.shape[-1], size=5)] = 1
+spike_input.data[..., np.random.randint(spike_input.shape[-1], size=5)] = 1
 weight = torch.FloatTensor(
     5 * np.random.random(size=spike_input.shape[-1]) - 0.5
 ).reshape([1, 1, spike_input.shape[-1]]).to(device)

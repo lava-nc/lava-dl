@@ -4,7 +4,7 @@ from pybuilder.core import use_plugin, init
 use_plugin("python.core")
 use_plugin("python.unittest")
 use_plugin("python.flake8")
-# use_plugin("python.coverage")
+use_plugin("python.coverage")
 use_plugin("python.distutils")
 use_plugin("python.sphinx")
 use_plugin('python.install_dependencies')
@@ -22,7 +22,7 @@ license = ["BSD-3-Clause"]
 @init
 def set_properties(project):
     project.set_property("dir_source_main_python", "src")
-    project.set_property("dir_source_unittest_python", "tests")
+    project.set_property("dir_source_unittest_python", "tests/lava")
     project.set_property("dir_source_main_scripts", "scripts")
     project.set_property("dir_docs", "docs")
 
@@ -64,7 +64,7 @@ def set_properties(project):
 @init(environments="unit")
 def set_properties_unit(project):
     project.set_property("dir_source_main_python", "src")
-    project.set_property("dir_source_unittest_python", "tests")
+    project.set_property("dir_source_unittest_python", "tests/lava")
     project.set_property("dir_source_main_scripts", "scripts")
     project.set_property("dir_docs", "docs")
 

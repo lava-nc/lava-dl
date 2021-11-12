@@ -43,12 +43,12 @@ re_input = torch.autograd.Variable(
     torch.zeros([5, 4, len(time)]),
     requires_grad=True
 ).to(device)
-re_input[..., np.random.randint(re_input.shape[-1], size=5)] = 1
+re_input.data[..., np.random.randint(re_input.shape[-1], size=5)] = 1
 im_input = torch.autograd.Variable(
     torch.zeros([5, 4, len(time)]),
     requires_grad=True
 ).to(device)
-im_input[..., np.random.randint(im_input.shape[-1], size=5)] = 1
+im_input.data[..., np.random.randint(im_input.shape[-1], size=5)] = 1
 re_weight = torch.FloatTensor(
     5 * np.random.random(size=re_input.shape[-1]) - 0.5
 ).reshape([1, 1, re_input.shape[-1]]).to(device)
