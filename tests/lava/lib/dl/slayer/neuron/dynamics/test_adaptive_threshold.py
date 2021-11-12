@@ -118,7 +118,8 @@ class TestAdTh(unittest.TestCase):
                 1 - ref_leak_num[ref_valid] / ref_leak_den[ref_valid]
             ) * scale
             ref_error = np.abs(
-                (est_ref_decay.item() - ref_decay.item()) / ref_decay.item()
+                (est_ref_decay.item() - ref_decay.item())
+                / max(ref_decay.item(), 512)
             )
             if verbose:
                 print(f'{ref_error=}')

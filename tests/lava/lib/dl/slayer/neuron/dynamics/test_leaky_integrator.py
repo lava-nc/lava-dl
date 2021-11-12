@@ -9,9 +9,6 @@ import torch
 import torch.nn.functional as F
 import lava.lib.dl.slayer as slayer
 
-print(slayer.__path__)
-print(sys.path)
-
 verbose = True if (('-v' in sys.argv) or ('--verbose' in sys.argv)) else False
 
 seed = np.random.randint(1000)
@@ -87,7 +84,7 @@ class TestIF(unittest.TestCase):
         valid = torch.abs(leak_den) > 10 / scale
         est_decay = torch.mean(1 - leak_num[valid] / leak_den[valid]) * scale
         rel_error = np.abs(
-            (est_decay.item() - decay.item()) / decay.item()
+            (est_decay.item() - decay.item()) / max(decay.item(), 512)
         )
         if verbose:
             print(f'{rel_error=}')

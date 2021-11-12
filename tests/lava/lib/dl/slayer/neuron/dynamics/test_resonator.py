@@ -115,7 +115,7 @@ class TestRF(unittest.TestCase):
                 (phase[..., :-1] - phase[..., 1:])[valid] % (2 * np.pi)
             )
             mag_error = np.abs(
-                (est_decay.item() - decay.item()) / decay.item()
+                (est_decay.item() - decay.item()) / max(decay.item(), 512)
             )
             phase_error = np.abs(
                 (est_phase.item() - phi) / phi
