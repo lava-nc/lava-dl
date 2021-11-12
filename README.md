@@ -39,8 +39,12 @@ Typical Lava-DL workflow:
 We highly recommend cloning the repository and using pybuilder to setup lava.
  You will need to install pybuilder for the same.
 
-**Note:** We assume you have already setup Lava with virtual environment.
-[TODO:verify on Windows and MacOS]
+**Note:** We assume you have already setup Lava with virtual environment. Make sure PYTHONPATH contains path to Lava core library first.
+
+* Linux/MacOS: `echo $PYTHONPATH`
+* Windows: `echo %PYTHONPATH%`
+
+The output should be something like this `/home/user/lava`
 
 #### [Linux/MacOS]
 ```bash
@@ -48,17 +52,17 @@ $ git clone git@github.com:lava-dl/lava.git
 $ cd lava-dl
 $ pip install -r build-requirements.txt
 $ pip install -r requirements.txt
-$ export PYTHONPATH=~/lava-dl/src
+$ export PYTHONPATH=$PYTHONPATH:$(pwd)/src
 $ pyb -E unit
 ```
 #### [Windows]
 ```cmd
 cd %HOMEPATH%
 git clone git@github.com:lava-dl/lava.git
-cd lava
+cd lava-dlss
 pip install -r build-requirements.txt
 pip install -r requirements.txt
-set PYTHONPATH=%HOMEPATH%\lava\src
+set PYTHONPATH=%PYTHONPATH%;%cd%\src
 pyb -E unit
 ```
 
