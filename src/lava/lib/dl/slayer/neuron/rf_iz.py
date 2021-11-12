@@ -36,7 +36,7 @@ class Neuron(base.Neuron):
 
         s[t] &= \\mathfrak{Im}(z[t]) \\geq \\vartheta \\
 
-        \\mathfrak{Re}(z[t]) &= 0
+        \\mathfrak{Re}(z[t]) &= \\mathfrak{Re}(z[t])\\,(1-s[t])
 
     The internal state representations are scaled down compared to
     the actual hardware implementation. This allows for a natural range of
