@@ -8,7 +8,7 @@ Directly training the network utilizes the information of precise timing of even
 
 On the other hand, ANN to SNN conversion is especially suitable for rate coded SNNs where we can leverage fast training of ANNs. These converted SNNs, however, typically require increased latency compared to directly trained SNNs.
 
-Lava-DL provides an improved version of [SLAYER](https://github.com/bamsumit/slayerPytorch) for direct training of deep event based networks and a new ANN-SNN accelerated training approach called [Bootstrap:TODO](link_here) to mitigate high latency issue of conventional ANN-SNN methods for training Deep Event-Based Networks.
+Lava-DL provides an improved version of [SLAYER](https://github.com/bamsumit/slayerPytorch) for direct training of deep event based networks and a new ANN-SNN accelerated training approach called [Bootstrap](https://github.com/lava-nc/lava-dl/blob/main/src/lava/lib/dl/bootstrap/README.md) to mitigate high latency issue of conventional ANN-SNN methods for training Deep Event-Based Networks.
 
 The lava-dl training libraries are independent of the core lava library since Lava Processes cannot be trained directly at this point. Instead, lava-dl is first used to train the model which can then be converted to a network of Lava processes using the netx library using platform independent hdf5 network description.
 
@@ -113,17 +113,17 @@ $ pip install lava-nc-0.1.0.tar.gz
 ## Getting Started
 
 **End to end tutorials**
-* [Oxford spike train regression](dummy_link) TODO: UPDATE LINK
-* [MNIST digit classification](dummy_link) TODO: UPDATE LINK
-* [NMNIST digit classification](dummy_link) TODO: UPDATE LINK
-* [PilotNet steering angle prediction](dummy_link) TODO: UPDATE LINK
+* [Oxford spike train regression](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/oxford/train.ipynb)
+* [MNIST digit classification](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/bootstrap/mnist/train.ipynb)
+* [NMNIST digit classification](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/nmnist/train.ipynb)
+* [PilotNet steering angle prediction](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/pilotnet/train.ipynb)
 
 **Deep dive tutorials**
-* [Dynamics and Neurons](dummy_link) TODO: UPDATE LINK
+* [Dynamics and Neurons](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/neuron_dynamics/dynamics.ipynb)
 
 ## __`lava.lib.dl.slayer`__ 
 
-`lava.lib.dl.slayer` is an enhanced version of [SLAYER](https://github.com/bamsumit/slayerPytorch). Most noteworthy enhancements are: support for _recurrent network structures_, a wider variety of _neuron models_ and _synaptic connections_ (a complete list of features is [here_TODO:UPDATE](https://github.com/lava-nc/lava-dl/blob/main/lib/dl/slayer/README.md)). This version of SLAYER is built on top of the [PyTorch](https://pytorch.org/) deep learning framework, similar to its predecessor. For smooth integration with Lava, `lava.lib.dl.slayer` supports exporting trained models using the platform independent __hdf5 network exchange__ format. 
+`lava.lib.dl.slayer` is an enhanced version of [SLAYER](https://github.com/bamsumit/slayerPytorch). Most noteworthy enhancements are: support for _recurrent network structures_, a wider variety of _neuron models_ and _synaptic connections_ (a complete list of features is [here](https://github.com/lava-nc/lava-dl/blob/main/src/lava/lib/dl/slayer/README.md)). This version of SLAYER is built on top of the [PyTorch](https://pytorch.org/) deep learning framework, similar to its predecessor. For smooth integration with Lava, `lava.lib.dl.slayer` supports exporting trained models using the platform independent __hdf5 network exchange__ format. 
 
 In future versions, SLAYER will get completely integrated into Lava to train Lava Processes directly. This will eliminate the need for explicitly exporting and importing the trained networks. 
 
@@ -186,7 +186,7 @@ net.export_hdf5('network.net')
 
 In general ANN-SNN conversion methods for rate based SNN result in high latency of the network during inference. This is because the rate interpretation of a spiking neuron using ReLU acitvation unit breaks down for short inference times. As a result, the network requires many time steps per sample to achieve adequate inference results.
 
-`lava.lib.dl.bootstrap` enables rapid training of rate based SNNs by translating them to an equivalent dynamic ANN representation which leads to SNN performance close to the equivalent ANN and low latency inference. More details [here:TODO](link). It also supports _hybrid training_ with a mixed ANN-SNN network to minimize the ANN to SNN performance gap. This method is independent of the SNN model being used.
+`lava.lib.dl.bootstrap` enables rapid training of rate based SNNs by translating them to an equivalent dynamic ANN representation which leads to SNN performance close to the equivalent ANN and low latency inference. More details [here](https://github.com/lava-nc/lava-dl/blob/main/src/lava/lib/dl/bootstrap/README.md). It also supports _hybrid training_ with a mixed ANN-SNN network to minimize the ANN to SNN performance gap. This method is independent of the SNN model being used.
 
 It has similar API as `lava.lib.dl.slayer` and supports exporting trained models using the platform independent __hdf5 network exchange__ format.
 
@@ -250,7 +250,7 @@ net.export_hdf5('network.net')
 
 ## __`lava.lib.dl.netx`__ 
 
-For inference using Lava, `lava.lib.dl.netx` provides an automated API for loading SLAYER-trained models as Lava Processes, which can be directly run on a desired backend. `lava.lib.dl.netx` imports models saved via SLAYER using the hdf5 network exchange format. The details of hdf5 network description specification can be found [here](https://github.com/lava-nc/lava-dl/blob/main/lib/dl/netx/README.md).
+For inference using Lava, `lava.lib.dl.netx` provides an automated API for loading SLAYER-trained models as Lava Processes, which can be directly run on a desired backend. `lava.lib.dl.netx` imports models saved via SLAYER using the hdf5 network exchange format. The details of hdf5 network description specification can be found [here](https://github.com/lava-nc/lava-dl/blob/main/src/lava/lib/dl/netx/README.md).
 
 ### Example Code
 

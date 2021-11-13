@@ -20,12 +20,12 @@
 ## Tutorials
 
 **End to End**
-* [Oxford spike train regression](dummy_link) TODO: UPDATE LINK
-* [NMNIST digit classification](dummy_link) TODO: UPDATE LINK
-* [PilotNet steering angle prediction](dummy_link) TODO: UPDATE LINK
+* [Oxford spike train regression](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/oxford/train.ipynb)
+* [NMNIST digit classification](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/nmnist/train.ipynb)
+* [PilotNet steering angle prediction](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/pilotnet/train.ipynb)
 
 **Deep Dive**
-* [Dynamics and Neurons](dummy_link) TODO: UPDATE LINK
+* [Dynamics and Neurons](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/neuron_dynamics/dynamics.ipynb)
 
 
 ## Modules
