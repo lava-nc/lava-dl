@@ -1,6 +1,8 @@
-# Lava-dl-SLAYER
+# Lava-DL SLAYER
 
-`lava.lib.dl.slayer` is an enhanced version of [SLAYER](https://github.com/bamsumit/slayerPytorch). It now supports a wide variety of learnable event-based _neuron models_, _synapse_, _axon_, and _dendrite_ properties. Other enhancements include various utilities useful during training for event IO, visualization,and filtering as well as logging of training statistics. Here are the key new feature highlights:
+`lava.lib.dl.slayer` is an enhanced version of [SLAYER](https://github.com/bamsumit/slayerPytorch). It now supports a wide variety of learnable event-based _neuron models_, _synapse_, _axon_, and _dendrite_ properties. Other enhancements include various utilities useful during training for event IO, visualization,and filtering as well as logging of training statistics. 
+
+**Highlight Features**
 
 * Resonator, Adaptive leaky neuron dynamics in addtion to conventional Leaky neuron dynamics
 * Sigma-Delta wrapper around arbitrary neuron dynamics
@@ -11,14 +13,30 @@
 * Complex valued synapses
 * Sparse connectivity with connection masking
 * Runtime shape identification (eliminates the need for _a priori_ architecture shape calculation)
+* Just-In-Time compilation of CUDA acccelerated code.
+* Block interface for easy description of network.
+* Easy network export to hdf5 interface format.
+
+## Tutorials
+
+**End to End**
+* [Oxford spike train regression](dummy_link) TODO: UPDATE LINK
+* [NMNIST digit classification](dummy_link) TODO: UPDATE LINK
+* [PilotNet steering angle prediction](dummy_link) TODO: UPDATE LINK
+
+**Deep Dive**
+* [Dynamics and Neurons](dummy_link) TODO: UPDATE LINK
+
+
+## Modules
 
 The overall feature organization is described below.
 
 ### Spike (`slayer.spike`)
-SLAYER supports binary as well as graded spikes, which are amenable to backpropagation. This opens a door for a new class of neuron behavior.
+SLAYER supports binary as well as graded spikes, which are amenable to backpropagation. This opens the door for a new class of neuron behavior.
 
 ### Neuron (`slayer.neuron`)
-Neuron models in SLAYER are built around custom CUDA accelerated fundamental linear dynamics. Each neuron model has individually learnable parameters from its neural dynamicsas well as persistent state behavior between iterations. Following neuron dynamics are supported.
+Neuron models in SLAYER are built around custom CUDA accelerated fundamental linear dynamics. Each neuron model has individually learnable parameters from its neural dynamics as well as persistent state behavior between iterations. The following neuron dynamics are supported.
 * Leaky Integrator
 * Resonator
 * Adaptive Integrator with Refractory Dynamics
@@ -59,8 +77,8 @@ SLAYER supports dense, conv, and pool synaptic connections. Masking is possible 
 
 ### Axon (`slayer.axon`)
 
-* learnable axonal delay (`slayer.axon.Delay`)
-* learnable delta encoder (`slayer.axon.Delta`)
+* Learnable axonal delay (`slayer.axon.Delay`)
+* Learnable delta encoder (`slayer.axon.Delta`)
 
 ### Dendrite (`slayer.dendrite`)
 
