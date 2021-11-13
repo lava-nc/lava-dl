@@ -44,7 +44,7 @@ With `bootstrap.block` interface, some of the layers in the network can be run i
 
 ## Tutorials
 
-* [MNIST digit classification](dummy_link) TODO: UPDATE LINK
+* [MNIST digit classification](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/bootstrap/mnist/train.ipynb)
 
 ## Modules
 The main modules are 
