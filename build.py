@@ -11,7 +11,7 @@ use_plugin('python.install_dependencies')
 use_plugin("python.pycharm")
 use_plugin('pypi:pybuilder_bandit')
 
-name = "lava-nc/lava-dl"
+name = "lava-dl"
 default_task = ["analyze", "publish"]
 version = "0.1.0"
 summary = "A library of deep learning tools, which consists of lava.lib.dl.slayer and lava.lib.dl.netx for training and deployment of event-based deep neural networks on traditional as well as neuromorphic backends. Lava-DL is part of Lava Framework "
