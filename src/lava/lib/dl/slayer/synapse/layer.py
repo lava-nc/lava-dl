@@ -496,7 +496,7 @@ class Pool(torch.nn.Conv3d, GenericLayer):
                     in_shape[3],
                     in_shape[4]
                 )),
-                self.preHooFx(self.weight), self.bias,
+                self._pre_hook_fx(self.weight), self.bias,
                 self.stride, self.padding, self.dilation,
             )
         return result.reshape((
