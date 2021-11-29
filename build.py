@@ -13,7 +13,7 @@ use_plugin('pypi:pybuilder_bandit')
 
 name = "lava-dl"
 default_task = ["analyze", "publish"]
-version = "0.1.0"
+version = "0.2.0"
 summary = "A library of deep learning tools, which consists of lava.lib.dl.slayer and lava.lib.dl.netx for training and deployment of event-based deep neural networks on traditional as well as neuromorphic backends. Lava-DL is part of Lava Framework "
 url = "https://lava-nc.org"
 license = ["BSD-3-Clause"]
