@@ -5,3 +5,4 @@ scipy
 matplotlib
 ninja
 h5py >= 3.1.0
+ipython
