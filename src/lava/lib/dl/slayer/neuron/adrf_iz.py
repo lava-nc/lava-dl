@@ -380,10 +380,29 @@ class Neuron(base.Neuron):
         return val
 
     @property
+    def v_th_step(self):
+        """Get voltage-threshold step parameter."""
+        return int(self.threshold_step * self.w_scale)
+
+    @property
     def scale(self):
         """Scale difference between slayer representation and hardware
         representation of the variable states."""
         return self.w_scale
+
+    @property
+    def device_params(self):
+        """Dictionary of device parameters."""
+        return {
+            'type': 'ADRF_PHASE',
+            'sinDecay': self.cx_sin_decay,
+            'cosDecay': self.cx_cos_decay,
+            'thDecay': self.cx_threshold_decay,
+            'refDecay': self.cx_refractory_decay,
+            'vThMant': self.v_th_mant,
+            'vThStep': self.v_th_step,
+            'gradedSpike': self.graded_spike,
+        }
 
     def dynamics(self, input):
         """Computes the dynamics (without spiking behavior) of the neuron

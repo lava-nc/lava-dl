@@ -283,6 +283,17 @@ class Neuron(base.Neuron):
         representation of the variable states."""
         return self.w_scale
 
+    @property
+    def device_params(self):
+        """Dictionary of device parameters."""
+        return {
+            'type': 'RF_PHASE',
+            'sinDecay': self.cx_sin_decay,
+            'cosDecay': self.cx_cos_decay,
+            'vThMant': self.v_th_mant,
+            'gradedSpike': self.graded_spike,
+        }
+
     def dynamics(self, input):
         """Computes the dynamics (without spiking behavior) of the neuron
         instance to a complex input tuple. The input shape must match with the

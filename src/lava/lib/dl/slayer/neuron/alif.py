@@ -320,6 +320,11 @@ class Neuron(base.Neuron):
         return val
 
     @property
+    def v_th_step(self):
+        """Get voltage-threshold step parameter."""
+        return int(self.threshold_step * self.w_scale)
+
+    @property
     def ref_delay(self):
         """Refractory delay."""
         # ref_delay of 1 is assumed for now
@@ -341,6 +346,7 @@ class Neuron(base.Neuron):
             'thDecay': self.cx_threshold_decay,
             'refDecay': self.cx_refractory_decay,
             'vThMant': self.v_th_mant,
+            'vThStep': self.v_th_step,
             'refDelay': self.ref_delay,
             'gradedSpike': self.graded_spike,
         }
