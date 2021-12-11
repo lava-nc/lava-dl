@@ -427,7 +427,7 @@ class Neuron(base.Neuron):
     def device_params(self):
         """Dictionary of device parameters."""
         return {
-            'type': 'ADRF_PHASE',
+            'type': 'ADRF_IZHIKEVICH',
             'sinDecay': self.cx_sin_decay,
             'cosDecay': self.cx_cos_decay,
             'thDecay': self.cx_threshold_decay,
