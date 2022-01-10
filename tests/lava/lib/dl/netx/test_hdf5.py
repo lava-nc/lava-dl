@@ -5,7 +5,6 @@
 import os
 import sys
 import unittest
-from lava.magma.core.model.py.ports import PyOutPort, PyRefPort
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import List
@@ -81,8 +80,6 @@ class TestHdf5Netx(unittest.TestCase):
             # Execution hangs when both u and v are reset
             # io.reset.ResetVar(l.neuron.u, interval=steps_per_sample, offset=i)
             io.reset.ResetVar(l.neuron.v, interval=steps_per_sample, offset=i)
-            # io.reset.ResetVar.create_and_attach(l.neuron.v, interval=steps_per_sample, offset=i)
-            # io.reset.ResetVar(interval=steps_per_sample, offset=i).attach(l.neuron.v)
 
         if verbose:
             print(f'Network created from {net.filename}')
@@ -118,7 +115,7 @@ class TestHdf5Netx(unittest.TestCase):
                 plt.ylabel('Neuron ID')
                 plt.legend()
                 plt.show()
-        
+
         self.assertTrue(
             error == 0,
             f'Output spike and ground truth do not match. '

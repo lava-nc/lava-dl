@@ -13,7 +13,7 @@ from lava.magma.core.process.process import AbstractProcess
 from lava.magma.core.process.ports.ports import InPort, OutPort
 from lava.proc.lif.process import LIF
 from lava.lib.dl.netx.utils import NetDict
-from lava.lib.dl.netx.utils import optimize_weight_bits, num_delay_bits
+from lava.lib.dl.netx.utils import optimize_weight_bits
 from lava.lib.dl.netx.blocks.process import Input, Dense, Conv
 from lava.lib.dl.netx.blocks.models import AbstractPyBlockModel
 

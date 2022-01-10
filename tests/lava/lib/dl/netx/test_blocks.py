@@ -122,7 +122,7 @@ class TestBlocks(unittest.TestCase):
         current = []
         for t in range(num_steps):
             conv_blk.run(condition=run_condition, run_cfg=run_config)
-            if t==0:
+            if t == 0:
                 conv_blk.neuron.u.set(np.zeros(conv_blk.neuron.shape))
                 conv_blk.neuron.v.set(np.zeros(conv_blk.neuron.shape))
             current.append(conv_blk.neuron.u.get())
