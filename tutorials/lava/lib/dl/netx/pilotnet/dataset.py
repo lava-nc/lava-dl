@@ -49,7 +49,7 @@ class PilotNetDataset():
             os.makedirs(path, exist_ok=True)
 
             print('Dataset not available locally. Starting download ...')
-            id = '0B-KJCaaF7elleG1RbzVPZWV4Tlk'
+            id = '1Ue4XohCOV5YXy57S_5tDfCVqzLr101M7'
             download_cmd = 'wget --load-cookies /tmp/cookies.txt '\
                 + '"https://docs.google.com/uc?export=download&confirm='\
                 + '$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate '\

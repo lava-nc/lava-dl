@@ -189,7 +189,7 @@ class TestAdRFIz(unittest.TestCase):
         neuron.refractory_state *= 0
 
         # break the calculation into two parts: before ind and after ind
-        ind = int(np.random.random() * spike_input.shape[-1])
+        ind = int(np.random.random() * (spike_input.shape[-1] - 1)) + 1
         # ind = 57
         real0, imag0, th0, ref0 = neuron.dynamics((
             quantized_real_weight[..., :ind] * spike_input[..., :ind],

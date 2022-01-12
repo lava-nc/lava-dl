@@ -20,6 +20,7 @@ from lava.lib.dl import netx
 
 verbose = True if (('-v' in sys.argv) or ('--verbose' in sys.argv)) else False
 HAVE_DISPLAY = 'DISPLAY' in os.environ
+root = os.path.dirname(os.path.abspath(__file__))
 
 
 class TestRunConfig(RunConfig):
@@ -41,7 +42,7 @@ class TestRunConfig(RunConfig):
 class TestHdf5Netx(unittest.TestCase):
     def test_num_layers(self) -> None:
         """Tests the number of layers generated."""
-        net = netx.hdf5.Network(net_config='tiny.net', num_layers=2)
+        net = netx.hdf5.Network(net_config=root + '/tiny.net', num_layers=2)
         self.assertTrue(
             len(net) <= 2,
             f'Expected less than 2 blocks in network. Found {len(net) = }.'
@@ -49,7 +50,7 @@ class TestHdf5Netx(unittest.TestCase):
 
     def test_input_transform(self) -> None:
         """Tests the input tansform of known hdf5 net."""
-        net = netx.hdf5.Network(net_config='tiny.net', num_layers=1)
+        net = netx.hdf5.Network(net_config=root + '/tiny.net', num_layers=1)
         # transformation should be y = 2*weight*x - weight + bias
         bias = net.in_layer.transform(0)
         weight = (net.in_layer.transform(1) - bias) / 2
@@ -66,7 +67,7 @@ class TestHdf5Netx(unittest.TestCase):
     def test_tinynet(self) -> None:
         """Tests the output of three layer CNN."""
         steps_per_sample = 17
-        net = netx.hdf5.Network(net_config='tiny.net')
+        net = netx.hdf5.Network(net_config=root + '/tiny.net')
 
         num_steps = steps_per_sample + len(net)
         sink = io.sink.RingBuffer(
@@ -78,8 +79,10 @@ class TestHdf5Netx(unittest.TestCase):
         for i, l in enumerate(net.layers):
             # TODO: DISCUSS
             # Execution hangs when both u and v are reset
-            # io.reset.ResetVar(l.neuron.u, interval=steps_per_sample, offset=i)
-            io.reset.ResetVar(l.neuron.v, interval=steps_per_sample, offset=i)
+            u_resetter = io.reset.Reset(interval=steps_per_sample, offset=i)
+            v_resetter = io.reset.Reset(interval=steps_per_sample, offset=i)
+            u_resetter.connect_var(l.neuron.u)
+            v_resetter.connect_var(l.neuron.v)
 
         if verbose:
             print(f'Network created from {net.filename}')
@@ -87,7 +90,9 @@ class TestHdf5Netx(unittest.TestCase):
             print(f'{len(net) = }')
 
         # set input bias for the ground truth sample
-        net.in_layer.neuron.bias.init = np.load('gts/tinynet/input_bias.npy')
+        net.in_layer.neuron.bias.init = np.load(
+            root + '/gts/tinynet/input_bias.npy'
+        )
 
         run_condition = RunSteps(num_steps=num_steps)
         run_config = TestRunConfig(select_tag='fixed_pt')
@@ -95,7 +100,9 @@ class TestHdf5Netx(unittest.TestCase):
         output = sink.data.get()
         net.stop()
 
-        gt = np.load('gts/tinynet/output.npy')[0].transpose([2, 1, 0, 3])
+        gt = np.load(
+            root + '/gts/tinynet/output.npy'
+        )[0].transpose([2, 1, 0, 3])
         gt = gt[..., 1:]
 
         error = np.abs(output[..., 2:17] - gt).sum()

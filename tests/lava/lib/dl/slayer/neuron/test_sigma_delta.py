@@ -143,7 +143,7 @@ class TestCUBA(unittest.TestCase):
         sd_neuron.sigma.pre_state *= 0
 
         # break the calculation into two parts: before ind and after ind
-        ind = int(np.random.random() * spike_input.shape[-1])
+        ind = int(np.random.random() * (spike_input.shape[-1] - 1)) + 1
         real_sigma0 = sd_neuron.sigma(sd_neuron.delta(real[..., :ind]))
         real_sigma1 = sd_neuron.sigma(sd_neuron.delta(real[..., ind:]))
 

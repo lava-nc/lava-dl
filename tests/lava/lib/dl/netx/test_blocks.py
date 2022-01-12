@@ -22,6 +22,7 @@ from lava.lib.dl.netx.blocks.process import Dense, Conv, Input
 
 verbose = True if (('-v' in sys.argv) or ('--verbose' in sys.argv)) else False
 HAVE_DISPLAY = 'DISPLAY' in os.environ
+root = os.path.dirname(os.path.abspath(__file__))
 
 
 class TestRunConfig(RunConfig):
@@ -54,7 +55,7 @@ class TestBlocks(unittest.TestCase):
         input_blk = Input(
             shape=(16, 16, 3),
             neuron_params={'neuron_proc': LIF, **lif_params},
-            bias=np.load('gts/tinynet/input_bias.npy')
+            bias=np.load(root + '/gts/tinynet/input_bias.npy')
         )
         sink = ReceiveProcess(shape=input_blk.out.shape, buffer=num_steps)
         input_blk.out.connect(sink.a_in)
@@ -65,7 +66,7 @@ class TestBlocks(unittest.TestCase):
         output = sink.data.get()
         input_blk.stop()
 
-        gt = np.load('gts/tinynet/input.npy')[0].transpose([2, 1, 0, 3])
+        gt = np.load(root + '/gts/tinynet/input.npy')[0].transpose([2, 1, 0, 3])
         gt = gt[..., 1:]  # there is an offset of one time step
 
         error = np.abs(output - gt).sum()
@@ -107,11 +108,13 @@ class TestBlocks(unittest.TestCase):
             shape=(6, 6, 24),
             input_shape=(16, 16, 3),
             neuron_params={'neuron_proc': LIF, **lif_params},
-            weight=np.load('gts/tinynet/layer1_kernel.npy'),
-            bias=np.load('gts/tinynet/layer1_bias.npy'),
+            weight=np.load(root + '/gts/tinynet/layer1_kernel.npy'),
+            bias=np.load(root + '/gts/tinynet/layer1_bias.npy'),
             stride=2,
         )
-        data = np.load('gts/tinynet/input.npy')[0].transpose([2, 1, 0, 3])
+        data = np.load(
+            root + '/gts/tinynet/input.npy'
+        )[0].transpose([2, 1, 0, 3])
         source = SendProcess(data=data[..., 1:])
         sink = ReceiveProcess(shape=conv_blk.out.shape, buffer=num_steps)
         source.s_out.connect(conv_blk.inp)
@@ -131,8 +134,12 @@ class TestBlocks(unittest.TestCase):
 
         s[..., 0] = 0
         u = np.stack(current).transpose([1, 2, 3, 0])
-        s_gt = np.load('gts/tinynet/layer1.npy')[0].transpose([2, 1, 0, 3])
-        u_gt = np.load('gts/tinynet/current.npy')[0].transpose([2, 1, 0, 3])
+        s_gt = np.load(root + '/gts/tinynet/layer1.npy')[0].transpose(
+            [2, 1, 0, 3]
+        )
+        u_gt = np.load(root + '/gts/tinynet/current.npy')[0].transpose(
+            [2, 1, 0, 3]
+        )
         u_gt *= 64
 
         s_error = np.abs(s - s_gt).sum()
@@ -181,10 +188,10 @@ class TestBlocks(unittest.TestCase):
         dense_blk = Dense(
             shape=(256,),
             neuron_params={'neuron_proc': LIF, **lif_params},
-            weight=np.load('gts/dense/weight.npy')
+            weight=np.load(root + '/gts/dense/weight.npy')
         )
 
-        source = SendProcess(data=np.load('gts/dense/in.npy'))
+        source = SendProcess(data=np.load(root + '/gts/dense/in.npy'))
         sink = ReceiveProcess(shape=dense_blk.out.shape, buffer=num_steps)
         source.s_out.connect(dense_blk.inp)
         dense_blk.out.connect(sink.a_in)
@@ -195,7 +202,7 @@ class TestBlocks(unittest.TestCase):
         s = sink.data.get()
         dense_blk.stop()
 
-        s_gt = np.load('gts/dense/out.npy')
+        s_gt = np.load(root + '/gts/dense/out.npy')
         s_error = np.abs(s - s_gt).sum()
 
         if verbose:
