@@ -23,7 +23,7 @@ TAU_RHO_MULT = 100
 # TAU_RHO_MULT = 1
 
 
-def neuron_params(device_params, scale=1 << 6):
+def neuron_params(device_params, scale=1 << 6, p_scale=1 << 12):
     """Translates device parameters to neuron parameters.
 
     Parameters
@@ -33,6 +33,8 @@ def neuron_params(device_params, scale=1 << 6):
 
     scale : int
         neuron scale value. Default value = 1 << 6.
+    p_scale : int
+        parameter scale value. Default value = 1 << 12
 
     Returns
     -------
@@ -40,8 +42,6 @@ def neuron_params(device_params, scale=1 << 6):
         dictionary of neuron parameters that can be used to initialize neuron
         class.
     """
-    p_scale = 1 << 12
-    # s_scale = scale * (1 << 6)
     return {
         'threshold': device_params['vThMant'] / scale,
         'current_decay': device_params['iDecay'] / p_scale,
