@@ -23,6 +23,35 @@ TAU_RHO_MULT = 100
 # TAU_RHO_MULT = 1
 
 
+def neuron_params(device_params, scale=1 << 6, p_scale=1 << 12):
+    """Translates device parameters to neuron parameters.
+
+    Parameters
+    ----------
+    device_params : dictionary
+        dictionary of device parameter specification.
+
+    scale : int
+        neuron scale value. Default value = 1 << 6.
+    p_scale : int
+        parameter scale value. Default value = 1 << 12
+
+    Returns
+    -------
+    dictionary
+        dictionary of neuron parameters that can be used to initialize neuron
+        class.
+    """
+    return {
+        'threshold': device_params['vThMant'] / scale,
+        'threshold_step': device_params['vThMant'] / scale,
+        'current_decay': device_params['iDecay'] / p_scale,
+        'voltage_decay': device_params['vDecay'] / p_scale,
+        'threshold_decay': device_params['thDecay'] / p_scale,
+        'refractory_decay': device_params['refDecay'] / p_scale,
+    }
+
+
 class Neuron(base.Neuron):
     """This is the implementation of Adaptive LIF neuron.
 
@@ -320,6 +349,11 @@ class Neuron(base.Neuron):
         return val
 
     @property
+    def v_th_step(self):
+        """Get voltage-threshold step parameter."""
+        return int(self.threshold_step * self.w_scale)
+
+    @property
     def ref_delay(self):
         """Refractory delay."""
         # ref_delay of 1 is assumed for now
@@ -341,6 +375,7 @@ class Neuron(base.Neuron):
             'thDecay': self.cx_threshold_decay,
             'refDecay': self.cx_refractory_decay,
             'vThMant': self.v_th_mant,
+            'vThStep': self.v_th_step,
             'refDelay': self.ref_delay,
             'gradedSpike': self.graded_spike,
         }
