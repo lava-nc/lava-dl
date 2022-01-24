@@ -415,14 +415,12 @@ def _AdResDynamicsFwd(
             (threshold_old - th0) * th_decay_int,
             12
         ) + th0
-        real_new = right_shift_to_zero(
-            cos_decay_int * real_old - sin_decay_int * imag_old,
-            12
-        ) + (w_scale * real_input[..., n]).to(dtype)
-        imag_new = right_shift_to_zero(
-            sin_decay_int * real_old + cos_decay_int * imag_old,
-            12
-        ) + (w_scale * imag_input[..., n]).to(dtype)
+        real_new = right_shift_to_zero(cos_decay_int * real_old, 12) \
+            - right_shift_to_zero(sin_decay_int * imag_old, 12) \
+            + (w_scale * real_input[..., n]).to(dtype)
+        imag_new = right_shift_to_zero(sin_decay_int * real_old, 12) \
+            + right_shift_to_zero(cos_decay_int * imag_old, 12) \
+            + (w_scale * imag_input[..., n]).to(dtype)
 
         spike_new = (imag_new >= (threshold_new + refractory_new)).to(dtype)
         real_old = real_new
