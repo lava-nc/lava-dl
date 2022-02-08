@@ -79,9 +79,9 @@ class TestHdf5Netx(unittest.TestCase):
         for i, l in enumerate(net.layers):
             # TODO: DISCUSS
             # Execution hangs when both u and v are reset
-            u_resetter = io.reset.Reset(interval=steps_per_sample, offset=i)
+            # u_resetter = io.reset.Reset(interval=steps_per_sample, offset=i)
             v_resetter = io.reset.Reset(interval=steps_per_sample, offset=i)
-            u_resetter.connect_var(l.neuron.u)
+            # u_resetter.connect_var(l.neuron.u)
             v_resetter.connect_var(l.neuron.v)
 
         if verbose:

@@ -35,7 +35,7 @@ class _DeltaUnit(torch.autograd.Function):
                     delta,
                     0 * delta
                 ).to(input.dtype)
-                # error *= (torch.abs(error) > 1)
+                error *= 1 - (torch.abs(output[..., t]) > 0)
                 residual_state = (delta - output[..., t]).detach()
                 pre_state = input[..., t].detach()
         else:
@@ -139,7 +139,8 @@ class Delta(torch.nn.Module):
         e[t] &= e[t] + \\Delta x[t]\\\\
         y[t] &= \\begin{cases}
             \\Delta x[t] &\\text{ if } e[t] \\geq \\vartheta \\\\
-            0 &\\text{ otherwise}
+            0 &\\text{ otherwise}\\\\
+        e[t] &= e[t] * (1 - \mathcal{H}(|y[t]|))
         \\end{cases}
 
     Parameters

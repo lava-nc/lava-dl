@@ -21,7 +21,7 @@ class AbstractBlock(AbstractProcess):
         shape of the block output in (x, y, z) or WHC format.
     neuron_params : dict
         dictionary of neuron parameters. Defaults to None.
-    graded_input : dict
+    has_graded_input : dict
         flag for graded spikes at input. Defaults to False.
     """
     def __init__(self, **kwargs: Union[dict, tuple, list, int, bool]) -> None:
@@ -32,10 +32,10 @@ class AbstractBlock(AbstractProcess):
         if self.neuron_params is not None:
             self.neuron_process = self.neuron_params.pop('neuron_proc', None)
         self.neuron = None
-        self.graded_input = kwargs.pop('graded_input', False)
-        self.graded_output = False
-        if 'graded_spikes' in self.neuron_params.keys():
-            self.graded_output = self.neuron_params['graded_spikes']
+        self.has_graded_input = kwargs.pop('has_graded_input', False)
+        self.has_graded_output = False
+        if 'use_graded_spikes' in self.neuron_params.keys():
+            self.has_graded_output = self.neuron_params['use_graded_spikes']
 
     def _clean(self) -> None:
         del self.neuron_params
@@ -116,7 +116,7 @@ class Dense(AbstractBlock):
         synaptic weight.
     bias : np.ndarray or None
         bias of neuron. None means no bias. Defaults to None.
-    graded_input : dict
+    has_graded_input : dict
         flag for graded spikes at input. Defaults to False.
     """
     def __init__(self, **kwargs: Union[dict, tuple, list, int, bool]) -> None:
@@ -127,9 +127,9 @@ class Dense(AbstractBlock):
         weight_exponent = kwargs.pop('weight_exponent', 0)
         sign_mode = kwargs.pop('sign_mode', 1)
 
-        # TODO: to be enabled when there is graded spike support in Dense proc
-        # graded_spikes_parms = {'graded_spikes': self.graded_spikes}
-        # if self.graded_spikes is True:
+        graded_spikes_params = {'use_graded_spike': self.has_graded_input}
+        # TODO: additional graded spike params
+        # if self.has_graded_input is True:
         #     graded_spikes_parms['spike_payload_bytes'] = 2  # 16 bits
         #     graded_spikes_parms['spike_payload_sign'] = 1   # signed
         self.synapse = DenseSynapse(
@@ -138,7 +138,7 @@ class Dense(AbstractBlock):
             weight_exp=weight_exponent,
             num_weight_bits=num_weight_bits,
             sign_mode=sign_mode,
-            # **graded_spikes_params,
+            **graded_spikes_params,
         )
 
         if self.shape != self.synapse.a_out.shape:
@@ -185,7 +185,7 @@ class Conv(AbstractBlock):
         convolution dilation. Defaults to 1.
     groups : int
         convolution groups. Defaults to 1.
-    graded_input : dict
+    has_graded_input : dict
         flag for graded spikes at input. Defaults to False.
     """
     def __init__(self, **kwargs: Union[dict, tuple, list, int, bool]) -> None:
@@ -194,6 +194,12 @@ class Conv(AbstractBlock):
         # num_weight_bits = kwargs.pop('num_weight_bits', 8)
         # weight_exponent = kwargs.pop('weight_exponent', 0)
         # sign_mode = kwargs.pop('sign_mode', 1)
+
+        graded_spikes_params = {'use_graded_spike': self.has_graded_input}
+        # TODO: additional graded spike params
+        # if self.has_graded_input is True:
+        #     graded_spikes_parms['spike_payload_bytes'] = 2  # 16 bits
+        #     graded_spikes_parms['spike_payload_sign'] = 1   # signed
 
         self.synapse = ConvSynapse(
             input_shape=kwargs.pop('input_shape'),
@@ -207,7 +213,7 @@ class Conv(AbstractBlock):
             # # num_dly_bits=self.num_weight_bits(delays),
             # wgt_exp=weight_exponent,
             # sign_mode=sign_mode,
-            # **graded_spikes_parms,
+            **graded_spikes_params,
         )
 
         if list(self.shape) != list(self.synapse.output_shape):

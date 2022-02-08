@@ -19,12 +19,12 @@ from lava.lib.dl.netx.blocks.process import Input, Dense, Conv
 @tag('fixed_pt')
 class AbstractPyBlockModel(AbstractSubProcessModel):
     def __init__(self, proc: AbstractProcess) -> None:
-        if proc.graded_input:
+        if proc.has_graded_input:
             self.inp: PyInPort = LavaPyType(np.ndarray, np.int32, precision=32)
         else:
             self.inp: PyInPort = LavaPyType(np.ndarray, np.int8, precision=1)
 
-        if proc.graded_output:
+        if proc.has_graded_output:
             self.out: PyOutPort = LavaPyType(np.ndarray, np.int32, precision=32)
         else:
             self.out: PyOutPort = LavaPyType(np.ndarray, np.int8, precision=1)

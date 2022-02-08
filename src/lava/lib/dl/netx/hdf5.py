@@ -12,6 +12,7 @@ import h5py
 from lava.magma.core.process.process import AbstractProcess
 from lava.magma.core.process.ports.ports import InPort, OutPort
 from lava.proc.lif.process import LIF
+from lava.proc.sdn.process import SigmaDelta, ACTIVATION_MODE
 from lava.lib.dl.netx.utils import NetDict
 from lava.lib.dl.netx.utils import optimize_weight_bits
 from lava.lib.dl.netx.blocks.process import Input, Dense, Conv
@@ -30,7 +31,7 @@ class Network(AbstractProcess):
         first ``num_layers`` blocks in the description. The actual number of
         generated layers may be less than ``num_layers``. If it is None, all
         the layers are generated. Defaults to None.
-    graded_input : bool, optional
+    has_graded_input : bool, optional
         flag indicating the input spike type of input layer. Defaults to False.
     """
     def __init__(
@@ -42,7 +43,7 @@ class Network(AbstractProcess):
         self.net_config = NetDict(self.filename)
 
         self.num_layers = kwargs.pop('num_layers', None)
-        self.graded_input = kwargs.pop('graded_input', False)
+        self.has_graded_input = kwargs.pop('has_graded_input', False)
 
         self.net_str = ''
         self.layers = self._create()
@@ -56,8 +57,8 @@ class Network(AbstractProcess):
         self.inp.connect(self.in_layer.inp)
         self.out_layer.out.connect(self.out)
 
-        self.graded_input = self.in_layer.graded_input
-        self.graded_output = self.out_layer.graded_output
+        self.has_graded_input = self.in_layer.has_graded_input
+        self.has_graded_output = self.out_layer.has_graded_output
 
     def __str__(self) -> str:
         """Network description string."""
@@ -94,19 +95,17 @@ class Network(AbstractProcess):
                 # weird: it seems the LIF process is written this way!
                 'dv': neuron_config['vDecay'],
                 'bias_exp': 6,
-                'graded_spikes': False,
+                'use_graded_spikes': False,
             }
             return neuron_params
-        # TODO: enable after SDN process is ready
-        # elif neuron_type in ['SDNN']:
-        #     neuron_process = SigmaDeltaNeurons
-        #     neuron_params = {
-        #             'neuron_proc': neuron_process,
-        #             'threshold' : neuron_config['vThMant'],
-        #             'alpha' : 1,
-        #             'graded_spikes': True,
-        #         }
-        #     return neuron_params
+        elif neuron_type in ['SDNN']:
+            neuron_process = SigmaDelta
+            neuron_params = {
+                'neuron_proc': neuron_process,
+                'vth': neuron_config['vThMant'],
+                'use_graded_spikes': True,
+            }
+            return neuron_params
 
     @staticmethod
     def _table_str(
@@ -133,7 +132,7 @@ class Network(AbstractProcess):
                 if data is None:
                     return f'{"":5s}|'
                 elif len(data.shape) == 1:
-                    return f'{data[1]:-2d},{data[0]:-2d}|'
+                    return f'{data[0]:-2d},{data[1]:-2d}|'
                 else:
                     return f'{data:-5d}|'
 
@@ -174,7 +173,8 @@ class Network(AbstractProcess):
             weight = int(layer_config['weight'])
         else:
             # TODO: for sigma delta neurons, default weight is 64 # CHECK
-            weight = 1
+            # weight = 1
+            weight = 64
 
         if 'bias' in layer_config.keys():
             bias = int(layer_config['bias'])
@@ -204,10 +204,10 @@ class Network(AbstractProcess):
             'transform': transform,
         }
 
-        # TODO: specific for sigma delta neurons
-        # if params['neuron_params']['neuron_proc'].__name__ ==\
-        #         'SigmaDeltaNeurons':
-        #     params['neuron_params']['act_fn'] = lambda x: x
+        # specific for sigma delta neurons
+        if params['neuron_params']['neuron_proc'].__name__ ==\
+                'SigmaDelta':
+            params['neuron_params']['act_mode'] = ACTIVATION_MODE.Unit
 
         table_entry = Network._table_str(
             type_str='Input',
@@ -218,7 +218,7 @@ class Network(AbstractProcess):
 
     @staticmethod
     def create_dense(
-        layer_config: h5py.Group, graded_input: bool = False
+        layer_config: h5py.Group, has_graded_input: bool = False
     ) -> Tuple[Dense, str]:
         """Creates dense layer from layer configuration
 
@@ -226,7 +226,7 @@ class Network(AbstractProcess):
         ----------
         layer_config : h5py.Group
             hdf5 handle to layer description.
-        graded_input : bool, optional
+        has_graded_input : bool, optional
             flag to indicate graded spikes at input, by default False.
 
         Returns
@@ -252,7 +252,7 @@ class Network(AbstractProcess):
             'num_weight_bits': num_weight_bits,
             'weight_exponent': weight_exponent,
             'sign_mode': sign_mode,
-            'graded_input': graded_input,
+            'has_graded_input': has_graded_input,
         }
 
         # optional arguments
@@ -275,7 +275,7 @@ class Network(AbstractProcess):
     def create_conv(
         layer_config: h5py.Group,
         input_shape: Tuple[int, int, int],
-        graded_input: bool = False
+        has_graded_input: bool = False
     ) -> Tuple[Conv, str]:
         """Creates conv layer from layer configuration
 
@@ -285,7 +285,7 @@ class Network(AbstractProcess):
             hdf5 handle to layer description.
         input_shape : tuple of 3 ints
             shape of input to the block.
-        graded_input : bool, optional
+        has_graded_input : bool, optional
             flag to indicate graded spikes at input, by default False.
 
         Returns
@@ -319,7 +319,7 @@ class Network(AbstractProcess):
             # 'num_weight_bits': num_weight_bits,
             # 'weight_exponent': weight_exponent,
             # 'sign_mode': sign_mode,
-            'graded_input': graded_input,
+            'has_graded_input': has_graded_input,
         }
 
         # optional arguments
@@ -361,7 +361,7 @@ class Network(AbstractProcess):
     #     pass
 
     def _create(self) -> List[AbstractProcess]:
-        graded_input_next = self.graded_input
+        has_graded_input_next = self.has_graded_input
         flatten_next = False
         layers = []
         layer_config = self.net_config['layer']
@@ -378,16 +378,16 @@ class Network(AbstractProcess):
             if layer_type == 'input':
                 layer, table = self.create_input(layer_config[i])
                 layers.append(layer)
-                graded_input_next = layer.graded_output
+                has_graded_input_next = layer.has_graded_output
 
             elif layer_type == 'conv':
                 layer, table = self.create_conv(
                     layer_config=layer_config[i],
                     input_shape=layers[-1].shape,
-                    graded_input=graded_input_next
+                    has_graded_input=has_graded_input_next
                 )
                 layers.append(layer)
-                graded_input_next = layer.graded_output
+                has_graded_input_next = layer.has_graded_output
                 if len(layers) > 1:
                     layers[-2].out.connect(layers[-1].inp)
 
@@ -407,7 +407,7 @@ class Network(AbstractProcess):
             elif layer_type == 'dense':
                 layer, table = self.create_dense(layer_config[i])
                 layers.append(layer)
-                graded_input_next = layer.graded_output
+                has_graded_input_next = layer.has_graded_output
                 if flatten_next:
                     layers[-2].out.permute([2, 1, 0]).flatten().connect(
                         layers[-1].inp
