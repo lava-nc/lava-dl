@@ -22,6 +22,39 @@ SCALE_RHO_MULT = 0.1
 TAU_RHO_MULT = 100
 
 
+def neuron_params(device_params, scale=1 << 6, p_scale=1 << 12):
+    """Translates device parameters to neuron parameters.
+
+    Parameters
+    ----------
+    device_params : dictionary
+        dictionary of device parameter specification.
+
+    scale : int
+        neuron scale value. Default value = 1 << 6.
+    p_scale : int
+        parameter scale value. Default value = 1 << 12
+
+    Returns
+    -------
+    dictionary
+        dictionary of neuron parameters that can be used to initialize neuron
+        class.
+    """
+    sin_decay = device_params['sinDecay'] / p_scale,
+    cos_decay = device_params['cosDecay'] / p_scale,
+    decay = 1 - np.sqrt(sin_decay ** 2 + cos_decay ** 2)
+    frequency = np.arctan2(sin_decay, cos_decay) / 2 / np.pi
+    return {
+        'threshold': device_params['vThMant'] / scale,
+        'threshold_step': device_params['vThMant'] / scale,
+        'period': 1 / frequency,
+        'decay': decay,
+        'threshold_decay': device_params['thDecay'] / p_scale,
+        'refractory_decay': device_params['refDecay'] / p_scale,
+    }
+
+
 class Neuron(base.Neuron):
     """This is the implementation of RF neuron.
 
@@ -379,10 +412,29 @@ class Neuron(base.Neuron):
         return val
 
     @property
+    def v_th_step(self):
+        """Get voltage-threshold step parameter."""
+        return int(self.threshold_step * self.w_scale)
+
+    @property
     def scale(self):
         """Scale difference between slayer representation and hardware
         representation of the variable states."""
         return self.w_scale
+
+    @property
+    def device_params(self):
+        """Dictionary of device parameters."""
+        return {
+            'type': 'ADRF_PHASE',
+            'sinDecay': self.cx_sin_decay,
+            'cosDecay': self.cx_cos_decay,
+            'thDecay': self.cx_threshold_decay,
+            'refDecay': self.cx_refractory_decay,
+            'vThMant': self.v_th_mant,
+            'vThStep': self.v_th_step,
+            'gradedSpike': self.graded_spike,
+        }
 
     def dynamics(self, input):
         """Computes the dynamics (without spiking behavior) of the neuron
