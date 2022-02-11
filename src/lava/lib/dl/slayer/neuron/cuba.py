@@ -357,7 +357,7 @@ class Neuron(base.Neuron):
         )
 
         if self.norm is not None:
-            input = self.norm(input)
+            current = self.norm(current)
 
         voltage = leaky_integrator.dynamics(
             current,  # bias can be enabled by adding it here
