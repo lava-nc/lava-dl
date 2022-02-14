@@ -26,6 +26,8 @@ class PilotNetDataset():
     visualize : bool, optional
         If true, the train/test split is ignored and the temporal sequence
         of the data is preserved. Defaults to False.
+    sample_offset : int, optional
+        sample offset. Default is 0. 
 
     Usage
     -----
@@ -41,6 +43,7 @@ class PilotNetDataset():
         transform: Union[bool, None] = None,
         train: Union[bool, None] = True,
         visualize: Union[bool, None] = False,
+        sample_offset: int = 0,
     ) -> None:
         self.path = os.path.join(path, 'driving_dataset')
 
@@ -86,8 +89,11 @@ class PilotNetDataset():
 
         self.size = size
         self.transform = transform
+        self.sample_offset = sample_offset
+        self.gt_log = []
 
     def __getitem__(self, index: int) -> Tuple[np.ndarray, float]:
+        index = (index + self.sample_offset) % len(self.samples)
         image = Image.open(
             os.path.join(self.path, self.samples[index][0])
         ).resize(self.size, resample=Image.BILINEAR)
@@ -95,7 +101,8 @@ class PilotNetDataset():
         if self.transform is not None:
             image = self.transform(image)
         gt_val = float(self.samples[index][1]) * np.pi / 180
-        return image, gt_val
+        gt_val *= (1 << 16)
+        return image.reshape(image.shape + (1,)), gt_val
 
     def __len__(self) -> int:
         return len(self.samples)

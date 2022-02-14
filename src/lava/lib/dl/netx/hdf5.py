@@ -12,7 +12,7 @@ import h5py
 from lava.magma.core.process.process import AbstractProcess
 from lava.magma.core.process.ports.ports import InPort, OutPort
 from lava.proc.lif.process import LIF
-from lava.proc.sdn.process import SigmaDelta, ACTIVATION_MODE
+from lava.proc.sdn.process import Sigma, Delta, SigmaDelta, ACTIVATION_MODE
 from lava.lib.dl.netx.utils import NetDict
 from lava.lib.dl.netx.utils import optimize_weight_bits
 from lava.lib.dl.netx.blocks.process import Input, Dense, Conv
@@ -70,7 +70,8 @@ class Network(AbstractProcess):
 
     @staticmethod
     def get_neuron_params(
-        neuron_config: h5py.Group
+        neuron_config: h5py.Group,
+        input: bool=False,
     ) -> AbstractProcess:
         """Provides the correct neuron configuration process and parameters
         from the neuron description in hdf5 config.
@@ -79,6 +80,9 @@ class Network(AbstractProcess):
         ----------
         neuron_config: h5py.Group
             hdf5 object describing the neuron configuration
+        input: bool
+            flag to indicate if the layer is input. For some cases special
+            processing may be done.
 
         Returns
         -------
@@ -99,12 +103,30 @@ class Network(AbstractProcess):
             }
             return neuron_params
         elif neuron_type in ['SDNN']:
-            neuron_process = SigmaDelta
-            neuron_params = {
-                'neuron_proc': neuron_process,
-                'vth': neuron_config['vThMant'],
-                'use_graded_spikes': True,
-            }
+            if input is True:  # delta process if it is an input layer
+                neuron_process = Delta
+                neuron_params = {
+                    'neuron_proc': neuron_process,
+                    'vth': neuron_config['vThMant'],
+                    'state_exp': 6,
+                    'wgt_exp': 6,
+                    'use_graded_spikes': True,
+                }
+            elif 'sigma_output' in neuron_config.keys():
+                neuron_process = Sigma
+                neuron_params = {
+                    'neuron_proc': neuron_process,
+                    'use_graded_spikes': True,
+                }
+            else:
+                neuron_process = SigmaDelta
+                neuron_params = {
+                    'neuron_proc': neuron_process,
+                    'vth': neuron_config['vThMant'],
+                    'state_exp': 6,
+                    'wgt_exp': 6,
+                    'use_graded_spikes': True,
+                }
             return neuron_params
 
     @staticmethod
@@ -167,7 +189,9 @@ class Network(AbstractProcess):
             table entry string for process.
         """
         shape = tuple(layer_config['shape'][::-1])  # WHC (XYZ)
-        neuron_params = Network.get_neuron_params(layer_config['neuron'])
+        neuron_params = Network.get_neuron_params(
+            layer_config['neuron'], input=True
+        )
 
         if 'weight' in layer_config.keys():
             weight = int(layer_config['weight'])
@@ -205,9 +229,9 @@ class Network(AbstractProcess):
         }
 
         # specific for sigma delta neurons
-        if params['neuron_params']['neuron_proc'].__name__ ==\
-                'SigmaDelta':
-            params['neuron_params']['act_mode'] = ACTIVATION_MODE.Unit
+        # if params['neuron_params']['neuron_proc'].__name__ ==\
+        #         'SigmaDelta':
+        #     params['neuron_params']['act_mode'] = ACTIVATION_MODE.Unit
 
         table_entry = Network._table_str(
             type_str='Input',
