@@ -90,7 +90,6 @@ class PilotNetDataset():
         self.size = size
         self.transform = transform
         self.sample_offset = sample_offset
-        self.gt_log = []
 
     def __getitem__(self, index: int) -> Tuple[np.ndarray, float]:
         index = (index + self.sample_offset) % len(self.samples)
