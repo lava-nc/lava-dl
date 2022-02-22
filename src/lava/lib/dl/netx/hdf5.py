@@ -433,7 +433,7 @@ class Network(AbstractProcess):
                 layers.append(layer)
                 has_graded_input_next = layer.has_graded_output
                 if flatten_next:
-                    layers[-2].out.permute([2, 1, 0]).flatten().connect(
+                    layers[-2].out.transpose([2, 1, 0]).flatten().connect(
                         layers[-1].inp
                     )
                     flatten_next = False
