@@ -67,6 +67,7 @@ def set_properties_unit(project):
     project.set_property("dir_source_unittest_python", "tests/lava")
     project.set_property("dir_source_main_scripts", "scripts")
     project.set_property("dir_docs", "docs")
+    project.build_depends_on("lava", url="git+https://github.com/lava-nc/lava.git")
 
     project.set_property("sphinx_config_path", "docs")
     project.set_property("sphinx_source_dir", "docs")
@@ -82,7 +83,7 @@ def set_properties_unit(project):
     project.plugin_depends_on("sphinx_tabs")
 
     project.set_property("verbose", True)
-    
+
     project.set_property("coverage_threshold_warn", 0)
     project.set_property("coverage_break_build", False)
 

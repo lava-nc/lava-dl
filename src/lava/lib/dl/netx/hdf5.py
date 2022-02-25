@@ -12,7 +12,7 @@ import h5py
 from lava.magma.core.process.process import AbstractProcess
 from lava.magma.core.process.ports.ports import InPort, OutPort
 from lava.proc.lif.process import LIF
-from lava.proc.sdn.process import Sigma, Delta, SigmaDelta, ACTIVATION_MODE
+from lava.proc.sdn.process import Sigma, Delta, SigmaDelta
 from lava.lib.dl.netx.utils import NetDict
 from lava.lib.dl.netx.utils import optimize_weight_bits
 from lava.lib.dl.netx.blocks.process import Input, Dense, Conv
@@ -71,7 +71,7 @@ class Network(AbstractProcess):
     @staticmethod
     def get_neuron_params(
         neuron_config: h5py.Group,
-        input: bool=False,
+        input: bool = False,
     ) -> AbstractProcess:
         """Provides the correct neuron configuration process and parameters
         from the neuron description in hdf5 config.
@@ -227,11 +227,6 @@ class Network(AbstractProcess):
             'neuron_params': neuron_params,
             'transform': transform,
         }
-
-        # specific for sigma delta neurons
-        # if params['neuron_params']['neuron_proc'].__name__ ==\
-        #         'SigmaDelta':
-        #     params['neuron_params']['act_mode'] = ACTIVATION_MODE.Unit
 
         table_entry = Network._table_str(
             type_str='Input',

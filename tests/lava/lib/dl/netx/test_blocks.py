@@ -16,7 +16,6 @@ from lava.magma.core.model.py.model import PyLoihiProcessModel
 from lava.proc.io.source import RingBuffer as SendProcess
 from lava.proc.io.sink import RingBuffer as ReceiveProcess
 from lava.proc.lif.process import LIF
-from lava.proc.sdn.process import SigmaDelta
 
 from lava.lib.dl.netx.blocks.process import Dense, Conv, Input
 
@@ -229,52 +228,3 @@ class TestLIFBlocks(unittest.TestCase):
             f'Found {s[s != s_gt] = } and {s_gt[s != s_gt] = }. '
             f'Error was {s_error}.'
         )
-
-
-if __name__ == '__main__':
-    num_steps = 15
-    sdn_params = {
-        'vth': 25,
-    }
-
-    input_blk = Input(
-        shape=(16, 16, 3),
-        neuron_params={'neuron_proc': SigmaDelta, **sdn_params},
-        bias=np.load(root + '/gts/tinynet/input_bias.npy')
-    )
-    sink = ReceiveProcess(shape=input_blk.out.shape, buffer=num_steps)
-    input_blk.out.connect(sink.a_in)
-
-    run_condition = RunSteps(num_steps=num_steps)
-    run_config = TestRunConfig(select_tag='fixed_pt')
-    input_blk.run(condition=run_condition, run_cfg=run_config)
-    output = sink.data.get()
-    input_blk.stop()
-
-    # gt = np.load(root + '/gts/tinynet/input.npy')[0].transpose([2, 1, 0, 3])
-    # gt = gt[..., 1:]  # there is an offset of one time step
-
-    # error = np.abs(output - gt).sum()
-    # if verbose:
-    #     print('Input spike error:', error)
-    #     if HAVE_DISPLAY:
-    #         plt.figure()
-    #         out_ae = np.argwhere(output.reshape((-1, num_steps)) > 0)
-    #         gt_ae = np.argwhere(gt.reshape((-1, num_steps)) > 0)
-    #         plt.plot(
-    #             gt_ae[:, 1],
-    #             gt_ae[:, 0],
-    #             '.', markersize=15, label='Ground Truth'
-    #         )
-    #         plt.plot(out_ae[:, 1], out_ae[:, 0], '.', label='Input Block')
-    #         plt.xlabel('Time')
-    #         plt.ylabel('Neuron ID')
-    #         plt.legend()
-    #         plt.show()
-
-    # self.assertTrue(
-    #     error == 0,
-    #     f'Output spike and ground truth do not match for Input block. '
-    #     f'Found {output[output != gt] = } and {gt[output != gt] = }. '
-    #     f'Error was {error}.'
-    # )

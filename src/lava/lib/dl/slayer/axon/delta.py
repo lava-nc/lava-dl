@@ -140,7 +140,7 @@ class Delta(torch.nn.Module):
         y[t] &= \\begin{cases}
             \\Delta x[t] &\\text{ if } e[t] \\geq \\vartheta \\\\
             0 &\\text{ otherwise}\\\\
-        e[t] &= e[t] * (1 - \mathcal{H}(|y[t]|))
+        e[t] &= e[t] * (1 - \\mathcal{H}(|y[t]|))
         \\end{cases}
 
     Parameters
