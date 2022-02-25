@@ -133,7 +133,7 @@ class Dense(AbstractBlock):
         sign_mode = kwargs.pop('sign_mode', 1)
 
         graded_spikes_params = {'use_graded_spike': self.has_graded_input}
-        
+
         self.synapse = DenseSynapse(
             shape=weight.shape,
             weights=weight,
