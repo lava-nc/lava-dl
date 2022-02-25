@@ -39,26 +39,51 @@ class PilotNetDataset(Dataset):
     """
     def __init__(
         self, path='data', sequence=16,
-        train=True, visualize=False, transform=None, extract=True
+        train=True, visualize=False, transform=None,
+        extract=True, download=True,
     ):
         self.path = path + '/driving_dataset/'
 
-        dataset_link = 'https://drive.google.com/file/d/'\
-            '0B-KJCaaF7elleG1RbzVPZWV4Tlk/view?usp=sharing'
+        id = '1Ue4XohCOV5YXy57S_5tDfCVqzLr101M7'
+        dataset_link = 'https://docs.google.com/uc?export=download&id={id}'
         download_msg = f'''Please download dataset form \n{dataset_link}')
         and copy driving_dataset.zip to {path}/
-        Note: create the folder if it does not exist.'''.replace(' '*8, '')
+        Note: create the folder if it does not exist.'''.replace(' ' * 8, '')
 
         # check if dataset is available in path. If not download it
         if len(glob.glob(self.path)) == 0:
+            if download is True:
+                os.makedirs(path, exist_ok=True)
+
+                print('Dataset not available locally. Starting download ...')
+                download_cmd = 'wget --load-cookies /tmp/cookies.txt '\
+                    + '"https://docs.google.com/uc?export=download&confirm='\
+                    + '$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate '\
+                    + f"'https://docs.google.com/uc?export=download&id={id}' -O- | "\
+                    + f"sed -rn \'s/.*confirm=([0-9A-Za-z_]+).*/\\1\\n/p\')&id={id}"\
+                    + f'" -O {path}/driving_dataset.zip && rm -rf /tmp/cookies.txt'
+                print(download_cmd)
+                exec_id = os.system(download_cmd + f' >> {path}/download.log')
+                if exec_id == 0:
+                    print('Download complete.')
+                else:
+                    raise Exception(download_msg)
+
             if extract is True:
                 if os.path.exists(path + '/driving_dataset.zip'):
                     print('Extracting data (this may take a while) ...')
-                    os.system(
+                    exec_id = os.system(
                         f'unzip {path}/driving_dataset.zip -d {path} '
                         f'>> {path}/unzip.log'
                     )
-                    print('Extraction complete.')
+                    if exec_id == 0:
+                        print('Extraction complete.')
+                    else:
+                        print(
+                            f'Could not extract file '
+                            f'{path + "/driving_dataset.zip"}. '
+                            f'Please extract it manually.'
+                        )
                 else:
                     print(f'Could not find {path + "/driving_dataset.zip"}.')
                     raise Exception(download_msg)

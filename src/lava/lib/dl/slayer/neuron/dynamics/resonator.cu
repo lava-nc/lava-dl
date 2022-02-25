@@ -68,15 +68,22 @@ __global__ void ResDynamicsFwdKernel(
     for(int n=0; n<num_steps; ++n) {
         linear_id = n + neuron_id * num_steps;
 
+        real_sign = (real >= 0) ? 1 : -1;
+        imag_sign = (imag >= 0) ? 1 : -1;
+        
         // calculate this portion in double precision
-        real_decayed = 1.0l * cos_decay_int * real - 1.0l * sin_decay_int * imag;
-        imag_decayed = 1.0l * sin_decay_int * real + 1.0l * cos_decay_int * imag;
-
-        real_sign = (real_decayed >= 0) ? 1 : -1;
-        imag_sign = (imag_decayed >= 0) ? 1 : -1;
-
-        real_new = real_sign * int(real_sign * real_decayed / 4096) + int(w_scale * real_input[linear_id]);
-        imag_new = imag_sign * int(imag_sign * imag_decayed / 4096) + int(w_scale * imag_input[linear_id]);
+        real_decayed = 1.0l * cos_decay_int * real;
+        imag_decayed = 1.0l * sin_decay_int * imag;
+        real_new = real_sign * int(real_sign * real_decayed / 4096) 
+                 - imag_sign * int(imag_sign * imag_decayed / 4096)
+                 + int(w_scale * real_input[linear_id]);
+                 
+        // calculate this portion in double precision
+        real_decayed = 1.0l * sin_decay_int * real;
+        imag_decayed = 1.0l * cos_decay_int * imag;
+        imag_new = real_sign * int(real_sign * real_decayed / 4096) 
+                 + imag_sign * int(imag_sign * imag_decayed / 4096)
+                 + int(w_scale * imag_input[linear_id]);
 
         real_tensor[linear_id] = 1.0f * real_new / w_scale;
         imag_tensor[linear_id] = 1.0f * imag_new / w_scale;

@@ -353,14 +353,12 @@ def _res_dynamics_fwd(
 
     num_steps = real_input.shape[-1]
     for n in range(num_steps):
-        real_new = right_shift_to_zero(
-            cos_decay_int * real_old - sin_decay_int * imag_old,
-            12
-        ) + (w_scale * real_input[..., n]).to(dtype)
-        imag_new = right_shift_to_zero(
-            sin_decay_int * real_old + cos_decay_int * imag_old,
-            12
-        ) + (w_scale * imag_input[..., n]).to(dtype)
+        real_new = right_shift_to_zero(cos_decay_int * real_old, 12) \
+            - right_shift_to_zero(sin_decay_int * imag_old, 12) \
+            + (w_scale * real_input[..., n]).to(dtype)
+        imag_new = right_shift_to_zero(sin_decay_int * real_old, 12) \
+            + right_shift_to_zero(cos_decay_int * imag_old, 12) \
+            + (w_scale * imag_input[..., n]).to(dtype)
 
         if threshold >= 0:
             spike_new = (imag_new >= threshold).to(dtype)
