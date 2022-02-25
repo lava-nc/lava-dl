@@ -429,7 +429,10 @@ class Network(AbstractProcess):
                 table = None
 
             elif layer_type == 'dense':
-                layer, table = self.create_dense(layer_config[i])
+                layer, table = self.create_dense(
+                    layer_config=layer_config[i],
+                    has_graded_input=has_graded_input_next
+                )
                 layers.append(layer)
                 has_graded_input_next = layer.has_graded_output
                 if flatten_next:

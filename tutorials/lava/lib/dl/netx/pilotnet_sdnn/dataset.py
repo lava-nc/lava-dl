@@ -99,8 +99,13 @@ class PilotNetDataset():
         image = np.array(image) / 255
         if self.transform is not None:
             image = self.transform(image)
-        gt_val = float(self.samples[index][1]) * np.pi / 180
-        gt_val *= (1 << 16)
+        ground_truth = float(self.samples[index][1])
+        if ground_truth == 0:
+            ground_truth = (
+                float(self.samples[index - 1][1]) +
+                float(self.samples[index + 1][1])
+            ) / 2
+        gt_val = ground_truth * np.pi / 180
         return image.reshape(image.shape + (1,)), gt_val
 
     def __len__(self) -> int:
