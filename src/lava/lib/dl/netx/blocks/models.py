@@ -11,13 +11,16 @@ from lava.magma.core.model.sub.model import AbstractSubProcessModel
 from lava.magma.core.sync.protocols.loihi_protocol import LoihiProtocol
 from lava.magma.core.resources import CPU
 
-# from .process import Conv
 from lava.lib.dl.netx.blocks.process import Input, Dense, Conv
 
 
 @requires(CPU)
 @tag('fixed_pt')
 class AbstractPyBlockModel(AbstractSubProcessModel):
+    """Abstract Block model. A block typically encapsulates at least a
+    synapse and a neuron in a layer. It could also include recurrent
+    connection as well as residual connection. A minimal example of a
+    block is a feedforward layer."""
     def __init__(self, proc: AbstractProcess) -> None:
         if proc.has_graded_input:
             self.inp: PyInPort = LavaPyType(np.ndarray, np.int32, precision=32)

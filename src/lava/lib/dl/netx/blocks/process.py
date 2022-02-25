@@ -58,8 +58,6 @@ class AbstractBlock(AbstractProcess):
                     f'Bias of shape {bias.shape} could not be broadcast to '
                     f'neuron of shape {self.shape}.'
                 )
-            # print(f'{bias=}')
-            # print(f'{bias_mant=}')
             neuron_params = {'shape': self.shape, **self.neuron_params}
             neuron_params['bias'] = bias_mant.astype(np.int32)
             return self.neuron_process(**neuron_params)
@@ -118,6 +116,13 @@ class Dense(AbstractBlock):
         bias of neuron. None means no bias. Defaults to None.
     has_graded_input : dict
         flag for graded spikes at input. Defaults to False.
+    num_weight_bits : int
+        number of weight bits. Defaults to 8.
+    weight_exponent : int
+        weight exponent value. Defaults to 0.
+    sign_mode : int
+        sign mode of the synapse. Refer to lava.proc.dense documentation for
+        details. Default is 1 meaning mixed mode.
     """
     def __init__(self, **kwargs: Union[dict, tuple, list, int, bool]) -> None:
         super().__init__(**kwargs)
@@ -128,10 +133,7 @@ class Dense(AbstractBlock):
         sign_mode = kwargs.pop('sign_mode', 1)
 
         graded_spikes_params = {'use_graded_spike': self.has_graded_input}
-        # TODO: additional graded spike params
-        # if self.has_graded_input is True:
-        #     graded_spikes_parms['spike_payload_bytes'] = 2  # 16 bits
-        #     graded_spikes_parms['spike_payload_sign'] = 1   # signed
+        
         self.synapse = DenseSynapse(
             shape=weight.shape,
             weights=weight,
@@ -147,7 +149,6 @@ class Dense(AbstractBlock):
                 f'found {self.synapse.a_out.shape}.'
             )
 
-        # TODO: add support for axonal delay
         self.neuron = self._neuron(kwargs.pop('bias', None))
 
         self.inp = InPort(shape=self.synapse.s_in.shape)
@@ -196,10 +197,6 @@ class Conv(AbstractBlock):
         # sign_mode = kwargs.pop('sign_mode', 1)
 
         graded_spikes_params = {'use_graded_spike': self.has_graded_input}
-        # TODO: additional graded spike params
-        # if self.has_graded_input is True:
-        #     graded_spikes_parms['spike_payload_bytes'] = 2  # 16 bits
-        #     graded_spikes_parms['spike_payload_sign'] = 1   # signed
 
         self.synapse = ConvSynapse(
             input_shape=kwargs.pop('input_shape'),
@@ -208,7 +205,6 @@ class Conv(AbstractBlock):
             padding=kwargs.pop('padding', 0),
             dilation=kwargs.pop('dilation', 1),
             groups=kwargs.pop('groups', 1),
-            # TODO: implement these features
             # num_wgt_bits=num_weight_bits,
             # # num_dly_bits=self.num_weight_bits(delays),
             # wgt_exp=weight_exponent,

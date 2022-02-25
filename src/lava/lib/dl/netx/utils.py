@@ -55,7 +55,6 @@ class NetDict:
         return len(self.f)
 
     def __getitem__(self, key: str) -> h5py.Dataset:
-        # print(key)
         if key in self.str_keys:
             value = self.f[key]
             if len(value.shape) > 0:

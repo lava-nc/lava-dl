@@ -25,7 +25,7 @@ class Network(AbstractProcess):
     Parameters
     ----------
     net_config : str
-        name of the hdf5 config file.
+        name of the hdf5 config filename.
     num_layers : int, optional
         number of blocks to generate. An integer valuew will only generate the
         first ``num_layers`` blocks in the description. The actual number of
@@ -96,14 +96,14 @@ class Network(AbstractProcess):
                 'neuron_proc': neuron_process,
                 'vth': neuron_config['vThMant'],
                 'du': neuron_config['iDecay'] - 1,
-                # weird: it seems the LIF process is written this way!
                 'dv': neuron_config['vDecay'],
                 'bias_exp': 6,
                 'use_graded_spikes': False,
             }
             return neuron_params
         elif neuron_type in ['SDNN']:
-            if input is True:  # delta process if it is an input layer
+            if input is True:
+                # If it is an input layer (input is true) use delta process.
                 neuron_process = Delta
                 neuron_params = {
                     'neuron_proc': neuron_process,
@@ -143,8 +143,8 @@ class Network(AbstractProcess):
         delay: bool = False,
         header: bool = False,
     ) -> str:
-        # A private helper function to print the mapping output configuration
-        # for a layer/block.
+        """Helper function to print mapping output configuration
+        for a layer/block."""
         if header is True:
             return '|   Type   |  W  |  H  |  C  '\
                 '| ker | str | pad | dil | grp |delay|'
@@ -196,8 +196,6 @@ class Network(AbstractProcess):
         if 'weight' in layer_config.keys():
             weight = int(layer_config['weight'])
         else:
-            # TODO: for sigma delta neurons, default weight is 64 # CHECK
-            # weight = 1
             weight = 64
 
         if 'bias' in layer_config.keys():
@@ -207,6 +205,9 @@ class Network(AbstractProcess):
 
         # affine transform of the input
         def transform(x: Union[int, np.ndarray]) -> Union[int, np.ndarray]:
+            """Affine transform of the input and reordering of the input
+            dimension. Lava represetnts dimensions in (X, Y) format
+            whereas standard image format is (height, width) i.e. (Y, X)"""
             result = 2 * weight * x - weight + bias
 
             if hasattr(result, 'shape'):
@@ -323,9 +324,6 @@ class Network(AbstractProcess):
         dilation = layer_config['dilation'][::-1]
         groups = layer_config['groups']
 
-        # opt_weights = optimize_weight_bits(weight)
-        # weight, num_weight_bits, weight_exponent, sign_mode = opt_weights
-
         params = {  # arguments for conv block
             'input_shape': input_shape,
             'shape': shape,
@@ -335,19 +333,17 @@ class Network(AbstractProcess):
             'padding': padding,
             'dilation': dilation,
             'groups': groups,
-            # 'num_weight_bits': num_weight_bits,
-            # 'weight_exponent': weight_exponent,
-            # 'sign_mode': sign_mode,
             'has_graded_input': has_graded_input,
         }
 
-        # optional arguments
+        # Optional arguments
         if 'bias' in layer_config.keys():
             params['bias'] = layer_config['bias']
+
         if 'delay' not in layer_config.keys():
             params['neuron_params']['delay_bits'] = 1
         else:
-            pass  # TODO: set appropriate delay bits for synaptic delay
+            pass
 
         table_entry = Network._table_str(
             type_str='Conv',
@@ -359,25 +355,25 @@ class Network(AbstractProcess):
 
         return Conv(**params), table_entry
 
-    # @staticmethod
-    # def create_pool(layer_config):
-    #     pass
+    @staticmethod
+    def create_pool(layer_config):
+        raise NotImplementedError
 
-    # @staticmethod
-    # def create_convT(layer_config):
-    #     pass
+    @staticmethod
+    def create_convT(layer_config):
+        raise NotImplementedError
 
-    # @staticmethod
-    # def create_unpool(layer_config):
-    #     pass
+    @staticmethod
+    def create_unpool(layer_config):
+        raise NotImplementedError
 
-    # @staticmethod
-    # def create_average(layer_config):
-    #     pass
+    @staticmethod
+    def create_average(layer_config):
+        raise NotImplementedError
 
-    # @staticmethod
-    # def create_concat(layer_config):
-    #     pass
+    @staticmethod
+    def create_concat(layer_config):
+        raise NotImplementedError
 
     def _create(self) -> List[AbstractProcess]:
         has_graded_input_next = self.has_graded_input
