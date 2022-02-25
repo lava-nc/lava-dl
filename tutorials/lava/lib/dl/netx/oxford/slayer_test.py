@@ -1,3 +1,6 @@
+# Copyright (C) 2022 Intel Corporation
+# SPDX-License-Identifier:  BSD-3-Clause
+
 import os
 import h5py
 import numpy as np
