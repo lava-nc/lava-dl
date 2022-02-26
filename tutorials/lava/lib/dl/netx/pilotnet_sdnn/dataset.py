@@ -30,7 +30,7 @@ class PilotNetDataset():
         If true, the train/test split is ignored and the temporal sequence
         of the data is preserved. Defaults to False.
     sample_offset : int, optional
-        sample offset. Default is 0. 
+        sample offset. Default is 0.
 
     Usage
     -----
@@ -101,12 +101,14 @@ class PilotNetDataset():
         ).resize(self.size, resample=Image.BILINEAR)
         image = np.array(image) / 255
         if self.transform is not None:
-            image = self.transform(image)
+            image = 2 * self.transform['weight'] * image \
+                - self.transform['weight'] + self.transform['bias']
+            image = image.astype(np.int32).transpose([1, 0, 2])
         ground_truth = float(self.samples[index][1])
         if ground_truth == 0:
             ground_truth = (
-                float(self.samples[index - 1][1]) +
-                float(self.samples[index + 1][1])
+                float(self.samples[index - 1][1])
+                + float(self.samples[index + 1][1])
             ) / 2
         gt_val = ground_truth * np.pi / 180
         return image.reshape(image.shape + (1,)), gt_val
