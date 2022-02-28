@@ -51,10 +51,8 @@ class TestHdf5Netx(unittest.TestCase):
     def test_input_transform(self) -> None:
         """Tests the input tansform of known hdf5 net."""
         net = netx.hdf5.Network(net_config=root + '/tiny.net', num_layers=1)
-        # transformation should be y = 2*weight*x - weight + bias
-        bias = net.in_layer.transform(0)
-        weight = (net.in_layer.transform(1) - bias) / 2
-        bias += weight
+        bias = net.in_layer.transform['bias']
+        weight = net.in_layer.transform['weight']
         self.assertEqual(
             bias, 34,
             f'Expected transformation bias to be 34. Found {bias}.'
