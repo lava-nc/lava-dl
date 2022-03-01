@@ -1,4 +1,4 @@
-# Copyright (C) 2021 Intel Corporation
+# Copyright (C) 2022 Intel Corporation
 # SPDX-License-Identifier:  BSD-3-Clause
 
 import sys
@@ -139,7 +139,7 @@ class TestCUBA(unittest.TestCase):
         neuron.voltage_state *= 0
 
         # break the calculation into two parts: before ind and after ind
-        ind = int(np.random.random() * spike_input.shape[-1])
+        ind = int(np.random.random() * (spike_input.shape[-1] - 1)) + 1
         voltage0, current0 = neuron.dynamics(
             quantized_weight[..., :ind] * spike_input[..., :ind]
         )
