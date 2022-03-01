@@ -203,25 +203,6 @@ class Network(AbstractProcess):
         else:
             bias = 0
 
-        # # affine transform of the input
-        # def transform(x: Union[int, np.ndarray]) -> Union[int, np.ndarray]:
-        #     """Affine transform of the input and reordering of the input
-        #     dimension. Lava represetnts dimensions in (X, Y) format
-        #     whereas standard image format is (height, width) i.e. (Y, X)"""
-        #     result = 2 * weight * x - weight + bias
-
-        #     if hasattr(result, 'shape'):
-        #         if len(result.shape) == 2:
-        #             # Lava format for image is (X, Y) i.e. WH
-        #             # whereas standard images are in (height, width)
-        #             # i.e. HW format
-        #             return result.astype(np.int32).transpose([1, 0])
-        #         elif len(result.shape) == 3:
-        #             return result.astype(np.int32).transpose([1, 0, 2])
-        #         else:
-        #             return result.astype(np.int32)
-        #     else:
-        #         return int(result)
         transform = {'weight': weight, 'bias': bias}
 
         params = {  # arguments for Input block

@@ -192,9 +192,6 @@ class Conv(AbstractBlock):
     def __init__(self, **kwargs: Union[dict, tuple, list, int, bool]) -> None:
         super().__init__(**kwargs)
         weight = kwargs.pop('weight')
-        # num_weight_bits = kwargs.pop('num_weight_bits', 8)
-        # weight_exponent = kwargs.pop('weight_exponent', 0)
-        # sign_mode = kwargs.pop('sign_mode', 1)
 
         graded_spikes_params = {'use_graded_spike': self.has_graded_input}
 
@@ -205,10 +202,6 @@ class Conv(AbstractBlock):
             padding=kwargs.pop('padding', 0),
             dilation=kwargs.pop('dilation', 1),
             groups=kwargs.pop('groups', 1),
-            # num_wgt_bits=num_weight_bits,
-            # # num_dly_bits=self.num_weight_bits(delays),
-            # wgt_exp=weight_exponent,
-            # sign_mode=sign_mode,
             **graded_spikes_params,
         )
 
@@ -218,7 +211,6 @@ class Conv(AbstractBlock):
                 f'found {self.synapse.output_shape}.'
             )
 
-        # TODO: add support for axonal delay
         self.neuron = self._neuron(kwargs.pop('bias', None))
 
         self.inp = InPort(shape=self.synapse.s_in.shape)
