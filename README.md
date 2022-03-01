@@ -16,9 +16,7 @@ The library presently consists of
 
 1. `lava.lib.dl.slayer` for natively training Deep Event-Based Networks.
 2. `lava.lib.dl.bootstrap` for training rate coded SNNs.
-
-Coming soon to the library
-1. `lava.lib.dl.netx` for training and deployment of event-based deep neural networks on traditional as well as neuromorphic backends.
+3. `lava.lib.dl.netx` for training and deployment of event-based deep neural networks on traditional as well as neuromorphic backends.
 
 More tools will be added in the future.
 
@@ -112,14 +110,19 @@ $ pip install lava-nc-0.1.0.tar.gz
 
 ## Getting Started
 
-**End to end tutorials**
+**End to end training tutorials**
 * [Oxford spike train regression](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/oxford/train.ipynb)
 * [MNIST digit classification](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/bootstrap/mnist/train.ipynb)
 * [NMNIST digit classification](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/nmnist/train.ipynb)
 * [PilotNet steering angle prediction](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/pilotnet/train.ipynb)
 
-**Deep dive tutorials**
+**Deep dive training tutorials**
 * [Dynamics and Neurons](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/neuron_dynamics/dynamics.ipynb)
+
+**Inference tutorials**
+* [Oxford Inference](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/oxford/run.ipynb)
+* [PilotNet SNN Inference](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/pilotnet_snn/run.ipynb)
+* [PilotNet SDNN Inference](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/pilotnet_sdnn/run.ipynb)
 
 ## __`lava.lib.dl.slayer`__ 
 
@@ -263,21 +266,21 @@ __Load the trained network__
 # Import the model as a Lava Process
 net = hdf5.Network(net_config='network.net')
 ```
-__Attach Processes for Input Injection and Output Readout__
+__Attach Processes for Input-Output interaction__
 ```python
-from lava.proc.io import InputLoader, BiasWriter, OutputReader
+from lava.proc import io
 
 # Instantiate the processes
-input_loader = InputLoader(dataset=testing_set)
-bias_writer = BiasWriter(shape=input_shape)
-output = OutputReader()
+dataloader = io.dataloader.SpikeDataloader(dataset=test_set)
+output_logger = io.sink.RingBuffer(shape=net.out_layer.shape, buffer=num_steps)
+gt_logger = io.sink.RingBuffer(shape=(1,), buffer=num_steps)
 
 # Connect the input to the network:
-input_loader.data_out.connect(bias_writer.bias_in)
-bias_writer.bias_out.connect(net.in_layer.bias)
+dataloader.ground_truth.connect(gt_logger.a_in)
+dataloader.s_out.connect(net.in_layer.neuron.a_in)
 
 # Connect network-output to the output process
-net.out_layer.neuron.s_out.connect(output.net_output_in)
+net.out_layer.out.connect(output_logger.a_in)
 ```
 __Run the network__
 ```python
@@ -285,5 +288,8 @@ from lava.magma import run_configs as rcfg
 from lava.magma import run_conditions as rcnd
 
 net.run(condition=rcnd.RunSteps(total_run_time), run_cfg=rcfg.Loihi1SimCfg())
+output = output_logger.data.get()
+gts = gt_logger.data.get()
+net.stop()
 ```
 

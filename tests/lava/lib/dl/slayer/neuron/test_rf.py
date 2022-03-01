@@ -1,4 +1,4 @@
-# Copyright (C) 2021 Intel Corporation
+# Copyright (C) 2022 Intel Corporation
 # SPDX-License-Identifier:  BSD-3-Clause
 
 import sys
@@ -142,7 +142,7 @@ class TestRF(unittest.TestCase):
         neuron.imag_state *= 0
 
         # break the calculation into two parts: before ind and after ind
-        ind = int(np.random.random() * spike_input.shape[-1])
+        ind = int(np.random.random() * (spike_input.shape[-1] - 1)) + 1
         # ind = 57
         real0, imag0 = neuron.dynamics((
             quantized_real_weight[..., :ind] * spike_input[..., :ind],
