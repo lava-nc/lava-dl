@@ -1,4 +1,4 @@
-# Copyright (C) 2021 Intel Corporation
+# Copyright (C) 2022 Intel Corporation
 # SPDX-License-Identifier:  BSD-3-Clause
 
 import sys
@@ -184,7 +184,7 @@ class TestALIF(unittest.TestCase):
         neuron.refractory_state *= 0
 
         # break the calculation into two parts: before ind and after ind
-        ind = int(np.random.random() * spike_input.shape[-1])
+        ind = int(np.random.random() * (spike_input.shape[-1] - 1)) + 1
         current0, voltage0, th0, ref0 = neuron.dynamics(
             quantized_weight[..., :ind] * spike_input[..., :ind]
         )

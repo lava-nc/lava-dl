@@ -1,4 +1,4 @@
-# Copyright (C) 2021 Intel Corporation
+# Copyright (C) 2022 Intel Corporation
 # SPDX-License-Identifier:  BSD-3-Clause
 
 """Auto network generation module form network description. We support hdf5
@@ -25,7 +25,7 @@ def get_classes(neuron_type=None):
         neuron class and block class.
 
     """
-    if neuron_type is None or neuron_type == 'cuba' or neuron_type == 'LOIHI':
+    if neuron_type is None or neuron_type == 'CUBA' or neuron_type == 'LOIHI':
         return neuron.cuba, block.cuba
 
     raise Exception(f'{neuron_type=} is not implemented.')
