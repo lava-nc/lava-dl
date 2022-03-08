@@ -1,6 +1,0 @@
-pybuilder
-flake8
-pytest
-unittest2
-bandit
-coverage
