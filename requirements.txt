@@ -1,8 +1,0 @@
-torch == 1.8.1
-torchvision == 0.9.1
-numpy
-scipy
-matplotlib
-ninja
-h5py >= 3.1.0
-lava-nc@git+https://github.com/lava-nc/lava.git
