@@ -4,7 +4,7 @@
 
 Loading a model to Lava is as simple as:
 ```python
-from lava.lib.dl.netx import hdf5
+from lava.lib.dl.netx import hdf5
 # Import the model as a Lava Process
 net = hdf5.Network(net_config='network.net')
 ```
