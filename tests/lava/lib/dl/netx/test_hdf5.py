@@ -75,8 +75,8 @@ class TestHdf5Netx(unittest.TestCase):
 
         # layer reset mechanism
         for i, l in enumerate(net.layers):
-            u_resetter = io.reset.Reset(interval=steps_per_sample, offset=i)
-            v_resetter = io.reset.Reset(interval=steps_per_sample, offset=i)
+            u_resetter = io.reset.Reset(interval=steps_per_sample, offset=i - 1)
+            v_resetter = io.reset.Reset(interval=steps_per_sample, offset=i - 1)
             u_resetter.connect_var(l.neuron.u)
             v_resetter.connect_var(l.neuron.v)
 
