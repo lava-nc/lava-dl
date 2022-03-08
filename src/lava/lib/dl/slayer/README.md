@@ -91,34 +91,35 @@ SLAYER provides easy encapsulation of neuron, synapse, axon, and dendrite classe
 These blocks can be easily used to define a network and export it in pytorch as well as our platform independent hdf5 format.
 
 ```python
-# like any standard pyTorch network
 class Network(torch.nn.Module):
     def __init__(self):
         ...
-        self.blocks = torch.nn.ModuleList([# sequential network blocks 
-                slayer.block.sigma_delta.Input(sdnn_params), 
-                slayer.block.sigma_delta.Conv(sdnn_params,  3, 24, 3),
-                slayer.block.sigma_delta.Conv(sdnn_params, 24, 36, 3),
-                slayer.block.rf_iz.Conv(rf_params, 36, 64, 3, delay=True),
-                slayer.block.rf_iz.Conv(sdnn_cnn_params, 64, 64, 3, delay=True),
+        self.blocks = torch.nn.ModuleList(
+            [  # sequential network blocks
+                slayer.block.sigma_delta.Input(sdnn_params),
+                slayer.block.sigma_delta.Conv(sdnn_params, 3, 24, 3),
+                slayer.block.sigma_delta.Conv(sdnn_params, 24, 36, 3),
+                slayer.block.rf_iz.Conv(rf_params, 36, 64, 3, delay=True),
+                slayer.block.rf_iz.Conv(sdnn_cnn_params, 64, 64, 3, delay=True),
                 slayer.block.rf_iz.Flatten(),
-                slayer.block.alif.Dense(alif_params, 64*40, 100, delay=True),
-                slayer.block.cuba.Recurrent(cuba_params, 100, 50),
-                slayer.block.cuba.KWTA(cuba_params, 50, 50, num_winners=5)
-            ])
+                slayer.block.alif.Dense(alif_params, 64 * 40, 100, delay=True),
+                slayer.block.cuba.Recurrent(cuba_params, 100, 50),
+                slayer.block.cuba.KWTA(cuba_params, 50, 50, num_winners=5),
+            ]
+        )
 
     def forward(self, x):
-        for block in self.blocks: 
+        for block in self.blocks:
             # forward computation is as simple as calling the blocks in a loop
             x = block(x)
         return x
 
     def export_hdf5(self, filename):
         # network export to hdf5 format
-        h = h5py.File(filename, 'w')
-        layer = h.create_group('layer')
+        h = h5py.File(filename, "w")
+        layer = h.create_group("layer")
         for i, b in enumerate(self.blocks):
-            b.export_hdf5(layer.create_group(f'{i}'))
+            b.export_hdf5(layer.create_group(f"{i}"))
 ```
 <p align="center">
 <img src="https://user-images.githubusercontent.com/29907126/135402787-ca849ef2-697d-4c5c-9f05-9b6fe3c3b072.png" alt="Drawing" style="height: 400px;"/>

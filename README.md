@@ -20,7 +20,7 @@ The library presently consists of
 
 More tools will be added in the future.
 
-## Lava-DL Workflow
+## Lava-DL Workflow
 
 <p align="center">
 <img src="https://user-images.githubusercontent.com/29907126/140595634-a97886c6-280a-4771-830b-ae47a9324612.png" alt="Drawing" style="max-height: 400px;"/>
@@ -142,16 +142,16 @@ __Network Description__
 class Network(torch.nn.Module):
     def __init__(self):
         ...
-        self.blocks = torch.nn.ModuleList([# sequential network blocks 
-                slayer.block.sigma_delta.Input(sdnn_params), 
-                slayer.block.sigma_delta.Conv(sdnn_params,  3, 24, 3),
-                slayer.block.sigma_delta.Conv(sdnn_params, 24, 36, 3),
-                slayer.block.rf_iz.Conv(rf_params, 36, 64, 3, delay=True),
-                slayer.block.rf_iz.Conv(sdnn_cnn_params, 64, 64, 3, delay=True),
+        self.blocks = torch.nn.ModuleList([# sequential network blocks 
+                slayer.block.sigma_delta.Input(sdnn_params), 
+                slayer.block.sigma_delta.Conv(sdnn_params,  3, 24, 3),
+                slayer.block.sigma_delta.Conv(sdnn_params, 24, 36, 3),
+                slayer.block.rf_iz.Conv(rf_params, 36, 64, 3, delay=True),
+                slayer.block.rf_iz.Conv(sdnn_cnn_params, 64, 64, 3, delay=True),
                 slayer.block.rf_iz.Flatten(),
-                slayer.block.alif.Dense(alif_params, 64*40, 100, delay=True),
-                slayer.block.cuba.Recurrent(cuba_params, 100, 50),
-                slayer.block.cuba.KWTA(cuba_params, 50, 50, num_winners=5)
+                slayer.block.alif.Dense(alif_params, 64*40, 100, delay=True),
+                slayer.block.cuba.Recurrent(cuba_params, 100, 50),
+                slayer.block.cuba.KWTA(cuba_params, 50, 50, num_winners=5)
             ])
 
     def forward(self, x):
@@ -205,15 +205,15 @@ __Network Description__
 class Network(torch.nn.Module):
     def __init__(self):
         ...
-        self.blocks = torch.nn.ModuleList([# sequential network blocks 
-                bootstrap.block.cuba.Input(sdnn_params), 
-                bootstrap.block.cuba.Conv(sdnn_params,  3, 24, 3),
-                bootstrap.block.cuba.Conv(sdnn_params, 24, 36, 3),
-                bootstrap.block.cuba.Conv(rf_params, 36, 64, 3),
-                bootstrap.block.cuba.Conv(sdnn_cnn_params, 64, 64, 3),
+        self.blocks = torch.nn.ModuleList([# sequential network blocks 
+                bootstrap.block.cuba.Input(sdnn_params), 
+                bootstrap.block.cuba.Conv(sdnn_params,  3, 24, 3),
+                bootstrap.block.cuba.Conv(sdnn_params, 24, 36, 3),
+                bootstrap.block.cuba.Conv(rf_params, 36, 64, 3),
+                bootstrap.block.cuba.Conv(sdnn_cnn_params, 64, 64, 3),
                 bootstrap.block.cuba.Flatten(),
-                bootstrap.block.cuba.Dense(alif_params, 64*40, 100),
-                bootstrap.block.cuba.Dense(cuba_params, 100, 10),
+                bootstrap.block.cuba.Dense(alif_params, 64*40, 100),
+                bootstrap.block.cuba.Dense(cuba_params, 100, 10),
             ])
 
     def forward(self, x, mode):
@@ -251,20 +251,20 @@ __Export the network__
 net.export_hdf5('network.net')
 ```
 
-## __`lava.lib.dl.netx`__ 
+## __`lava.lib.dl.netx`__ 
 
-For inference using Lava, `lava.lib.dl.netx` provides an automated API for loading SLAYER-trained models as Lava Processes, which can be directly run on a desired backend. `lava.lib.dl.netx` imports models saved via SLAYER using the hdf5 network exchange format. The details of hdf5 network description specification can be found [here](https://github.com/lava-nc/lava-dl/blob/main/src/lava/lib/dl/netx/README.md).
+For inference using Lava, `lava.lib.dl.netx` provides an automated API for loading SLAYER-trained models as Lava Processes, which can be directly run on a desired backend. `lava.lib.dl.netx` imports models saved via SLAYER using the hdf5 network exchange format. The details of hdf5 network description specification can be found [here](https://github.com/lava-nc/lava-dl/blob/main/src/lava/lib/dl/netx/README.md).
 
 ### Example Code
 
-__Import modules__
+__Import modules__
 ```python
-from lava.lib.dl.netx import hdf5
+from lava.lib.dl.netx import hdf5
 ```
-__Load the trained network__
+__Load the trained network__
 ```python
 # Import the model as a Lava Process
-net = hdf5.Network(net_config='network.net')
+net = hdf5.Network(net_config='network.net')
 ```
 __Attach Processes for Input-Output interaction__
 ```python
@@ -282,7 +282,7 @@ dataloader.s_out.connect(net.in_layer.neuron.a_in)
 # Connect network-output to the output process
 net.out_layer.out.connect(output_logger.a_in)
 ```
-__Run the network__
+__Run the network__
 ```python
 from lava.magma import run_configs as rcfg
 from lava.magma import run_conditions as rcnd

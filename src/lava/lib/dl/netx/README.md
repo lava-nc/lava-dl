@@ -4,9 +4,9 @@
 
 Loading a model to Lava is as simple as:
 ```python
-from lava.lib.dl.netx import hdf5
+from lava.lib.dl.netx import hdf5
 # Import the model as a Lava Process
-net = hdf5.Network(net_config='network.net')
+net = hdf5.Network(net_config='network.net')
 ```
 <p align="center">
 <img src="https://user-images.githubusercontent.com/29907126/135401882-12433d6e-b38e-488f-be2f-1aa3a3a14fda.png" alt="Drawing" style="height: 400px;"/>
@@ -54,4 +54,3 @@ conv   : {shape, type, neuron, inChannels, outChannels, kernelSize, stride,
                         |-> this is the description of the compartment parameters
                         |-> {iDecay, vDecay, vThMant, refDelay, ... (other additional params)}
 ```
-
