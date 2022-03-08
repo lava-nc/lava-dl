@@ -54,4 +54,3 @@ conv   : {shape, type, neuron, inChannels, outChannels, kernelSize, stride,
                         |-> this is the description of the compartment parameters
                         |-> {iDecay, vDecay, vThMant, refDelay, ... (other additional params)}
 ```
-
