@@ -95,7 +95,7 @@ These blocks can be easily used to define a network and export it in pytorch as 
 class Network(torch.nn.Module):
     def __init__(self):
         ...
-        self.blocks = torch.nn.ModuleList([# sequential network blocks 
+        self.blocks = torch.nn.ModuleList([# sequential network blocks 
                 slayer.block.sigma_delta.Input(sdnn_params), 
                 slayer.block.sigma_delta.Conv(sdnn_params,  3, 24, 3),
                 slayer.block.sigma_delta.Conv(sdnn_params, 24, 36, 3),
