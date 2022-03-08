@@ -97,14 +97,14 @@ class Network(torch.nn.Module):
         ...
         self.blocks = torch.nn.ModuleList([# sequential network blocks 
                 slayer.block.sigma_delta.Input(sdnn_params),
-                slayer.block.sigma_delta.Conv(sdnn_params,  3, 24, 3),
-                slayer.block.sigma_delta.Conv(sdnn_params, 24, 36, 3),
-                slayer.block.rf_iz.Conv(rf_params, 36, 64, 3, delay=True),
-                slayer.block.rf_iz.Conv(sdnn_cnn_params, 64, 64, 3, delay=True),
+                slayer.block.sigma_delta.Conv(sdnn_params, 3, 24, 3),
+                slayer.block.sigma_delta.Conv(sdnn_params, 24, 36, 3),
+                slayer.block.rf_iz.Conv(rf_params, 36, 64, 3, delay=True),
+                slayer.block.rf_iz.Conv(sdnn_cnn_params, 64, 64, 3, delay=True),
                 slayer.block.rf_iz.Flatten(),
-                slayer.block.alif.Dense(alif_params, 64*40, 100, delay=True),
-                slayer.block.cuba.Recurrent(cuba_params, 100, 50),
-                slayer.block.cuba.KWTA(cuba_params, 50, 50, num_winners=5)
+                slayer.block.alif.Dense(alif_params, 64*40, 100, delay=True),
+                slayer.block.cuba.Recurrent(cuba_params, 100, 50),
+                slayer.block.cuba.KWTA(cuba_params, 50, 50, num_winners=5)
             ])
 
     def forward(self, x):
