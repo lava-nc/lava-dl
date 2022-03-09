@@ -34,9 +34,6 @@ Typical Lava-DL workflow:
 
 ### Cloning Lava-DL and Running from Source
 
-We highly recommend cloning the repository and using pybuilder to setup lava.
- You will need to install pybuilder for the same.
-
 **Note:** We assume you have already setup Lava with virtual environment. Make sure `PYTHONPATH` contains path to Lava core library first.
 
 * Linux/MacOS: `echo $PYTHONPATH`
@@ -46,50 +43,62 @@ The output should contain something like this `/home/user/lava`
 
 #### [Linux/MacOS]
 ```bash
-$ git clone git@github.com:lava-dl/lava.git
-$ cd lava-dl
-$ pip install -r build-requirements.txt
-$ pip install -r requirements.txt
-$ export PYTHONPATH=$PYTHONPATH:$(pwd)/src
-$ pyb -E unit
+cd $HOME
+git clone git@github.com:lava-dl/lava-dl.git
+cd lava-dl
+pip install "poetry>=1.1.13"
+poetry config virtualenvs.in-project true
+poetry install
+source .venv/bin/activate
+pytest
 ```
 #### [Windows]
-```cmd
-cd %HOMEPATH%
-git clone git@github.com:lava-dl/lava.git
+```powershell
+# Commands using PowerShell
+cd $HOME
+git clone git@github.com:lava-dl/lava-dl.git
 cd lava-dl
-pip install -r build-requirements.txt
-pip install -r requirements.txt
-set PYTHONPATH=%PYTHONPATH%;%cd%\src
-pyb -E unit
+python3 -m venv .venv
+.venv\Scripts\activate
+pip install -U pip
+pip install "poetry>=1.1.13"
+poetry config virtualenvs.in-project true
+poetry install
+pytest
 ```
 
 You should expect the following output after running the unit tests:
 ```
-PyBuilder version 0.13.3
-Build started at 2021-11-05 18:44:51
-------------------------------------------------------------
-[INFO]  Installing or updating plugin "pypi:pybuilder_bandit, module name 'pybuilder_bandit'"
-[INFO]  Processing plugin packages 'pybuilder_bandit' to be installed with {}
-[INFO]  Activated environments: unit
-[INFO]  Building lava-nc/lava-dl version 0.2.0
-......  PyBuilder Logs ...
-[INFO]  Running unit tests
-[INFO]  Executing unit tests from Python modules in /home/user/lava-dl/tests
-[INFO]  Executed 80 unit tests
-[INFO]  All unit tests passed.
-......  PyBuilder Logs ...
-------------------------------------------------------------
-BUILD SUCCESSFUL
-------------------------------------------------------------
-Build Summary
-             Project: lava-nc/lava-dl
-             Version: 0.2.0
-      Base directory: /home/user/lava-dl
-        Environments: unit
-               Tasks: prepare [45089 ms] analyze [660 ms] compile_sources [0 ms] run_unit_tests [184641 ms] package [1086 ms] run_integration_tests [0 ms] verify [0 ms] publish [15128 ms]
-Build finished at 2021-11-05 18:49:25
-Build took 273 seconds (273800 ms)
+$ pytest
+============================================== test session starts ==============================================
+platform linux -- Python 3.8.10, pytest-7.0.1, pluggy-1.0.0
+rootdir: /home/user/lava, configfile: pyproject.toml, testpaths: tests
+plugins: cov-3.0.0
+collected 205 items
+
+tests/lava/magma/compiler/test_channel_builder.py .                                                       [  0%]
+tests/lava/magma/compiler/test_compiler.py ........................                                       [ 12%]
+tests/lava/magma/compiler/test_node.py ..                                                                 [ 13%]
+tests/lava/magma/compiler/builder/test_channel_builder.py .                                               [ 13%]
+
+...... pytest output ...
+
+tests/lava/proc/sdn/test_models.py ........                                                               [ 98%]
+tests/lava/proc/sdn/test_process.py ...                                                                   [100%]
+=============================================== warnings summary ================================================
+
+...... pytest output ...
+
+src/lava/proc/lif/process.py                                                           38      0   100%
+src/lava/proc/monitor/models.py                                                        27      0   100%
+src/lava/proc/monitor/process.py                                                       79      0   100%
+src/lava/proc/sdn/models.py                                                           159      9    94%   199-202, 225-231
+src/lava/proc/sdn/process.py                                                           59      0   100%
+-----------------------------------------------------------------------------------------------------------------TOTAL
+                                                                                     4048    453    89%
+
+Required test coverage of 85.0% reached. Total coverage: 88.81%
+============================ 199 passed, 6 skipped, 2 warnings in 118.17s (0:01:58) =============================
 ```
 
 ### [Alternative] Installing Lava from Binaries
@@ -105,7 +114,7 @@ Open a python terminal and run:
 ```bash
 $ python3 -m venv python3_venv
 $ pip install -U pip
-$ pip install lava-nc-0.1.0.tar.gz
+$ pip install lava-nc-0.1.1.tar.gz
 ```
 
 ## Getting Started
