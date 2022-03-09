@@ -15,11 +15,20 @@ Objective of issue:
 
 <!-- Lava Version bug found in or Lava Version feature is targeting, remove unused versions from Lava Version below-->
 
-**Lava version:**
-<!-- remove version not chosen below -->
+**Lava DL version:**
+<!-- Remove version not chosen below -->
 - [ ] **0.3.0** (feature release)
 - [ ] **0.2.1** (bug fixes)
 - [x] **0.2.0** (current version)
+- [ ] **0.1.2**
+
+**Lava version:**
+<!-- If Lava version is relevant specify here, otherwise remove this section -->
+<!-- Remove version not chosen below -->
+- [ ] **0.4.0** (feature release)
+- [ ] **0.3.1** (bug fixes)
+- [x] **0.3.0** (current version)
+- [ ] **0.2.0**
 - [ ] **0.1.2**
 
 **I'm submitting a ...** 
