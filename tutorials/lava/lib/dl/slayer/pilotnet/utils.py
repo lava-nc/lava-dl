@@ -17,8 +17,6 @@ import matplotlib.pyplot as plt
 import h5py
 
 import torch
-from torch.utils.data import DataLoader
-from torchvision import transforms
 import torch.nn.functional as F
 
 class Assistant:
