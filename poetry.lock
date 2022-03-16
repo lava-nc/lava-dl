@@ -620,7 +620,7 @@ unittest2 = "^1.1.0"
 type = "git"
 url = "https://github.com/lava-nc/lava.git"
 reference = "main"
-resolved_reference = "cd0a10f3c7c5e05c54eda841d3631576c76a351f"
+resolved_reference = "f6583e094bd6ea454ad65d5c45b2c44374a28ec7"
 
 [[package]]
 name = "linecache2"
@@ -1240,7 +1240,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8, <3.11"
-content-hash = "8a9cccd4e7a3d9545ab799d1e16c66912e65d17ae0596791711615ce3eb2b879"
+content-hash = "ab813b98a3eff1a6dd80eff13ca60974e1de1efcef0491303606e42b8b8e52f0"
 
 [metadata.files]
 argparse = [
