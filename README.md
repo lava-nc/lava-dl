@@ -70,40 +70,44 @@ pytest
 You should expect the following output after running the unit tests:
 ```
 $ pytest
-============================================== test session starts ==============================================
-platform linux -- Python 3.8.10, pytest-7.0.1, pluggy-1.0.0
-rootdir: /home/user/lava, configfile: pyproject.toml, testpaths: tests
+============================= test session starts ==============================
+platform linux -- Python 3.9.10, pytest-7.0.1, pluggy-1.0.0
+rootdir: /home/user/lava-dl, configfile: pyproject.toml, testpaths: tests
 plugins: cov-3.0.0
-collected 205 items
+collected 86 items
 
-tests/lava/magma/compiler/test_channel_builder.py .                                                       [  0%]
-tests/lava/magma/compiler/test_compiler.py ........................                                       [ 12%]
-tests/lava/magma/compiler/test_node.py ..                                                                 [ 13%]
-tests/lava/magma/compiler/builder/test_channel_builder.py .                                               [ 13%]
-
-...... pytest output ...
-
-tests/lava/proc/sdn/test_models.py ........                                                               [ 98%]
-tests/lava/proc/sdn/test_process.py ...                                                                   [100%]
-=============================================== warnings summary ================================================
+tests/lava/lib/dl/netx/test_blocks.py ...                                [  3%]
+tests/lava/lib/dl/netx/test_hdf5.py ...                                  [  6%]
+tests/lava/lib/dl/slayer/neuron/test_adrf.py .......                     [ 15%]
 
 ...... pytest output ...
 
-src/lava/proc/lif/process.py                                                           38      0   100%
-src/lava/proc/monitor/models.py                                                        27      0   100%
-src/lava/proc/monitor/process.py                                                       79      0   100%
-src/lava/proc/sdn/models.py                                                           159      9    94%   199-202, 225-231
-src/lava/proc/sdn/process.py                                                           59      0   100%
------------------------------------------------------------------------------------------------------------------TOTAL
-                                                                                     4048    453    89%
+tests/lava/lib/dl/slayer/neuron/dynamics/test_adaptive_threshold.py .... [ 80%]
+.                                                                        [ 81%]
+tests/lava/lib/dl/slayer/neuron/dynamics/test_leaky_integrator.py .....  [ 87%]
+tests/lava/lib/dl/slayer/neuron/dynamics/test_resonator.py .....         [ 93%]
+tests/lava/lib/dl/slayer/utils/filter/test_conv_filter.py ..             [ 95%]
+tests/lava/lib/dl/slayer/utils/time/test_replicate.py .                  [ 96%]
+tests/lava/lib/dl/slayer/utils/time/test_shift.py ...                    [100%]
 
-Required test coverage of 85.0% reached. Total coverage: 88.81%
-============================ 199 passed, 6 skipped, 2 warnings in 118.17s (0:01:58) =============================
+=============================== warnings summary ===============================
+
+...... pytest output ...
+
+src/lava/lib/dl/slayer/utils/time/__init__.py                      4      0   100%
+src/lava/lib/dl/slayer/utils/time/replicate.py                     6      0   100%
+src/lava/lib/dl/slayer/utils/time/shift.py                        59     16    73%   22-43, 50, 55, 75, 121, 128, 135, 139
+src/lava/lib/dl/slayer/utils/utils.py                             13      8    38%   14, 35-45
+--------------------------------------------------------------------------------------------
+TOTAL                                                           4782   2535    47%
+
+Required test coverage of 45.0% reached. Total coverage: 46.99%
+======================= 86 passed, 3 warnings in 46.56s ========================
 ```
 
 ### [Alternative] Installing Lava from Binaries
 
-If you only need the lava package in your python environment, we will publish
+If you only need the lava-dl package in your python environment, we will publish
 Lava releases via
 [GitHub Releases](https://github.com/lava-nc/lava-dl/releases). Please download
 the package and install it.
@@ -114,7 +118,7 @@ Open a python terminal and run:
 ```bash
 $ python3 -m venv python3_venv
 $ pip install -U pip
-$ pip install lava-nc-0.1.1.tar.gz
+$ pip install lava-dl-0.2.0.tar.gz
 ```
 
 ## Getting Started
