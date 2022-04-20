@@ -1,4 +1,4 @@
-# Copyright © 2021 Intel Corporation.
+# Copyright © 2022 Intel Corporation.
 # 
 # This software and the related documents are Intel copyrighted
 # materials, and your use of them is governed by the express 
@@ -17,8 +17,6 @@ import matplotlib.pyplot as plt
 import h5py
 
 import torch
-from torch.utils.data import DataLoader
-from torchvision import transforms
 import torch.nn.functional as F
 
 class Assistant:
