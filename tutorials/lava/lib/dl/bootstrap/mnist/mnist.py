@@ -61,7 +61,7 @@ class Network(torch.nn.Module):
 
         x = torch.mean(x, dim=-1).reshape((N, -1))
 
-        return x, torch.FloatTensor(count).reshape((1, -1)).to(x.get_device())
+        return x, torch.FloatTensor(count).reshape((1, -1)).to(x.device)
 
     def grad_flow(self, path):
         # helps monitor the gradient flow
