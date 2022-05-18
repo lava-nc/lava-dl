@@ -1143,7 +1143,7 @@ class AbstractRecurrent(torch.nn.Module):
         if self.bias is None:
             z = self.input_synapse(x)
         else:
-            z = self.synapse(x) + self.bias
+            z = self.input_synapse(x) + self.bias
         x = torch.zeros_like(z).to(x.device)
 
         spike = torch.zeros(z.shape[:-1]).to(x.device)
