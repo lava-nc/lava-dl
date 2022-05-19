@@ -43,6 +43,7 @@ neuron_param = {'threshold': 0.5,
 class TestCUBA(unittest.TestCase):
     """Test CUBA blocks"""
 
+    @unittest.skip
     def test_dense_block(self):
         """Test dense block with lava process implementation."""
         in_features = 10
