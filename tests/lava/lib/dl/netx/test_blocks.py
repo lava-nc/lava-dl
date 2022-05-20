@@ -16,6 +16,7 @@ from lava.magma.core.model.py.model import PyLoihiProcessModel
 from lava.proc.io.source import RingBuffer as SendProcess
 from lava.proc.io.sink import RingBuffer as ReceiveProcess
 from lava.proc.lif.process import LIF
+from lava.proc.conv import utils
 
 from lava.lib.dl.netx.blocks.process import Dense, Conv, Input
 
@@ -23,6 +24,8 @@ from lava.lib.dl.netx.blocks.process import Dense, Conv, Input
 verbose = True if (('-v' in sys.argv) or ('--verbose' in sys.argv)) else False
 HAVE_DISPLAY = 'DISPLAY' in os.environ
 root = os.path.dirname(os.path.abspath(__file__))
+# Enabling torch sometimes causes multiprocessing error, especially in unittests
+utils.TORCH_IS_AVAILABLE = False
 
 
 class TestRunConfig(RunConfig):
@@ -206,7 +209,7 @@ class TestLIFBlocks(unittest.TestCase):
         s_error = np.abs(s - s_gt).sum()
 
         if verbose:
-            print('Conv spike error:', s_error)
+            print('Dense spike error:', s_error)
             if HAVE_DISPLAY:
                 plt.figure()
                 out_ae = np.argwhere(s.reshape((-1, num_steps)) > 0)

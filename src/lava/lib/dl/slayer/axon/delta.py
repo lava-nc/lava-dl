@@ -32,7 +32,7 @@ class _DeltaUnit(torch.autograd.Function):
                 delta_input[..., t] = delta
                 error += delta
                 output[..., t] = torch.where(
-                    torch.abs(error) > threshold,
+                    torch.abs(error) >= threshold,
                     delta,
                     0 * delta
                 ).to(input.dtype)
@@ -44,7 +44,7 @@ class _DeltaUnit(torch.autograd.Function):
                 delta = input[..., t] - pre_state + residual_state
                 delta_input[..., t] = delta
                 output[..., t] = torch.where(
-                    torch.abs(delta) > threshold,
+                    torch.abs(delta) >= threshold,
                     delta,
                     0 * delta
                 ).to(input.dtype)
