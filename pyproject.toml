@@ -54,6 +54,7 @@ ninja = "^1.10.2"
 matplotlib = "^3.5.1"
 numpy = "^1.22.2"
 scipy = "^1.8.0"
+pillow = "^9.0.1"
 pytest = "^7.0.1"
 unittest2 = "^1.1.0"
 
