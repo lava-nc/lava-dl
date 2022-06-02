@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # See: https://spdx.org/licenses/
 
-import subprocess
+import subprocess  # noqa
 import os
 import unittest
 import typing as ty
@@ -16,15 +16,11 @@ from lava.proc import io
 from lava.magma.core.model.model import AbstractProcessModel
 
 from lava.lib.dl import netx
-from tutorials.lava.lib.dl.netx.pilotnet_sdnn.dataset \
-    import PilotNetDataset
+from tutorials.lava.lib.dl.netx.pilotnet_sdnn.dataset import PilotNetDataset
 
 
 class CustomRunConfig(Loihi2HwCfg):
-
-    def select(self,
-               proc,
-               proc_models: ty.List[ty.Type[AbstractProcessModel]]):
+    def select(self, proc, proc_models: ty.List[ty.Type[AbstractProcessModel]]):
         # customize run config to always use float model for io.sink.RingBuffer
         if isinstance(proc, io.sink.RingBuffer):
             return io.sink.PyReceiveModelFloat
@@ -36,30 +32,35 @@ class CustomRunConfig(Loihi2HwCfg):
 
 
 class TestPilotNetSdnn(unittest.TestCase):
-    run_it_tests: int = int(os.environ.get("RUN_IT_TESTS",
-                                           0))
+    run_it_tests: int = int(os.environ.get("RUN_IT_TESTS", 0))
 
-    @unittest.skipUnless(run_it_tests == 1,
-                         "")
+    @unittest.skipUnless(run_it_tests == 1, "")
     def test_pilotnet_sdnn(self):
-        repo_dir = subprocess.Popen(
-            ['git', 'rev-parse', '--show-toplevel'],
-            stdout=subprocess.PIPE).communicate()[0].rstrip().decode('utf-8')
-        pilotnet_sdnn_path = repo_dir + \
-            "/tutorials" \
-            "/lava/lib/dl/netx/pilotnet_sdnn"
-        dataset_path: str = os.environ.get("PILOTNET_DATASET_PATH",
-                                           "../data")
-        net = netx.hdf5.Network(net_config=(pilotnet_sdnn_path
-                                            + "/network.net"))
+        repo_dir = (
+            subprocess.Popen(  # noqa
+                ["git", "rev-parse", "--show-toplevel"], stdout=subprocess.PIPE
+            )
+            .communicate()[0]
+            .rstrip()
+            .decode("utf-8")
+        )
+        pilotnet_sdnn_path = (
+            repo_dir + "/tutorials" "/lava/lib/dl/netx/pilotnet_sdnn"
+        )
+        dataset_path: str = os.environ.get("PILOTNET_DATASET_PATH", "../data")
+        net = netx.hdf5.Network(
+            net_config=(pilotnet_sdnn_path + "/network.net")
+        )
 
         print(net)
 
-        print(f'There are {len(net)} layers in network:')
+        print(f"There are {len(net)} layers in network:")
 
-        for l in net.layers:
-            print(f'{l.__class__.__name__:5s} \
-                  : {l.name:10s}, shape : {l.shape}')
+        for layer in net.layers:
+            print(
+                f"{layer.__class__.__name__:5s} \
+                  : {layer.name:10s}, shape : {layer.shape}"
+            )
 
         num_samples = 200
         num_steps = num_samples + len(net.layers)
@@ -87,8 +88,9 @@ class TestPilotNetSdnn(unittest.TestCase):
         dataloader = io.dataloader.SpikeDataloader(dataset=full_set)
 
         gt_logger = io.sink.RingBuffer(shape=(1,), buffer=num_steps)
-        output_logger = io.sink.RingBuffer(shape=net.out_layer.shape,
-                                           buffer=num_steps)
+        output_logger = io.sink.RingBuffer(
+            shape=net.out_layer.shape, buffer=num_steps
+        )
         dataloader.ground_truth.connect(gt_logger.a_in)
         dataloader.s_out.connect(net.in_layer.neuron.a_in)
         net.out_layer.out.connect(output_logger.a_in)
@@ -99,11 +101,13 @@ class TestPilotNetSdnn(unittest.TestCase):
         gts = gt_logger.data.get().flatten()
         net.stop()
 
-        if bool(os.environ.get('DISPLAY', None)):
+        if bool(os.environ.get("DISPLAY", None)):
             plt.figure(figsize=(15, 10))
-            plt.plot(np.array(gts[1:]), label='Ground Truth')
-            plt.plot(np.array(output[len(net.layers):]).flatten()/(1 << 18),
-                    label='Lava output')
-            plt.xlabel('Sample frames (+10550)')
-            plt.ylabel('Steering angle (radians)')
+            plt.plot(np.array(gts[1:]), label="Ground Truth")
+            plt.plot(
+                np.array(output[len(net.layers) :]).flatten() / (1 << 18),
+                label="Lava output",
+            )
+            plt.xlabel("Sample frames (+10550)")
+            plt.ylabel("Steering angle (radians)")
             plt.legend()
