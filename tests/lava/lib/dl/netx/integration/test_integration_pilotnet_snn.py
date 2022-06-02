@@ -9,8 +9,6 @@ import unittest
 import numpy as np
 import matplotlib.pyplot as plt
 
-from PIL import Image
-
 from lava.magma.core.run_configs import Loihi2HwCfg
 from lava.magma.core.run_conditions import RunSteps
 from lava.proc import io
