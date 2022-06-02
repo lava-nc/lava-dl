@@ -16,7 +16,8 @@ from lava.proc import io
 from lava.magma.core.model.model import AbstractProcessModel
 
 from lava.lib.dl import netx
-from .dataset_sdnn import PilotNetDataset
+from tutorials.lava.lib.dl.netx.pilotnet_sdnn.dataset \
+    import PilotNetDataset
 
 
 class CustomRunConfig(Loihi2HwCfg):
@@ -92,16 +93,17 @@ class TestPilotNetSdnn(unittest.TestCase):
         dataloader.s_out.connect(net.in_layer.neuron.a_in)
         net.out_layer.out.connect(output_logger.a_in)
 
-        run_config = CustomRunConfig(select_tag='fixed_pt')
+        run_config = CustomRunConfig()
         net.run(condition=RunSteps(num_steps=num_steps), run_cfg=run_config)
         output = output_logger.data.get().flatten()
         gts = gt_logger.data.get().flatten()
         net.stop()
 
-        plt.figure(figsize=(15, 10))
-        plt.plot(np.array(gts[1:]), label='Ground Truth')
-        plt.plot(np.array(output[len(net.layers):]).flatten()/(1 << 18),
-                 label='Lava output')
-        plt.xlabel('Sample frames (+10550)')
-        plt.ylabel('Steering angle (radians)')
-        plt.legend()
+        if bool(os.environ.get('DISPLAY', None)):
+            plt.figure(figsize=(15, 10))
+            plt.plot(np.array(gts[1:]), label='Ground Truth')
+            plt.plot(np.array(output[len(net.layers):]).flatten()/(1 << 18),
+                    label='Lava output')
+            plt.xlabel('Sample frames (+10550)')
+            plt.ylabel('Steering angle (radians)')
+            plt.legend()

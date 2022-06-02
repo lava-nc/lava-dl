@@ -17,7 +17,8 @@ from lava.proc import io
 from lava.magma.core.model.model import AbstractProcessModel
 
 from lava.lib.dl import netx
-from .dataset_snn import PilotNetDataset
+from tutorials.lava.lib.dl.netx.pilotnet_snn.dataset \
+    import PilotNetDataset
 
 
 class CustomRunConfig(Loihi2HwCfg):
@@ -104,7 +105,7 @@ class TestPilotNetSnn(unittest.TestCase):
         dataloader.connect_var(net.in_layer.neuron.bias)
         output_logger.connect_var(net.out_layer.neuron.v)
 
-        run_config = CustomRunConfig(select_tag='fixed_pt')
+        run_config = CustomRunConfig()
         net.run(condition=RunSteps(num_steps=num_steps), run_cfg=run_config)
         results = output_logger.data.get().flatten()
         gts = gt_logger.data.get().flatten()[::steps_per_sample]
@@ -114,13 +115,14 @@ class TestPilotNetSnn(unittest.TestCase):
         results = results[1:] - results[:-1]
         loihi = np.load(pilotnet_snn_path + "/3x3pred.npy")
 
-        plt.figure(figsize=(15, 10))
-        plt.plot(loihi, linewidth=5, label='Loihi output')
-        plt.plot(results, label='Lava output')
-        plt.plot(gts, label='Ground truth')
-        plt.xlabel(f'Sample frames (+{full_set.sample_offset})')
-        plt.ylabel('Steering angle (radians)')
-        plt.legend()
+        if bool(os.environ.get('DISPLAY', None)):
+            plt.figure(figsize=(15, 10))
+            plt.plot(loihi, linewidth=5, label='Loihi output')
+            plt.plot(results, label='Lava output')
+            plt.plot(gts, label='Ground truth')
+            plt.xlabel(f'Sample frames (+{full_set.sample_offset})')
+            plt.ylabel('Steering angle (radians)')
+            plt.legend()
 
         error = np.sum((loihi - results)**2)
         print(f'{error=}')
