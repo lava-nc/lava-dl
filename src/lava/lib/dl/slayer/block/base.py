@@ -1140,6 +1140,8 @@ class AbstractRecurrent(torch.nn.Module):
 
         spike = torch.zeros(z.shape[:-1]).to(x.device)
 
+        print("in the forward pass in lava-dl in slayer_training")
+
         if z.shape[0] == self.spike_state.shape[0]:
             spike = spike + self.spike_state
 
