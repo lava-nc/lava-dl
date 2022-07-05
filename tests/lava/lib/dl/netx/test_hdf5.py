@@ -86,7 +86,7 @@ class TestHdf5Netx(unittest.TestCase):
             print(f'{len(net) = }')
 
         # set input bias for the ground truth sample
-        net.in_layer.neuron.bias.init = np.load(
+        net.in_layer.neuron.bias_mant.init = np.load(
             root + '/gts/tinynet/input_bias.npy'
         )
 
@@ -128,4 +128,4 @@ class TestHdf5Netx(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    pass
+    unittest.main(argv=['-v', 'TestHdf5Netx.test_tinynet'])

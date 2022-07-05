@@ -59,7 +59,7 @@ class AbstractBlock(AbstractProcess):
                     f'neuron of shape {self.shape}.'
                 )
             neuron_params = {'shape': self.shape, **self.neuron_params}
-            neuron_params['bias'] = bias_mant.astype(np.int32)
+            neuron_params['bias_mant'] = bias_mant.astype(np.int32)
             return self.neuron_process(**neuron_params)
 
     @property
@@ -120,9 +120,6 @@ class Dense(AbstractBlock):
         number of weight bits. Defaults to 8.
     weight_exponent : int
         weight exponent value. Defaults to 0.
-    sign_mode : int
-        sign mode of the synapse. Refer to lava.proc.dense documentation for
-        details. Default is 1 meaning mixed mode.
     """
     def __init__(self, **kwargs: Union[dict, tuple, list, int, bool]) -> None:
         super().__init__(**kwargs)
@@ -130,16 +127,14 @@ class Dense(AbstractBlock):
         weight = kwargs.pop('weight')
         num_weight_bits = kwargs.pop('num_weight_bits', 8)
         weight_exponent = kwargs.pop('weight_exponent', 0)
-        sign_mode = kwargs.pop('sign_mode', 1)
 
-        graded_spikes_params = {'use_graded_spike': self.has_graded_input}
+        num_message_bits = 16 if self.has_graded_input else 0
+        graded_spikes_params = {'num_message_bits': num_message_bits}
 
         self.synapse = DenseSynapse(
-            shape=weight.shape,
             weights=weight,
             weight_exp=weight_exponent,
             num_weight_bits=num_weight_bits,
-            sign_mode=sign_mode,
             **graded_spikes_params,
         )
 
@@ -193,7 +188,8 @@ class Conv(AbstractBlock):
         super().__init__(**kwargs)
         weight = kwargs.pop('weight')
 
-        graded_spikes_params = {'use_graded_spike': self.has_graded_input}
+        num_message_bits = 16 if self.has_graded_input else 0
+        graded_spikes_params = {'num_message_bits': num_message_bits}
 
         self.synapse = ConvSynapse(
             input_shape=kwargs.pop('input_shape'),

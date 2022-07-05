@@ -49,7 +49,6 @@ class TestLIFBlocks(unittest.TestCase):
             'du': 4095,
             'dv': 1024,
             'bias_exp': 6,
-            'graded_spikes': False,
         }
 
         input_blk = Input(
@@ -101,7 +100,6 @@ class TestLIFBlocks(unittest.TestCase):
             'du': 4095,
             'dv': 1024,
             'bias_exp': 6,
-            'graded_spikes': False,
         }
 
         conv_blk = Conv(
@@ -126,8 +124,8 @@ class TestLIFBlocks(unittest.TestCase):
         for t in range(num_steps):
             conv_blk.run(condition=run_condition, run_cfg=run_config)
             if t == 0:
-                conv_blk.neuron.u.set(np.zeros(conv_blk.neuron.shape))
-                conv_blk.neuron.v.set(np.zeros(conv_blk.neuron.shape))
+                conv_blk.neuron.u.set(np.zeros(conv_blk.neuron.u.shape))
+                conv_blk.neuron.v.set(np.zeros(conv_blk.neuron.v.shape))
             current.append(conv_blk.neuron.u.get())
         s = sink.data.get()
         conv_blk.stop()
@@ -182,7 +180,6 @@ class TestLIFBlocks(unittest.TestCase):
             'du': 4095,
             'dv': 415,
             'bias_exp': 6,
-            'graded_spikes': False,
         }
 
         dense_blk = Dense(
@@ -228,3 +225,6 @@ class TestLIFBlocks(unittest.TestCase):
             f'Found {s[s != s_gt] = } and {s_gt[s != s_gt] = }. '
             f'Error was {s_error}.'
         )
+
+if __name__ == '__main__':
+    unittest.main()

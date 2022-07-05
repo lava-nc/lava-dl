@@ -98,7 +98,6 @@ class Network(AbstractProcess):
                 'du': neuron_config['iDecay'] - 1,
                 'dv': neuron_config['vDecay'],
                 'bias_exp': 6,
-                'use_graded_spikes': False,
             }
             return neuron_params
         elif neuron_type in ['SDNN']:
@@ -110,13 +109,11 @@ class Network(AbstractProcess):
                     'vth': neuron_config['vThMant'],
                     'state_exp': 6,
                     'wgt_exp': 6,
-                    'use_graded_spikes': True,
                 }
             elif 'sigma_output' in neuron_config.keys():
                 neuron_process = Sigma
                 neuron_params = {
                     'neuron_proc': neuron_process,
-                    'use_graded_spikes': True,
                 }
             else:
                 neuron_process = SigmaDelta
@@ -125,7 +122,6 @@ class Network(AbstractProcess):
                     'vth': neuron_config['vThMant'],
                     'state_exp': 6,
                     'wgt_exp': 6,
-                    'use_graded_spikes': True,
                 }
             return neuron_params
 
@@ -260,10 +256,10 @@ class Network(AbstractProcess):
         # optional arguments
         if 'bias' in layer_config.keys():
             params['bias'] = layer_config['bias']
-        if 'delay' not in layer_config.keys():
-            params['neuron_params']['delay_bits'] = 1
-        else:
-            pass  # TODO: set appropriate delay bits for synaptic delay
+        # if 'delay' not in layer_config.keys():
+        #     params['neuron_params']['delay_bits'] = 1
+        # else:
+        #     pass  # TODO: set appropriate delay bits for synaptic delay
 
         table_entry = Network._table_str(
             type_str='Dense',
@@ -322,10 +318,10 @@ class Network(AbstractProcess):
         if 'bias' in layer_config.keys():
             params['bias'] = layer_config['bias']
 
-        if 'delay' not in layer_config.keys():
-            params['neuron_params']['delay_bits'] = 1
-        else:
-            pass
+        # if 'delay' not in layer_config.keys():
+        #     params['neuron_params']['delay_bits'] = 1
+        # else:
+        #     pass
 
         table_entry = Network._table_str(
             type_str='Conv',
