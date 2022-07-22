@@ -602,12 +602,12 @@ python-versions = ">=3.7"
 
 [[package]]
 name = "lava-nc"
-version = "0.3.0"
+version = "0.4.0"
 description = "A Software Framework for Neuromorphic Computing"
 category = "main"
 optional = false
 python-versions = ">=3.8, <3.11"
-develop = false
+develop = true
 
 [package.dependencies]
 matplotlib = "^3.5.1"
