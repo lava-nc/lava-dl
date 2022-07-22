@@ -299,7 +299,7 @@ class TestSDNBlocks(unittest.TestCase):
         error = np.abs(output - gt).sum()
         if verbose:
             print(output[output != 0])
-            print('Input spike error:', error)
+            print('Conv spike error:', error)
 
         self.assertTrue(
             error == 0,
@@ -335,7 +335,7 @@ class TestSDNBlocks(unittest.TestCase):
         error = np.abs(output - gt).sum()
         if verbose:
             print(output[output != 0])
-            print('Input spike error:', error)
+            print('Dense spike error:', error)
 
         self.assertTrue(
             error == 0,
