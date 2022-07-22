@@ -34,11 +34,15 @@ class Network(AbstractProcess):
     input_message_bits : int, optional
         number of message bits in input spike. Defaults to 0 meaning unary
         spike.
+    input_shape : tuple of ints, optional
+        shape of input to the network. If None, input layer is assumed to be
+        the first layer. Defaults to None.
     """
     def __init__(self,
                  net_config: str,
                  num_layers: Optional[int] = None,
-                 input_message_bits: Optional[int] = 0) -> None:
+                 input_message_bits: Optional[int] = 0,
+                 input_shape: Optional[Tuple[int, ...]] = None) -> None:
         super().__init__(net_config=net_config,
                          num_layers=num_layers,
                          input_message_bits=input_message_bits)
@@ -47,6 +51,7 @@ class Network(AbstractProcess):
 
         self.num_layers = num_layers
         self.input_message_bits = input_message_bits
+        self.input_shape = input_shape
 
         self.net_str = ''
         self.layers = self._create()
@@ -376,9 +381,18 @@ class Network(AbstractProcess):
                 input_message_bits = layer.output_message_bits
 
             elif layer_type == 'conv':
+                if len(layers) > 0:
+                    input_shape = layers[-1].shape
+                elif self.input_shape:
+                    input_shape = self.input_shape
+                else:
+                    raise RuntimeError('Input shape could not be inferred. '
+                                       'Try explicitly specifying input_shape '
+                                       'in hdf5.Network(...) in (x, y, f) '
+                                       'order')
                 layer, table = self.create_conv(
                     layer_config=layer_config[i],
-                    input_shape=layers[-1].shape,
+                    input_shape=input_shape,
                     input_message_bits=input_message_bits
                 )
                 layers.append(layer)

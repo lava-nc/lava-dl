@@ -17,6 +17,7 @@ from lava.proc.io.source import RingBuffer as SendProcess
 from lava.proc.io.sink import RingBuffer as ReceiveProcess
 from lava.proc.lif.process import LIF
 from lava.proc.sdn.process import Sigma, Delta, SigmaDelta
+from lava.proc.conv import utils
 
 from lava.lib.dl.netx.blocks.process import Dense, Conv, Input
 
@@ -24,6 +25,8 @@ from lava.lib.dl.netx.blocks.process import Dense, Conv, Input
 verbose = True if (('-v' in sys.argv) or ('--verbose' in sys.argv)) else False
 HAVE_DISPLAY = 'DISPLAY' in os.environ
 root = os.path.dirname(os.path.abspath(__file__))
+# Enabling torch sometimes causes multiprocessing error, especially in unittests
+utils.TORCH_IS_AVAILABLE = False
 
 
 class TestRunConfig(RunConfig):
@@ -199,7 +202,7 @@ class TestLIFBlocks(unittest.TestCase):
         s_error = np.abs(s - s_gt).sum()
 
         if verbose:
-            print('Conv spike error:', s_error)
+            print('Dense spike error:', s_error)
             if HAVE_DISPLAY:
                 plt.figure()
                 out_ae = np.argwhere(s.reshape((-1, num_steps)) > 0)
@@ -231,7 +234,8 @@ class TestSDNBlocks(unittest.TestCase):
                       'bias_key': 'bias'}
 
         input_data = np.load(root + '/gts/tinynet_sdnn/input_bias.npy')
-        input_data = np.repeat(np.expand_dims(input_data, 3), num_steps, axis=3)
+        input_data = np.repeat(np.expand_dims(
+            input_data, 3), num_steps, axis=3)
         input_data *= np.sin(2 * np.pi * np.arange(num_steps) / num_steps)
         input_data = input_data.astype(int)
 
@@ -246,9 +250,9 @@ class TestSDNBlocks(unittest.TestCase):
 
         run_condition = RunSteps(num_steps=num_steps)
         run_config = TestRunConfig(select_tag='fixed_pt')
-        source.run(condition=run_condition, run_cfg=run_config)
+        input_blk.run(condition=run_condition, run_cfg=run_config)
         output = sink.data.get()
-        source.stop()
+        input_blk.stop()
 
         gt = np.load(root + '/gts/tinynet_sdnn/input.npy')
         error = np.abs(output - gt).sum()
@@ -261,9 +265,84 @@ class TestSDNBlocks(unittest.TestCase):
             f'Found {output[output != gt] = } and {gt[output != gt] = }. '
             f'Error was {error}.'
         )
-        
+
     def test_conv(self) -> None:
-        pass
+        """Tests SDN convolution block driven by known input."""
+        num_steps = 16
+        sdn_params = {'vth': 20,
+                      'spike_exp': 6,
+                      'state_exp': 6,
+                      'bias_key': 'bias'}
+
+        conv_blk = Conv(
+            shape=(6, 6, 24),
+            input_shape=(16, 16, 3),
+            neuron_params={'neuron_proc': SigmaDelta, **sdn_params},
+            weight=np.load(root + '/gts/tinynet_sdnn/layer1_kernel.npy'),
+            bias=np.load(root + '/gts/tinynet_sdnn/layer1_bias.npy'),
+            stride=2,
+        )
+
+        data = np.load(root + '/gts/tinynet_sdnn/input.npy')
+        source = SendProcess(data=data)
+        sink = ReceiveProcess(shape=conv_blk.out.shape, buffer=num_steps)
+        source.s_out.connect(conv_blk.inp)
+        conv_blk.out.connect(sink.a_in)
+
+        run_condition = RunSteps(num_steps=1)
+        run_config = TestRunConfig(select_tag='fixed_pt')
+        conv_blk.run(condition=run_condition, run_cfg=run_config)
+        output = sink.data.get()
+        conv_blk.stop()
+
+        gt = np.load(root + '/gts/tinynet_sdnn/layer1.npy')
+        error = np.abs(output - gt).sum()
+        if verbose:
+            print(output[output != 0])
+            print('Input spike error:', error)
+
+        self.assertTrue(
+            error == 0,
+            f'Output spike and ground truth do not match for Conv block. '
+            f'Found {output[output != gt] = } and {gt[output != gt] = }. '
+            f'Error was {error}.'
+        )
+
+    def test_dense(self) -> None:
+        """Tests SDN dense block driven by known input."""
+        num_steps = 16
+        sdn_params = {}
+
+        dense_blk = Dense(
+            shape=(100,),
+            neuron_params={'neuron_proc': Sigma, **sdn_params},
+            weight=np.load(root + '/gts/tinynet_sdnn/layer2_weight.npy')
+        )
+
+        data = np.load(root + '/gts/tinynet_sdnn/layer1.npy').reshape([-1, 16])
+        source = SendProcess(data=data)
+        sink = ReceiveProcess(shape=dense_blk.out.shape, buffer=num_steps)
+        source.s_out.connect(dense_blk.inp)
+        dense_blk.out.connect(sink.a_in)
+
+        run_condition = RunSteps(num_steps=num_steps)
+        run_config = TestRunConfig(select_tag='fixed_pt')
+        dense_blk.run(condition=run_condition, run_cfg=run_config)
+        output = sink.data.get()
+        dense_blk.stop()
+
+        gt = np.load(root + '/gts/tinynet_sdnn/layer2.npy')
+        error = np.abs(output - gt).sum()
+        if verbose:
+            print(output[output != 0])
+            print('Input spike error:', error)
+
+        self.assertTrue(
+            error == 0,
+            f'Output spike and ground truth do not match for Dense block. '
+            f'Found {output[output != gt] = } and {gt[output != gt] = }. '
+            f'Error was {error}.'
+        )
 
 
 if __name__ == '__main__':

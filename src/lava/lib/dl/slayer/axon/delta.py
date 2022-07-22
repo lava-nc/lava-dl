@@ -4,6 +4,7 @@
 """Delta encoder implementation."""
 
 import torch
+from ..utils import quantize, QUANTIZE_MODE
 
 
 class _DeltaUnit(torch.autograd.Function):
@@ -31,7 +32,7 @@ class _DeltaUnit(torch.autograd.Function):
                 delta_input[..., t] = delta
                 error += delta
                 output[..., t] = torch.where(
-                    torch.abs(error) > threshold,
+                    torch.abs(error) >= threshold,
                     delta,
                     0 * delta
                 ).to(input.dtype)
@@ -43,7 +44,7 @@ class _DeltaUnit(torch.autograd.Function):
                 delta = input[..., t] - pre_state + residual_state
                 delta_input[..., t] = delta
                 output[..., t] = torch.where(
-                    torch.abs(delta) > threshold,
+                    torch.abs(delta) >= threshold,
                     delta,
                     0 * delta
                 ).to(input.dtype)
@@ -147,8 +148,8 @@ class Delta(torch.nn.Module):
     ----------
     threshold : float
         threshold value.
-    min_threshold : float
-        minimum threshold value. Defaults to 0.
+    scale : int
+        quantization step size. Defaults to 64.
     tau_grad : float
         threshold gradient relaxation parameter. Defaults to 1.
     scale_grad : float
@@ -165,16 +166,13 @@ class Delta(torch.nn.Module):
 
     Attributes
     ----------
-    min_threshold
+    scale
     tau_grad
     scale_grad
     cum_error
     shared_param
     persistent_state
     requires_grad
-    quantizer : function prt or None:
-        quantizer method to be applied. If None, it is ignored. It needs to be
-        explicitly set.
     shape: torch shape
         shape of delta block. It is identified on runtime. The value is None
         before that.
@@ -192,21 +190,20 @@ class Delta(torch.nn.Module):
 
     """
     def __init__(
-        self, threshold, min_threshold=0,
+        self, threshold, scale=(1 << 6),
         tau_grad=1, scale_grad=1,
         cum_error=False, shared_param=True, persistent_state=False,
         requires_grad=False
     ):
         super(Delta, self).__init__()
 
-        self.min_threshold = min_threshold
+        self.scale = scale
         self.tau_grad = tau_grad
         self.scale_grad = scale_grad
         self.cum_error = cum_error
         self.shared_param = shared_param
         self.persistent_state = persistent_state
         self.requires_grad = requires_grad
-        self.quantizer = None
         self.shape = None
         self.register_buffer(
             'pre_state',
@@ -234,8 +231,8 @@ class Delta(torch.nn.Module):
 
     def clamp(self):
         """Clamps the threshold value to
-        :math:`[\\verb~min_threshold~, \\infty)`."""
-        self.threshold.data.clamp_(self.min_threshold)
+        :math:`[\\verb~1/scale~, \\infty)`."""
+        self.threshold.data.clamp_(1 / self.scale)
 
     @property
     def device(self):
@@ -286,6 +283,9 @@ class Delta(torch.nn.Module):
             self.error_state = torch.zeros(input.shape[:-1]).to(
                 self.error_state.dtype
             ).to(self.error_state.device)
+            self.residual_state = torch.zeros(input.shape[:-1]).to(
+                self.residual_state.dtype
+            ).to(self.residual_state.device)
 
         self.clamp()
 
@@ -315,4 +315,4 @@ class Delta(torch.nn.Module):
             if self.cum_error is True:
                 self.error_state = error_state.clone().detach()
 
-        return output
+        return quantize(output, step=1 / self.scale, mode=QUANTIZE_MODE.FLOOR)

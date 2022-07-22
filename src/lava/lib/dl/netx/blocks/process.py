@@ -25,6 +25,7 @@ class AbstractBlock(AbstractProcess):
         number of message bits in input spike. Defaults to 0 meaning unary
         spike.
     """
+
     def __init__(self, **kwargs: Union[dict, tuple, list, int, bool]) -> None:
         super().__init__(**kwargs)
         self.shape: tuple = kwargs.pop('shape')
@@ -39,7 +40,6 @@ class AbstractBlock(AbstractProcess):
         if 'num_message_bits' in self.neuron_params.keys():
             num_msg_bits = self.neuron_params.pop('num_message_bits')
             self.output_message_bits = num_msg_bits
-
 
     def _clean(self) -> None:
         del self.neuron_params
@@ -88,6 +88,7 @@ class Input(AbstractBlock):
         number of message bits in input spike. Defaults to 0 meaning unary
         spike.
     """
+
     def __init__(self, **kwargs: Union[dict, tuple, list, int, bool]) -> None:
         super().__init__(**kwargs)
         self.transform = kwargs.pop('transform', lambda x: x)
@@ -128,6 +129,7 @@ class Dense(AbstractBlock):
         number of message bits in input spike. Defaults to 0 meaning unary
         spike.
     """
+
     def __init__(self, **kwargs: Union[dict, tuple, list, int, bool]) -> None:
         super().__init__(**kwargs)
 
@@ -189,6 +191,7 @@ class Conv(AbstractBlock):
         number of message bits in input spike. Defaults to 0 meaning unary
         spike.
     """
+
     def __init__(self, **kwargs: Union[dict, tuple, list, int, bool]) -> None:
         super().__init__(**kwargs)
         weight = kwargs.pop('weight')
