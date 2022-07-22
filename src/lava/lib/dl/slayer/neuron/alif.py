@@ -607,4 +607,4 @@ class Neuron(base.Neuron):
 
         """
         _, voltage, threshold, refractory = self.dynamics(input)
-        return self.spike(voltage, threshold + refractory)
+        return self.spike(voltage, threshold, refractory)
