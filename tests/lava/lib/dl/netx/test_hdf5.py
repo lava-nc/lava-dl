@@ -14,6 +14,7 @@ from lava.magma.core.model.py.model import PyLoihiProcessModel
 from lava.magma.core.run_configs import RunConfig
 from lava.magma.core.run_conditions import RunSteps
 from lava.proc import io
+from lava.proc.conv import utils
 
 from lava.lib.dl import netx
 
@@ -21,6 +22,8 @@ from lava.lib.dl import netx
 verbose = True if (('-v' in sys.argv) or ('--verbose' in sys.argv)) else False
 HAVE_DISPLAY = 'DISPLAY' in os.environ
 root = os.path.dirname(os.path.abspath(__file__))
+# Enabling torch sometimes causes multiprocessing error, especially in unittests
+utils.TORCH_IS_AVAILABLE = False
 
 
 class TestRunConfig(RunConfig):
