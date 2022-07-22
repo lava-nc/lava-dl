@@ -263,10 +263,6 @@ class Network(AbstractProcess):
         # optional arguments
         if 'bias' in layer_config.keys():
             params['bias'] = layer_config['bias']
-        # if 'delay' not in layer_config.keys():
-        #     params['neuron_params']['delay_bits'] = 1
-        # else:
-        #     pass  # TODO: set appropriate delay bits for synaptic delay
 
         table_entry = Network._table_str(type_str='Dense', width=1, height=1,
                                          channel=shape[0],
