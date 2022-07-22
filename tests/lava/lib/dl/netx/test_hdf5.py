@@ -92,26 +92,6 @@ class TestHdf5Netx(unittest.TestCase):
 
         run_condition = RunSteps(num_steps=num_steps)
         run_config = TestRunConfig(select_tag='fixed_pt')
-        print(f'NetX level: {net.name}')
-        print(f'{net.inp = }')
-        indent = ' ' * 4
-        print(f'{indent}Blocks level')
-        for l in net.layers:
-            print(f'{indent}{l.name}')
-            print(f'{indent}{l.inp = }')
-            if hasattr(l, 'synapse'):
-                print(f'{indent * 2}{l.synapse.name} : {l.synapse.__class__}')
-                print(f'{indent * 2}{l.synapse.s_in =}')
-                print(f'{indent * 2}{l.synapse.a_out=}')
-                print(f'{indent * 2}{"-" * 40}')
-            if hasattr(l, 'neuron'):
-                print(f'{indent * 2}{l.neuron.name} : {l.neuron.__class__}')
-                print(f'{indent * 2}{l.neuron.a_in =}')
-                print(f'{indent * 2}{l.neuron.s_out=}')
-            print(f'{indent}{l.out = }')
-            print(f'{indent}{"-" * 40}')
-        print(f'{net.out = }')
-        print('-' * 40)
         net.run(condition=run_condition, run_cfg=run_config)
         output = sink.data.get()
         net.stop()

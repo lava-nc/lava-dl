@@ -16,6 +16,7 @@ from lava.magma.core.model.py.model import PyLoihiProcessModel
 from lava.proc.io.source import RingBuffer as SendProcess
 from lava.proc.io.sink import RingBuffer as ReceiveProcess
 from lava.proc.lif.process import LIF
+from lava.proc.sdn.process import Sigma, Delta, SigmaDelta
 
 from lava.lib.dl.netx.blocks.process import Dense, Conv, Input
 
@@ -28,13 +29,14 @@ root = os.path.dirname(os.path.abspath(__file__))
 class TestRunConfig(RunConfig):
     """Run configuration selects appropriate ProcessModel based on tag:
     floating point precision or Loihi bit-accurate fixed point precision"""
+
     def __init__(self, select_tag: str = 'fixed_pt') -> None:
         super().__init__(custom_sync_domains=None)
         self.select_tag = select_tag
 
-    def select(
-        self, _: AbstractProcess, proc_models: List[PyLoihiProcessModel]
-    ) -> PyLoihiProcessModel:
+    def select(self,
+               _: AbstractProcess,
+               proc_models: List[PyLoihiProcessModel]) -> PyLoihiProcessModel:
         for pm in proc_models:
             if self.select_tag in pm.tags:
                 return pm
@@ -43,13 +45,13 @@ class TestRunConfig(RunConfig):
 
 class TestLIFBlocks(unittest.TestCase):
     def test_input(self) -> None:
+        """Tests input lif block driven by known bias."""
         num_steps = 15
-        lif_params = {
-            'vth': 25,
-            'du': 4095,
-            'dv': 1024,
-            'bias_exp': 6,
-        }
+        lif_params = {'vth': 25,
+                      'du': 4095,
+                      'dv': 1024,
+                      'bias_exp': 6,
+                      'bias_key': 'bias_mant'}
 
         input_blk = Input(
             shape=(16, 16, 3),
@@ -65,7 +67,8 @@ class TestLIFBlocks(unittest.TestCase):
         output = sink.data.get()
         input_blk.stop()
 
-        gt = np.load(root + '/gts/tinynet/input.npy')[0].transpose([2, 1, 0, 3])
+        gt = np.load(
+            root + '/gts/tinynet/input.npy')[0].transpose([2, 1, 0, 3])
         gt = gt[..., 1:]  # there is an offset of one time step
 
         error = np.abs(output - gt).sum()
@@ -75,11 +78,9 @@ class TestLIFBlocks(unittest.TestCase):
                 plt.figure()
                 out_ae = np.argwhere(output.reshape((-1, num_steps)) > 0)
                 gt_ae = np.argwhere(gt.reshape((-1, num_steps)) > 0)
-                plt.plot(
-                    gt_ae[:, 1],
-                    gt_ae[:, 0],
-                    '.', markersize=15, label='Ground Truth'
-                )
+                plt.plot(gt_ae[:, 1],
+                         gt_ae[:, 0],
+                         '.', markersize=15, label='Ground Truth')
                 plt.plot(out_ae[:, 1], out_ae[:, 0], '.', label='Input Block')
                 plt.xlabel('Time')
                 plt.ylabel('Neuron ID')
@@ -94,13 +95,13 @@ class TestLIFBlocks(unittest.TestCase):
         )
 
     def test_conv(self) -> None:
+        """Tests lif convolution block driven by known input."""
         num_steps = 16
-        lif_params = {
-            'vth': 25,
-            'du': 4095,
-            'dv': 1024,
-            'bias_exp': 6,
-        }
+        lif_params = {'vth': 25,
+                      'du': 4095,
+                      'dv': 1024,
+                      'bias_exp': 6,
+                      'bias_key': 'bias_mant'}
 
         conv_blk = Conv(
             shape=(6, 6, 24),
@@ -132,12 +133,10 @@ class TestLIFBlocks(unittest.TestCase):
 
         s[..., 0] = 0
         u = np.stack(current).transpose([1, 2, 3, 0])
-        s_gt = np.load(root + '/gts/tinynet/layer1.npy')[0].transpose(
-            [2, 1, 0, 3]
-        )
-        u_gt = np.load(root + '/gts/tinynet/current.npy')[0].transpose(
-            [2, 1, 0, 3]
-        )
+        s_gt = np.load(root + '/gts/tinynet/layer1.npy')[0]
+        u_gt = np.load(root + '/gts/tinynet/current.npy')[0]
+        s_gt = s_gt.transpose([2, 1, 0, 3])
+        u_gt = u_gt.transpose([2, 1, 0, 3])
         u_gt *= 64
 
         s_error = np.abs(s - s_gt).sum()
@@ -148,11 +147,9 @@ class TestLIFBlocks(unittest.TestCase):
                 plt.figure()
                 out_ae = np.argwhere(s.reshape((-1, num_steps)) > 0)
                 gt_ae = np.argwhere(s_gt.reshape((-1, num_steps)) > 0)
-                plt.plot(
-                    gt_ae[:, 1],
-                    gt_ae[:, 0],
-                    '.', markersize=15, label='Ground Truth'
-                )
+                plt.plot(gt_ae[:, 1],
+                         gt_ae[:, 0],
+                         '.', markersize=15, label='Ground Truth')
                 plt.plot(out_ae[:, 1], out_ae[:, 0], '.', label='Input Block')
                 plt.xlabel('Time')
                 plt.ylabel('Neuron ID')
@@ -174,13 +171,12 @@ class TestLIFBlocks(unittest.TestCase):
         )
 
     def test_dense(self) -> None:
+        """Tests lif dense block driven by known input."""
         num_steps = 2000
-        lif_params = {
-            'vth': 6,
-            'du': 4095,
-            'dv': 415,
-            'bias_exp': 6,
-        }
+        lif_params = {'vth': 6,
+                      'du': 4095,
+                      'dv': 415,
+                      'bias_exp': 6}
 
         dense_blk = Dense(
             shape=(256,),
@@ -208,11 +204,9 @@ class TestLIFBlocks(unittest.TestCase):
                 plt.figure()
                 out_ae = np.argwhere(s.reshape((-1, num_steps)) > 0)
                 gt_ae = np.argwhere(s_gt.reshape((-1, num_steps)) > 0)
-                plt.plot(
-                    gt_ae[:, 1],
-                    gt_ae[:, 0],
-                    '.', markersize=15, label='Ground Truth'
-                )
+                plt.plot(gt_ae[:, 1],
+                         gt_ae[:, 0],
+                         '.', markersize=15, label='Ground Truth')
                 plt.plot(out_ae[:, 1], out_ae[:, 0], '.', label='Input Block')
                 plt.xlabel('Time')
                 plt.ylabel('Neuron ID')
@@ -225,6 +219,52 @@ class TestLIFBlocks(unittest.TestCase):
             f'Found {s[s != s_gt] = } and {s_gt[s != s_gt] = }. '
             f'Error was {s_error}.'
         )
+
+
+class TestSDNBlocks(unittest.TestCase):
+    def test_input(self) -> None:
+        """Tests SDN input block driven by known input."""
+        num_steps = 15
+        sdn_params = {'vth': 20,
+                      'spike_exp': 6,
+                      'state_exp': 6,
+                      'bias_key': 'bias'}
+
+        input_data = np.load(root + '/gts/tinynet_sdnn/input_bias.npy')
+        input_data = np.repeat(np.expand_dims(input_data, 3), num_steps, axis=3)
+        input_data *= np.sin(2 * np.pi * np.arange(num_steps) / num_steps)
+        input_data = input_data.astype(int)
+
+        input_blk = Input(
+            shape=(16, 16, 3),
+            neuron_params={'neuron_proc': Delta, **sdn_params},
+        )
+        source = SendProcess(data=input_data)
+        sink = ReceiveProcess(shape=input_blk.out.shape, buffer=num_steps)
+        source.s_out.connect(input_blk.neuron.a_in)
+        input_blk.out.connect(sink.a_in)
+
+        run_condition = RunSteps(num_steps=num_steps)
+        run_config = TestRunConfig(select_tag='fixed_pt')
+        source.run(condition=run_condition, run_cfg=run_config)
+        output = sink.data.get()
+        source.stop()
+
+        gt = np.load(root + '/gts/tinynet_sdnn/input.npy')
+        error = np.abs(output - gt).sum()
+        if verbose:
+            print('Input spike error:', error)
+
+        self.assertTrue(
+            error == 0,
+            f'Output spike and ground truth do not match for Input block. '
+            f'Found {output[output != gt] = } and {gt[output != gt] = }. '
+            f'Error was {error}.'
+        )
+        
+    def test_conv(self) -> None:
+        pass
+
 
 if __name__ == '__main__':
     unittest.main()
