@@ -74,7 +74,8 @@ class AbstractInput(torch.nn.Module):
         self.delay_shift = delay_shift
 
     def forward(self, x):
-        """
+        """Forward computation method. The input can be either of ``NCT`` or
+        ``NCHWT`` format.
         """
         if self.neuron is not None:
             z = self.pre_hook_fx(x)
@@ -152,7 +153,8 @@ class AbstractFlatten(torch.nn.Module):
         self.shape = None
 
     def forward(self, x):
-        """
+        """Forward computation method. The input can be either of ``NCT`` or
+        ``NCHWT`` format.
         """
         if self.shape is None:
             self.shape = [x.shape[1] * x.shape[2] * x.shape[3], 1, 1]
@@ -195,7 +197,8 @@ class AbstractAverage(torch.nn.Module):
         self.num_outputs = num_outputs
 
     def forward(self, x):
-        """
+        """Forward computation method. The input can be either of ``NCT`` or
+        ``NCHWT`` format.
         """
         # N, _, _, _, T = x.shape
         N = x.shape[0]
@@ -290,7 +293,8 @@ class AbstractAffine(torch.nn.Module):
         self.delay = None
 
     def forward(self, x):
-        """
+        """Forward computation method. The input can be either of ``NCT`` or
+        ``NCHWT`` format.
         """
         if self.mask is not None:
             if self.synapse.complex is True:
@@ -389,7 +393,8 @@ class AbstractTimeDecimation(torch.nn.Module):
         self.factor = int(factor)
 
     def forward(self, x):
-        """
+        """Forward computation method. The input can be either of ``NCT`` or
+        ``NCHWT`` format.
         """
         pad_len = int(
             np.ceil(x.shape[-1] / self.factor) * self.factor - x.shape[-1]
@@ -495,7 +500,8 @@ class AbstractDense(torch.nn.Module):
         self.delay_shift = delay_shift
 
     def forward(self, x):
-        """
+        """Forward computation method. The input can be either of ``NCT`` or
+        ``NCHWT`` format.
         """
         if self.mask is not None:
             if self.synapse.complex is True:
@@ -656,7 +662,7 @@ class AbstractConv(torch.nn.Module):
         self.delay_shift = delay_shift
 
     def forward(self, x):
-        """
+        """Forward computation method. The input must be in ``NCHWT`` format.
         """
         z = self.synapse(x)
         x = self.neuron(z)
@@ -808,7 +814,7 @@ class AbstractPool(torch.nn.Module):
         self.delay_shift = delay_shift
 
     def forward(self, x):
-        """
+        """Forward computation method. The input must be in ``NCHWT`` format.
         """
         z = self.synapse(x)
         x = self.neuron(z)
@@ -981,7 +987,8 @@ class AbstractKWTA(torch.nn.Module):
         self.self_excitation.data.clamp_(0, 1)
 
     def forward(self, x):
-        """
+        """Forward computation method. The input can be either of ``NCT`` or
+        ``NCHWT`` format.
         """
         # s_\text{out}[t] = f_s\left(\mathbf{W}\,s_\text{in}[t]
         #               + \mathbf{R}\,s_{out}[t-1] + \alpha\,(N-2K)\right)\\
@@ -1128,14 +1135,15 @@ class AbstractRecurrent(torch.nn.Module):
         self.delay_shift = delay_shift
 
     def forward(self, x):
-        """
+        """Forward computation method. The input can be either of ``NCT`` or
+        ``NCHWT`` format.
         """
         # s_\text{out}[t] = f_s\left(\mathbf{W}\,s_\text{in}[t]
         #                   + \mathbf{R}\,s_{out}[t-1]\right)
         if self.bias is None:
             z = self.input_synapse(x)
         else:
-            z = self.synapse(x) + self.bias
+            z = self.input_synapse(x) + self.bias
         x = torch.zeros_like(z).to(x.device)
 
         spike = torch.zeros(z.shape[:-1]).to(x.device)
