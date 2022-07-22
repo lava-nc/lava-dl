@@ -44,6 +44,7 @@ class Network(AbstractProcess):
 
         self.num_layers = kwargs.pop('num_layers', None)
         self.has_graded_input = kwargs.pop('has_graded_input', False)
+        self.input_shape = kwargs.pop('input_shape', None)
 
         self.net_str = ''
         self.layers = self._create()
@@ -378,9 +379,18 @@ class Network(AbstractProcess):
                 has_graded_input_next = layer.has_graded_output
 
             elif layer_type == 'conv':
+                if len(layers) > 0:
+                    input_shape = layers[-1].shape
+                elif self.input_shape:
+                    input_shape = self.input_shape
+                else:
+                    raise RuntimeError('Input shape could not be inferred. '
+                                       'Try explicitly specifying input_shape '
+                                       'in hdf5.Network(...) in (x, y, f) '
+                                       'order')
                 layer, table = self.create_conv(
                     layer_config=layer_config[i],
-                    input_shape=layers[-1].shape,
+                    input_shape=input_shape,
                     has_graded_input=has_graded_input_next
                 )
                 layers.append(layer)
