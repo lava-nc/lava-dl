@@ -63,7 +63,7 @@ class TestCUBA(unittest.TestCase):
 
         # create equivalent lava network using netx and evaluate output
         lava_net = netx.hdf5.Network(net_config=tempdir + '/cuba_dense.net')
-        source = io.source.RingBuffer(x[0])
+        source = io.source.RingBuffer(data=x[0])
         sink = io.sink.RingBuffer(shape=lava_net.out.shape, buffer=time_steps)
         source.s_out.connect(lava_net.inp)
         lava_net.out.connect(sink.a_in)
@@ -106,7 +106,7 @@ class TestCUBA(unittest.TestCase):
         # create equivalent lava network using netx and evaluate output
         lava_net = netx.hdf5.Network(net_config=tempdir + '/cuba_conv.net',
                                      input_shape=(width, height, in_features))
-        source = io.source.RingBuffer(x[0].permute((2, 1, 0, 3)))
+        source = io.source.RingBuffer(data=x[0].permute((2, 1, 0, 3)))
         sink = io.sink.RingBuffer(shape=lava_net.out.shape, buffer=time_steps)
         source.s_out.connect(lava_net.inp)
         lava_net.out.connect(sink.a_in)

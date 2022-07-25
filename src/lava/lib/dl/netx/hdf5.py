@@ -3,7 +3,7 @@
 
 """HDF5 network exchange module."""
 
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 from lava.magma.core.decorator import implements
 from lava.magma.core.sync.protocols.loihi_protocol import LoihiProtocol
 import numpy as np
@@ -31,20 +31,27 @@ class Network(AbstractProcess):
         first ``num_layers`` blocks in the description. The actual number of
         generated layers may be less than ``num_layers``. If it is None, all
         the layers are generated. Defaults to None.
-    has_graded_input : bool, optional
-        flag indicating the input spike type of input layer. Defaults to False.
+    input_message_bits : int, optional
+        number of message bits in input spike. Defaults to 0 meaning unary
+        spike.
+    input_shape : tuple of ints, optional
+        shape of input to the network. If None, input layer is assumed to be
+        the first layer. Defaults to None.
     """
-    def __init__(
-        self,
-        **kwargs: Union[int, Tuple[int, ...]]
-    ) -> None:
-        super().__init__(**kwargs)
-        self.filename = kwargs.pop('net_config')
+    def __init__(self,
+                 net_config: str,
+                 num_layers: Optional[int] = None,
+                 input_message_bits: Optional[int] = 0,
+                 input_shape: Optional[Tuple[int, ...]] = None) -> None:
+        super().__init__(net_config=net_config,
+                         num_layers=num_layers,
+                         input_message_bits=input_message_bits)
+        self.filename = net_config
         self.net_config = NetDict(self.filename)
 
-        self.num_layers = kwargs.pop('num_layers', None)
-        self.has_graded_input = kwargs.pop('has_graded_input', False)
-        self.input_shape = kwargs.pop('input_shape', None)
+        self.num_layers = num_layers
+        self.input_message_bits = input_message_bits
+        self.input_shape = input_shape
 
         self.net_str = ''
         self.layers = self._create()
@@ -58,8 +65,7 @@ class Network(AbstractProcess):
         self.inp.connect(self.in_layer.inp)
         self.out_layer.out.connect(self.out)
 
-        self.has_graded_input = self.in_layer.has_graded_input
-        self.has_graded_output = self.out_layer.has_graded_output
+        self.output_message_bits = self.out_layer.output_message_bits
 
     def __str__(self) -> str:
         """Network description string."""
@@ -70,10 +76,8 @@ class Network(AbstractProcess):
         return len(self.layers)
 
     @staticmethod
-    def get_neuron_params(
-        neuron_config: h5py.Group,
-        input: bool = False,
-    ) -> AbstractProcess:
+    def get_neuron_params(neuron_config: h5py.Group,
+                          input: bool = False) -> AbstractProcess:
         """Provides the correct neuron configuration process and parameters
         from the neuron description in hdf5 config.
 
@@ -91,59 +95,59 @@ class Network(AbstractProcess):
             The Lava process that implements the neuron described.
         """
         neuron_type = neuron_config['type']
+        num_message_bits = None
+        if 'messageBits' in neuron_config.keys():
+            num_message_bits = neuron_config['messageBits']
         if neuron_type in ['LOIHI', 'CUBA']:
+            if num_message_bits is None:
+                num_message_bits = 0  # default value
             neuron_process = LIF
-            neuron_params = {
-                'neuron_proc': neuron_process,
-                'vth': neuron_config['vThMant'],
-                'du': neuron_config['iDecay'] - 1,
-                'dv': neuron_config['vDecay'],
-                'bias_exp': 6,
-                'use_graded_spikes': False,
-            }
+            neuron_params = {'neuron_proc': neuron_process,
+                             # Map bias parameter in hdf5 config to bias_mant
+                             'bias_key': 'bias_mant',
+                             # Rest of the neuron params
+                             'vth': neuron_config['vThMant'],
+                             'du': neuron_config['iDecay'] - 1,
+                             'dv': neuron_config['vDecay'],
+                             'bias_exp': 6,
+                             'num_message_bits': num_message_bits}
             return neuron_params
         elif neuron_type in ['SDNN']:
+            if num_message_bits is None:
+                num_message_bits = 16  # default value
             if input is True:
-                # If it is an input layer (input is true) use delta process.
+                # Use delta process.
                 neuron_process = Delta
-                neuron_params = {
-                    'neuron_proc': neuron_process,
-                    'vth': neuron_config['vThMant'],
-                    'state_exp': 6,
-                    'wgt_exp': 6,
-                    'use_graded_spikes': True,
-                }
+                neuron_params = {'neuron_proc': neuron_process,
+                                 'vth': neuron_config['vThMant'],
+                                 'spike_exp': 6,
+                                 'state_exp': 6,
+                                 'num_message_bits': num_message_bits}
             elif 'sigma_output' in neuron_config.keys():
                 neuron_process = Sigma
-                neuron_params = {
-                    'neuron_proc': neuron_process,
-                    'use_graded_spikes': True,
-                }
+                neuron_params = {'neuron_proc': neuron_process,
+                                 'num_message_bits': num_message_bits}
             else:
                 neuron_process = SigmaDelta
-                neuron_params = {
-                    'neuron_proc': neuron_process,
-                    'vth': neuron_config['vThMant'],
-                    'state_exp': 6,
-                    'wgt_exp': 6,
-                    'use_graded_spikes': True,
-                }
+                neuron_params = {'neuron_proc': neuron_process,
+                                 'vth': neuron_config['vThMant'],
+                                 'spike_exp': 6,
+                                 'state_exp': 6,
+                                 'num_message_bits': num_message_bits}
             return neuron_params
 
     @staticmethod
-    def _table_str(
-        type_str: str = '',
-        width: Union[int, None] = None,
-        height: Union[int, None] = None,
-        channel: Union[int, None] = None,
-        kernel: Union[int, Tuple[int, int], None] = None,
-        stride: Union[int, Tuple[int, int], None] = None,
-        padding: Union[int, Tuple[int, int], None] = None,
-        dilation: Union[int, Tuple[int, int], None] = None,
-        groups: Union[int, None] = None,
-        delay: bool = False,
-        header: bool = False,
-    ) -> str:
+    def _table_str(type_str: str = '',
+                   width: Optional[int] = None,
+                   height: Optional[int] = None,
+                   channel: Optional[int] = None,
+                   kernel: Optional[Union[int, Tuple[int, int]]] = None,
+                   stride: Optional[Union[int, Tuple[int, int]]] = None,
+                   padding: Optional[Union[int, Tuple[int, int]]] = None,
+                   dilation: Optional[Union[int, Tuple[int, int]]] = None,
+                   groups: Optional[int] = None,
+                   delay: bool = False,
+                   header: bool = False) -> str:
         """Helper function to print mapping output configuration
         for a layer/block."""
         if header is True:
@@ -190,9 +194,8 @@ class Network(AbstractProcess):
             table entry string for process.
         """
         shape = tuple(layer_config['shape'][::-1])  # WHC (XYZ)
-        neuron_params = Network.get_neuron_params(
-            layer_config['neuron'], input=True
-        )
+        neuron_params = Network.get_neuron_params(layer_config['neuron'],
+                                                  input=True)
 
         if 'weight' in layer_config.keys():
             weight = int(layer_config['weight'])
@@ -206,31 +209,30 @@ class Network(AbstractProcess):
 
         transform = {'weight': weight, 'bias': bias}
 
-        params = {  # arguments for Input block
-            'shape': shape,
-            'neuron_params': neuron_params,
-            'transform': transform,
-        }
+        # arguments for Input block
+        params = {'shape': shape,
+                  'neuron_params': neuron_params,
+                  'transform': transform}
 
-        table_entry = Network._table_str(
-            type_str='Input',
-            width=shape[0], height=shape[1], channel=shape[2],
-        )
+        table_entry = Network._table_str(type_str='Input',
+                                         width=shape[0],
+                                         height=shape[1],
+                                         channel=shape[2])
 
         return Input(**params), table_entry
 
     @staticmethod
-    def create_dense(
-        layer_config: h5py.Group, has_graded_input: bool = False
-    ) -> Tuple[Dense, str]:
+    def create_dense(layer_config: h5py.Group,
+                     input_message_bits: int = 0) -> Tuple[Dense, str]:
         """Creates dense layer from layer configuration
 
         Parameters
         ----------
         layer_config : h5py.Group
             hdf5 handle to layer description.
-        has_graded_input : bool, optional
-            flag to indicate graded spikes at input, by default False.
+        input_message_bits : int, optional
+            number of message bits in input spike. Defaults to 0 meaning unary
+            spike.
 
         Returns
         -------
@@ -248,38 +250,29 @@ class Network(AbstractProcess):
         opt_weights = optimize_weight_bits(weight)
         weight, num_weight_bits, weight_exponent, sign_mode = opt_weights
 
-        params = {  # arguments for dense block
-            'shape': shape,
-            'neuron_params': neuron_params,
-            'weight': weight,
-            'num_weight_bits': num_weight_bits,
-            'weight_exponent': weight_exponent,
-            'sign_mode': sign_mode,
-            'has_graded_input': has_graded_input,
-        }
+        # arguments for dense block
+        params = {'shape': shape,
+                  'neuron_params': neuron_params,
+                  'weight': weight,
+                  'num_weight_bits': num_weight_bits,
+                  'weight_exponent': weight_exponent,
+                  'sign_mode': sign_mode,
+                  'input_message_bits': input_message_bits}
 
         # optional arguments
         if 'bias' in layer_config.keys():
             params['bias'] = layer_config['bias']
-        if 'delay' not in layer_config.keys():
-            params['neuron_params']['delay_bits'] = 1
-        else:
-            pass  # TODO: set appropriate delay bits for synaptic delay
 
-        table_entry = Network._table_str(
-            type_str='Dense',
-            width=1, height=1, channel=shape[0],
-            delay='delay' in layer_config.keys(),
-        )
+        table_entry = Network._table_str(type_str='Dense', width=1, height=1,
+                                         channel=shape[0],
+                                         delay='delay' in layer_config.keys())
 
         return Dense(**params), table_entry
 
     @staticmethod
-    def create_conv(
-        layer_config: h5py.Group,
-        input_shape: Tuple[int, int, int],
-        has_graded_input: bool = False
-    ) -> Tuple[Conv, str]:
+    def create_conv(layer_config: h5py.Group,
+                    input_shape: Tuple[int, int, int],
+                    input_message_bits: int = 0) -> Tuple[Conv, str]:
         """Creates conv layer from layer configuration
 
         Parameters
@@ -288,8 +281,9 @@ class Network(AbstractProcess):
             hdf5 handle to layer description.
         input_shape : tuple of 3 ints
             shape of input to the block.
-        has_graded_input : bool, optional
-            flag to indicate graded spikes at input, by default False.
+        input_message_bits : int, optional
+            number of message bits in input spike. Defaults to 0 meaning unary
+            spike.
 
         Returns
         -------
@@ -307,34 +301,37 @@ class Network(AbstractProcess):
         dilation = layer_config['dilation'][::-1]
         groups = layer_config['groups']
 
-        params = {  # arguments for conv block
-            'input_shape': input_shape,
-            'shape': shape,
-            'neuron_params': neuron_params,
-            'weight': weight,
-            'stride': stride,
-            'padding': padding,
-            'dilation': dilation,
-            'groups': groups,
-            'has_graded_input': has_graded_input,
-        }
+        # arguments for conv block
+        params = {'input_shape': input_shape,
+                  'shape': shape,
+                  'neuron_params': neuron_params,
+                  'weight': weight,
+                  'stride': stride,
+                  'padding': padding,
+                  'dilation': dilation,
+                  'groups': groups,
+                  'input_message_bits': input_message_bits}
 
         # Optional arguments
         if 'bias' in layer_config.keys():
             params['bias'] = layer_config['bias']
 
-        if 'delay' not in layer_config.keys():
-            params['neuron_params']['delay_bits'] = 1
-        else:
-            pass
+        # if 'delay' not in layer_config.keys():
+        #     params['neuron_params']['delay_bits'] = 1
+        # else:
+        #     pass
 
-        table_entry = Network._table_str(
-            type_str='Conv',
-            width=shape[0], height=shape[1], channel=shape[2],
-            kernel=np.array([weight.shape[i] for i in [1, 2]]),
-            stride=stride, padding=padding, dilation=dilation, groups=groups,
-            delay='delay' in layer_config.keys(),
-        )
+        kernel = np.array([weight.shape[i] for i in [1, 2]])
+        table_entry = Network._table_str(type_str='Conv',
+                                         width=shape[0],
+                                         height=shape[1],
+                                         channel=shape[2],
+                                         kernel=kernel,
+                                         stride=stride,
+                                         padding=padding,
+                                         dilation=dilation,
+                                         groups=groups,
+                                         delay='delay' in layer_config.keys())
 
         return Conv(**params), table_entry
 
@@ -359,7 +356,7 @@ class Network(AbstractProcess):
         raise NotImplementedError
 
     def _create(self) -> List[AbstractProcess]:
-        has_graded_input_next = self.has_graded_input
+        input_message_bits = self.input_message_bits
         flatten_next = False
         layers = []
         layer_config = self.net_config['layer']
@@ -376,7 +373,7 @@ class Network(AbstractProcess):
             if layer_type == 'input':
                 layer, table = self.create_input(layer_config[i])
                 layers.append(layer)
-                has_graded_input_next = layer.has_graded_output
+                input_message_bits = layer.output_message_bits
 
             elif layer_type == 'conv':
                 if len(layers) > 0:
@@ -391,10 +388,10 @@ class Network(AbstractProcess):
                 layer, table = self.create_conv(
                     layer_config=layer_config[i],
                     input_shape=input_shape,
-                    has_graded_input=has_graded_input_next
+                    input_message_bits=input_message_bits
                 )
                 layers.append(layer)
-                has_graded_input_next = layer.has_graded_output
+                input_message_bits = layer.output_message_bits
                 if len(layers) > 1:
                     layers[-2].out.connect(layers[-1].inp)
 
@@ -414,10 +411,10 @@ class Network(AbstractProcess):
             elif layer_type == 'dense':
                 layer, table = self.create_dense(
                     layer_config=layer_config[i],
-                    has_graded_input=has_graded_input_next
+                    input_message_bits=input_message_bits
                 )
                 layers.append(layer)
-                has_graded_input_next = layer.has_graded_output
+                input_message_bits = layer.output_message_bits
                 if flatten_next:
                     layers[-2].out.transpose([2, 1, 0]).flatten().connect(
                         layers[-1].inp
