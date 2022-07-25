@@ -22,15 +22,23 @@ class AbstractPyBlockModel(AbstractSubProcessModel):
     connection as well as residual connection. A minimal example of a
     block is a feedforward layer."""
     def __init__(self, proc: AbstractProcess) -> None:
-        if proc.has_graded_input:
-            self.inp: PyInPort = LavaPyType(np.ndarray, np.int32, precision=32)
+        if proc.input_message_bits > 0:
+            self.inp: PyInPort = LavaPyType(np.ndarray,
+                                            np.int32,
+                                            precision=proc.input_message_bits)
         else:
-            self.inp: PyInPort = LavaPyType(np.ndarray, np.int8, precision=1)
+            self.inp: PyInPort = LavaPyType(np.ndarray,
+                                            np.int8,
+                                            precision=1)
 
-        if proc.has_graded_output:
-            self.out: PyOutPort = LavaPyType(np.ndarray, np.int32, precision=32)
+        if proc.output_message_bits > 0:
+            self.out: PyOutPort = LavaPyType(np.ndarray,
+                                             np.int32,
+                                             precision=proc.output_message_bits)
         else:
-            self.out: PyOutPort = LavaPyType(np.ndarray, np.int8, precision=1)
+            self.out: PyOutPort = LavaPyType(np.ndarray,
+                                             np.int8,
+                                             precision=1)
 
 
 @implements(proc=Input, protocol=LoihiProtocol)
