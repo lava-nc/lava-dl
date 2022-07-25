@@ -9,6 +9,7 @@ import torch
 from . import base
 from ..neuron import sigma_delta
 from ..synapse import layer as synapse
+from ..axon import Delay
 
 
 class AbstractSDRelu(torch.nn.Module):
@@ -18,8 +19,8 @@ class AbstractSDRelu(torch.nn.Module):
         super(AbstractSDRelu, self).__init__(*args, **kwargs)
         if self.neuron_params is not None:
             self.neuron = sigma_delta.Neuron(**self.neuron_params)
-        # delay = kwargs['delay'] if 'delay' in kwargs.keys() else False
-        self.delay = None
+        delay = kwargs['delay'] if 'delay' in kwargs.keys() else False
+        self.delay = Delay(max_delay=62) if delay is True else None
         # Disable delay shift for SDNN
         if 'delay_shift' in kwargs.keys():
             self.delay_shift = kwargs['delay_shift']
@@ -169,8 +170,8 @@ class Output(AbstractSDRelu):
 
     Parameters
     ----------
-    neuron_params : dict, optional
-        a dictionary of sigma delta neuron parameters. Defaults to None.
+    neuron_params : dict
+        a dictionary of sigma delta neuron parameters.
     in_neurons : int
         number of input neurons.
     out_neurons : int

@@ -19,11 +19,13 @@ class AbstractBlock(AbstractProcess):
     ----------
     shape : tuple or list
         shape of the block output in (x, y, z) or WHC format.
-    neuron_params : dict
+    neuron_params : dict, optional
         dictionary of neuron parameters. Defaults to None.
-    has_graded_input : dict
-        flag for graded spikes at input. Defaults to False.
+    input_message_bits : int, optional
+        number of message bits in input spike. Defaults to 0 meaning unary
+        spike.
     """
+
     def __init__(self, **kwargs: Union[dict, tuple, list, int, bool]) -> None:
         super().__init__(**kwargs)
         self.shape: tuple = kwargs.pop('shape')
@@ -31,11 +33,13 @@ class AbstractBlock(AbstractProcess):
         self.neuron_process = None
         if self.neuron_params is not None:
             self.neuron_process = self.neuron_params.pop('neuron_proc', None)
+        self.bias_key = self.neuron_params.pop('bias_key', 'bias')
         self.neuron = None
-        self.has_graded_input = kwargs.pop('has_graded_input', False)
-        self.has_graded_output = False
-        if 'use_graded_spikes' in self.neuron_params.keys():
-            self.has_graded_output = self.neuron_params['use_graded_spikes']
+        self.input_message_bits = kwargs.pop('input_message_bits', False)
+        self.output_message_bits = 0
+        if 'num_message_bits' in self.neuron_params.keys():
+            num_msg_bits = self.neuron_params.pop('num_message_bits')
+            self.output_message_bits = num_msg_bits
 
     def _clean(self) -> None:
         del self.neuron_params
@@ -59,7 +63,7 @@ class AbstractBlock(AbstractProcess):
                     f'neuron of shape {self.shape}.'
                 )
             neuron_params = {'shape': self.shape, **self.neuron_params}
-            neuron_params['bias'] = bias_mant.astype(np.int32)
+            neuron_params[self.bias_key] = bias_mant.astype(np.int32)
             return self.neuron_process(**neuron_params)
 
     @property
@@ -74,19 +78,20 @@ class Input(AbstractBlock):
     ----------
     shape : tuple or list
         shape of the layer block in (x, y, z)/WHC format.
-    neuron_params : dict
+    neuron_params : dict, optional
         dictionary of neuron parameters. Defaults to None.
     transform : fx pointer or lambda
         input transform to be applied. Defualts to ``lambda x: x``.
     bias : np.ndarray or None
         bias of input neuron. None means no bias. Defaults to None.
+    input_message_bits : int, optional
+        number of message bits in input spike. Defaults to 0 meaning unary
+        spike.
     """
+
     def __init__(self, **kwargs: Union[dict, tuple, list, int, bool]) -> None:
         super().__init__(**kwargs)
         self.transform = kwargs.pop('transform', lambda x: x)
-
-        if 'bias_exp' not in self.neuron_params:
-            self.neuron_params['bias_exp'] = 6
 
         self.neuron = self._neuron(kwargs.pop('bias', None))
 
@@ -108,7 +113,7 @@ class Dense(AbstractBlock):
     ----------
     shape : tuple or list
         shape of the layer block in (x, y, z)/WHC format.
-    neuron_params : dict
+    neuron_params : dict, optional
         dictionary of neuron parameters. Defaults to None.
     weight : np.ndarray
         synaptic weight.
@@ -120,27 +125,23 @@ class Dense(AbstractBlock):
         number of weight bits. Defaults to 8.
     weight_exponent : int
         weight exponent value. Defaults to 0.
-    sign_mode : int
-        sign mode of the synapse. Refer to lava.proc.dense documentation for
-        details. Default is 1 meaning mixed mode.
+    input_message_bits : int, optional
+        number of message bits in input spike. Defaults to 0 meaning unary
+        spike.
     """
+
     def __init__(self, **kwargs: Union[dict, tuple, list, int, bool]) -> None:
         super().__init__(**kwargs)
 
         weight = kwargs.pop('weight')
         num_weight_bits = kwargs.pop('num_weight_bits', 8)
         weight_exponent = kwargs.pop('weight_exponent', 0)
-        sign_mode = kwargs.pop('sign_mode', 1)
-
-        graded_spikes_params = {'use_graded_spike': self.has_graded_input}
 
         self.synapse = DenseSynapse(
-            shape=weight.shape,
             weights=weight,
             weight_exp=weight_exponent,
             num_weight_bits=num_weight_bits,
-            sign_mode=sign_mode,
-            **graded_spikes_params,
+            num_message_bits=self.input_message_bits,
         )
 
         if self.shape != self.synapse.a_out.shape:
@@ -172,7 +173,7 @@ class Conv(AbstractBlock):
         shape of the layer block in (x, y, z)/WHC format.
     input_shape : tuple or list
         shape of input layer in (x, y, z)/WHC format.
-    neuron_params : dict
+    neuron_params : dict, optional
         dictionary of neuron parameters. Defaults to None.
     weight : np.ndarray
         kernel weight.
@@ -186,14 +187,14 @@ class Conv(AbstractBlock):
         convolution dilation. Defaults to 1.
     groups : int
         convolution groups. Defaults to 1.
-    has_graded_input : dict
-        flag for graded spikes at input. Defaults to False.
+    input_message_bits : int, optional
+        number of message bits in input spike. Defaults to 0 meaning unary
+        spike.
     """
+
     def __init__(self, **kwargs: Union[dict, tuple, list, int, bool]) -> None:
         super().__init__(**kwargs)
         weight = kwargs.pop('weight')
-
-        graded_spikes_params = {'use_graded_spike': self.has_graded_input}
 
         self.synapse = ConvSynapse(
             input_shape=kwargs.pop('input_shape'),
@@ -202,7 +203,7 @@ class Conv(AbstractBlock):
             padding=kwargs.pop('padding', 0),
             dilation=kwargs.pop('dilation', 1),
             groups=kwargs.pop('groups', 1),
-            **graded_spikes_params,
+            num_message_bits=self.input_message_bits,
         )
 
         if list(self.shape) != list(self.synapse.output_shape):

@@ -102,8 +102,7 @@ class Neuron(base.Neuron):
         self.sigma = Sigma(persistent_state=self.persistent_state)
         self.delta = Delta(
             threshold=self._threshold,
-            min_threshold=1 / self.w_scale,
-            # so that effective minimum quantized threshold will be 1
+            scale=self.s_scale,
             tau_grad=tau_grad,
             scale_grad=scale_grad,
             cum_error=cum_error,

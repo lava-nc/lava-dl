@@ -14,6 +14,7 @@ from lava.magma.core.model.py.model import PyLoihiProcessModel
 from lava.magma.core.run_configs import RunConfig
 from lava.magma.core.run_conditions import RunSteps
 from lava.proc import io
+from lava.proc.conv import utils
 
 from lava.lib.dl import netx
 
@@ -21,6 +22,8 @@ from lava.lib.dl import netx
 verbose = True if (('-v' in sys.argv) or ('--verbose' in sys.argv)) else False
 HAVE_DISPLAY = 'DISPLAY' in os.environ
 root = os.path.dirname(os.path.abspath(__file__))
+# Enabling torch sometimes causes multiprocessing error, especially in unittests
+utils.TORCH_IS_AVAILABLE = False
 
 
 class TestRunConfig(RunConfig):
@@ -86,7 +89,7 @@ class TestHdf5Netx(unittest.TestCase):
             print(f'{len(net) = }')
 
         # set input bias for the ground truth sample
-        net.in_layer.neuron.bias.init = np.load(
+        net.in_layer.neuron.bias_mant.init = np.load(
             root + '/gts/tinynet/input_bias.npy'
         )
 
@@ -126,6 +129,39 @@ class TestHdf5Netx(unittest.TestCase):
             f'Error was {error}.'
         )
 
+    def test_pilotnet_sdnn(self) -> None:
+        """Tests the output of pilotnet sdnn."""
+        net_config = root + '/gts/pilotnet_sdnn/network.net'
+        net = netx.hdf5.Network(net_config=net_config)
+        input = np.load(root + '/gts/pilotnet_sdnn/input.npy')
+        source = io.source.RingBuffer(data=input)
+        sink = io.sink.RingBuffer(shape=net.out_layer.shape,
+                                  buffer=len(net.layers))
+        source.s_out.connect(net.in_layer.neuron.a_in)
+        net.out_layer.out.connect(sink.a_in)
+
+        num_steps = len(net.layers)
+        run_condition = RunSteps(num_steps=num_steps)
+        run_config = TestRunConfig(select_tag='fixed_pt')
+        net.run(condition=run_condition, run_cfg=run_config)
+        output = sink.data.get()
+        net.stop()
+
+        gt = np.load(root + '/gts/pilotnet_sdnn/output.npy')
+        error = np.abs(output - gt).sum()
+        if verbose:
+            print('Network:')
+            print(net)
+            print(f'{output=}')
+            print('PilotNet SDNN spike error:', error)
+
+        self.assertTrue(
+            error == 0,
+            f'Output spike and ground truth do not match for PilotNet SDNN. '
+            f'Found {output[output != gt] = } and {gt[output != gt] = }. '
+            f'Error was {error}.'
+        )
+
 
 if __name__ == '__main__':
-    pass
+    unittest.main()
