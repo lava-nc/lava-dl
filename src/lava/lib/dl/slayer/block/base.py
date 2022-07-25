@@ -885,8 +885,8 @@ class AbstractPool(torch.nn.Module):
 
 
 class AbstractConvT(torch.nn.Module):
-    """Abstract convolution Traspose block class. This should never be instantiated on
-    its own.
+    """Abstract convolution Traspose block class. This should never be
+    instantiated on its own.
 
     Parameters
     ----------
