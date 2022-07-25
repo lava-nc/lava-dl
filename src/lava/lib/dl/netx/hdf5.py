@@ -103,8 +103,7 @@ class Network(AbstractProcess):
                 num_message_bits = 0  # default value
             neuron_process = LIF
             neuron_params = {'neuron_proc': neuron_process,
-                             # Key that actually represents bias in the
-                             # neuron_process
+                             # Map bias parameter in hdf5 config to bias_mant
                              'bias_key': 'bias_mant',
                              # Rest of the neuron params
                              'vth': neuron_config['vThMant'],
@@ -117,7 +116,7 @@ class Network(AbstractProcess):
             if num_message_bits is None:
                 num_message_bits = 16  # default value
             if input is True:
-                # If it is an input layer (input is true) use delta process.
+                # Use delta process.
                 neuron_process = Delta
                 neuron_params = {'neuron_proc': neuron_process,
                                  'vth': neuron_config['vThMant'],
