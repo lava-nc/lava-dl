@@ -885,11 +885,295 @@ class AbstractPool(torch.nn.Module):
 
 
 class AbstractConvT(torch.nn.Module):
-    pass
+    """Abstract convolution Traspose block class. This should never be
+    instantiated on its own.
+
+    Parameters
+    ----------
+    neuron_params : dict, optional
+        a dictionary of neuron parameter. Defaults to None.
+    in_features : int
+        number of input features.
+    out_features : int
+        number of output features.
+    kernel_size : int
+        kernel size.
+    stride : int or tuple of two ints, optional
+        convolutionT stride. Defaults to 1.
+    padding : int or tuple of two ints, optional
+        convolutionT padding. Defaults to 0.
+    dilation : int or tuple of two ints, optional
+        convolutionT dilation. Defaults to 1.
+    groups : int, optional
+        number of blocked connections. Defaults to 1.
+    weight_scale : int, optional
+        weight initialization scaling. Defaults to 1.
+    weight_norm : bool, optional
+        flag to enable weight normalization. Defaults to False.
+    pre_hook_fx : optional
+        a function pointer or lambda that is applied to synaptic weights before
+        synaptic operation. None means no transformation. Defaults to None.
+    delay : bool, optional
+        flag to enable axonal delay. Defaults to False.
+    delay_shift : bool, optional
+        flag to simulate spike propagation delay from one layer to next.
+        Defaults to True.
+    count_log : bool, optional
+        flag to return event count log. If True, an additional value of average
+        event rate is returned. Defaults to False.
+    """
+    def __init__(
+        self, neuron_params, in_features, out_features, kernel_size,
+        stride=1, padding=0, dilation=1, groups=1,
+        weight_scale=1, weight_norm=False, pre_hook_fx=None,
+        delay=False, delay_shift=True, count_log=False
+    ):
+        super(AbstractConvT, self).__init__()
+        # neuron parameters
+        self.neuron_params = neuron_params
+        # synapse parameters
+        self.synapse_params = {
+            'in_features': in_features,
+            'out_features': out_features,
+            'kernel_size': kernel_size,
+            'stride': stride,
+            'padding': padding,
+            'dilation': dilation,
+            'groups': groups,
+            'weight_scale': weight_scale,
+            'weight_norm': weight_norm,
+            'pre_hook_fx': pre_hook_fx,
+        }
+
+        self.count_log = count_log
+
+        # These variables must be initialized by another abstract function
+        self.neuron = None
+        self.synapse = None
+        self.delay = None
+        self.delay_shift = delay_shift
+
+    def forward(self, x):
+        """
+        """
+        z = self.synapse(x)
+        x = self.neuron(z)
+        if self.delay_shift is True:
+            x = delay(x, 1)
+        if self.delay is not None:
+            x = self.delay(x)
+
+        if self.count_log is True:
+            return x, torch.mean(x > 0)
+        else:
+            return x
+
+    @property
+    def shape(self):
+        """Shape of the block.
+        """
+        return self.neuron.shape
+
+    def export_hdf5(self, handle):
+        """Hdf5 export method for the block.
+
+        Parameters
+        ----------
+        handle : file handle
+            hdf5 handle to export block description.
+        """
+        def weight(s):
+            return s.pre_hook_fx(
+                s.weight, descale=True
+            ).reshape(s.weight.shape[:-1]).cpu().data.numpy()
+
+        def delay(d):
+            return torch.floor(d.delay).flatten().cpu().data.numpy()
+
+        # descriptors
+        handle.create_dataset(
+            'type', (1, ), 'S10', ['convT'.encode('ascii', 'ignore')]
+        )
+        handle.create_dataset('shape', data=np.array(self.neuron.shape))
+        handle.create_dataset('inChannels', data=self.synapse.in_channels)
+        handle.create_dataset('outChannels', data=self.synapse.out_channels)
+        handle.create_dataset('kernelSize', data=self.synapse.kernel_size[:-1])
+        handle.create_dataset('stride', data=self.synapse.stride[:-1])
+        handle.create_dataset('padding', data=self.synapse.padding[:-1])
+        handle.create_dataset('dilation', data=self.synapse.dilation[:-1])
+        handle.create_dataset('groups', data=self.synapse.groups)
+
+        # weights
+        if self.synapse.weight_norm_enabled:
+            self.synapse.disable_weight_norm()
+        if hasattr(self.synapse, 'imag'):   # complex synapse
+            handle.create_dataset(
+                'weight/real',
+                data=weight(self.synapse.real)
+            )
+            handle.create_dataset(
+                'weight/imag',
+                data=weight(self.synapse.imag)
+            )
+        else:
+            handle.create_dataset('weight', data=weight(self.synapse))
+
+        # bias
+        has_norm = False
+        if hasattr(self.neuron, 'norm'):
+            if self.neuron.norm is not None:
+                has_norm = True
+        if has_norm is True:
+            handle.create_dataset(
+                'bias',
+                data=self.neuron.norm.bias.cpu().data.numpy().flatten()
+            )
+
+        # delay
+        if self.delay is not None:
+            handle.create_dataset('delay', data=delay(self.delay))
+
+        # neuron
+        for key, value in self.neuron.device_params.items():
+            handle.create_dataset(f'neuron/{key}', data=value)
+        if has_norm is True:
+            if hasattr(self.neuron.norm, 'weight_exp'):
+                handle.create_dataset(
+                    'neuron/weight_exp',
+                    data=self.neuron.norm.weight_exp
+                )
 
 
 class AbstractUnpool(torch.nn.Module):
-    pass
+    """Abstract Unpool block class. This should never be instantiated on its own.
+
+    Parameters
+    ----------
+    neuron_params : dict, optional
+        a dictionary of neuron parameter. Defaults to None.
+    kernel_size : int or tuple of two ints
+        size of unpooling kernel.
+    stride : int or tuple of two ints, optional
+        stride of unpooling operation. Defaults to None.
+    padding : int or tuple of two ints, optional
+        padding of unpooling operation. Defaults to 0.
+    dilation : int or tuple of two ints, optional
+        dilation of unpooling kernel. Defaults to 1.
+    weight_scale : int, optional
+        weight initialization scaling. Defaults to 1.
+    weight_norm : bool, optional
+        flag to enable weight normalization. Defaults to False.
+    pre_hook_fx : optional
+        a function pointer or lambda that is applied to synaptic weights before
+        synaptic operation. None means no transformation. Defaults to None.
+    delay : bool, optional
+        flag to enable axonal delay. Defaults to False.
+    delay_shift : bool, optional
+        flag to simulate spike propagation delay from one layer to next.
+        Defaults to True.
+    count_log : bool, optional
+        flag to return event count log. If True, an additional value of average
+        event rate is returned. Defaults to False.
+    """
+    def __init__(
+        self, neuron_params, kernel_size,
+        stride=None, padding=0, dilation=1,
+        weight_scale=1, weight_norm=False, pre_hook_fx=None,
+        delay=False, delay_shift=True, count_log=False
+    ):
+        super(AbstractUnpool, self).__init__()
+        # neuron parameters
+        self.neuron_params = neuron_params
+        if 'norm' in self.neuron_params.keys():
+            self.neuron_params['norm'] = None
+        # synapse parameters
+        self.synapse_params = {
+            'kernel_size': kernel_size,
+            'stride': stride,
+            'padding': padding,
+            'dilation': dilation,
+            'weight_scale': weight_scale,
+            'weight_norm': weight_norm,
+            'pre_hook_fx': pre_hook_fx,
+        }
+
+        self.count_log = count_log
+
+        # These variables must be initialized by another abstract function
+        self.neuron = None
+        self.synapse = None
+        self.delay = None
+        self.delay_shift = delay_shift
+
+    def forward(self, x):
+        """
+        """
+        z = self.synapse(x)
+        x = self.neuron(z)
+        if self.delay_shift is True:
+            x = delay(x, 1)
+        if self.delay is not None:
+            x = self.delay(x)
+
+        if self.count_log is True:
+            return x, torch.mean(x > 0)
+        else:
+            return x
+
+    @property
+    def shape(self):
+        """Shape of the block.
+        """
+        return self.neuron.shape
+
+    def export_hdf5(self, handle):
+        """Hdf5 export method for the block.
+
+        Parameters
+        ----------
+        handle : file handle
+            hdf5 handle to export block description.
+        """
+        def weight(s):
+            return s.pre_hook_fx(
+                s.weight, descale=True
+            ).reshape(s.weight.shape[:-1]).cpu().data.numpy()
+
+        def delay(d):
+            return torch.floor(d.delay).flatten().cpu().data.numpy()
+
+        # descriptors
+        handle.create_dataset(
+            'type', (1, ), 'S10', ['unpool'.encode('ascii', 'ignore')]
+        )
+        handle.create_dataset('shape', data=np.array(self.neuron.shape))
+        handle.create_dataset('kernelSize', data=self.synapse.kernel_size[:-1])
+        handle.create_dataset('stride', data=self.synapse.stride[:-1])
+        handle.create_dataset('padding', data=self.synapse.padding[:-1])
+        handle.create_dataset('dilation', data=self.synapse.dilation[:-1])
+
+        # weight
+        if self.synapse.weight_norm_enabled:
+            self.synapse.disable_weight_norm()
+        if hasattr(self.synapse, 'imag'):   # complex synapse
+            handle.create_dataset(
+                'weight/real',
+                data=weight(self.synapse.real)
+            )
+            handle.create_dataset(
+                'weight/imag',
+                data=weight(self.synapse.imag)
+            )
+        else:
+            handle.create_dataset('weight', data=weight(self.synapse))
+
+        # delay
+        if self.delay is not None:
+            handle.create_dataset('delay', data=delay(self.delay))
+
+        # neuron
+        for key, value in self.neuron.device_params.items():
+            handle.create_dataset(f'neuron/{key}', data=value)
 
 
 class AbstractResidual(torch.nn.Module):
