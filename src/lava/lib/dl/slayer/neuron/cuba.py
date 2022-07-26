@@ -127,6 +127,11 @@ class Neuron(base.Neuron):
         )
 
         self.graded_spike = graded_spike
+        # slayer dynamics and spike mechanism spike if voltage >= vth to have
+        # better estimate of surrogate gradient.
+        # but Loihi spikes if voltage > vth
+        # so threshold_eps is added to get the same effect in hardware.
+        self.threshold_eps = 0.01 / self.s_scale
 
         if self.shared_param is True:
             if np.isscalar(current_decay) is False:
@@ -364,7 +369,7 @@ class Neuron(base.Neuron):
             quantize(self.voltage_decay),
             self.voltage_state.contiguous(),
             self.s_scale,
-            self.threshold,
+            self.threshold + self.threshold_eps,
             debug=self.debug
         )
 
@@ -394,7 +399,8 @@ class Neuron(base.Neuron):
 
         """
         spike = Spike.apply(
-            voltage, self.threshold,
+            voltage,
+            self.threshold + self.threshold_eps,
             self.tau_rho * TAU_RHO_MULT,
             self.scale_rho * SCALE_RHO_MULT,
             self.graded_spike,

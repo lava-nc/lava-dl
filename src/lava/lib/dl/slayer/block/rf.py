@@ -106,6 +106,18 @@ class Conv(AbstractRF, base.AbstractConv):
 Conv.__doc__ = _doc_from_base(base.AbstractConv)
 
 
+class ConvT(AbstractRF, base.AbstractConvT):
+    def __init__(self, *args, **kwargs):
+        super(ConvT, self).__init__(*args, **kwargs)
+        self.synapse = synapse.ConvTranspose(**self.synapse_params)
+        if 'pre_hook_fx' not in kwargs.keys():
+            self.synapse.pre_hook_fx = self.neuron.quantize_8bit
+        del self.synapse_params
+
+
+ConvT.__doc__ = _doc_from_base(base.AbstractConvT)
+
+
 class Pool(AbstractRF, base.AbstractPool):
     def __init__(self, *args, **kwargs):
         super(Pool, self).__init__(*args, **kwargs)
@@ -116,6 +128,18 @@ class Pool(AbstractRF, base.AbstractPool):
 
 
 Pool.__doc__ = _doc_from_base(base.AbstractPool)
+
+
+class Unpool(AbstractRF, base.AbstractUnpool):
+    def __init__(self, *args, **kwargs):
+        super(Unpool, self).__init__(*args, **kwargs)
+        self.synapse = synapse.Unpool(**self.synapse_params)
+        if 'pre_hook_fx' not in kwargs.keys():
+            self.synapse.pre_hook_fx = self.neuron.quantize_8bit
+        del self.synapse_params
+
+
+Unpool.__doc__ = _doc_from_base(base.AbstractUnpool)
 
 
 class KWTA(AbstractRF, base.AbstractKWTA):

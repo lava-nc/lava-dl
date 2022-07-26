@@ -9,6 +9,7 @@ import torch
 from . import base
 from ..neuron import sigma_delta
 from ..synapse import layer as synapse
+from ..axon import Delay
 
 
 class AbstractSDRelu(torch.nn.Module):
@@ -18,8 +19,8 @@ class AbstractSDRelu(torch.nn.Module):
         super(AbstractSDRelu, self).__init__(*args, **kwargs)
         if self.neuron_params is not None:
             self.neuron = sigma_delta.Neuron(**self.neuron_params)
-        # delay = kwargs['delay'] if 'delay' in kwargs.keys() else False
-        self.delay = None
+        delay = kwargs['delay'] if 'delay' in kwargs.keys() else False
+        self.delay = Delay(max_delay=62) if delay is True else None
         # Disable delay shift for SDNN
         if 'delay_shift' in kwargs.keys():
             self.delay_shift = kwargs['delay_shift']
@@ -108,6 +109,18 @@ class Conv(AbstractSDRelu, base.AbstractConv):
 Conv.__doc__ = _doc_from_base(base.AbstractConv)
 
 
+class ConvT(AbstractSDRelu, base.AbstractConvT):
+    def __init__(self, *args, **kwargs):
+        super(ConvT, self).__init__(*args, **kwargs)
+        self.synapse = synapse.ConvTranspose(**self.synapse_params)
+        if 'pre_hook_fx' not in kwargs.keys():
+            self.synapse.pre_hook_fx = self.neuron.quantize_8bit
+        del self.synapse_params
+
+
+ConvT.__doc__ = _doc_from_base(base.AbstractConvT)
+
+
 class Pool(AbstractSDRelu, base.AbstractPool):
     def __init__(self, *args, **kwargs):
         super(Pool, self).__init__(*args, **kwargs)
@@ -118,6 +131,18 @@ class Pool(AbstractSDRelu, base.AbstractPool):
 
 
 Pool.__doc__ = _doc_from_base(base.AbstractPool)
+
+
+class Unpool(AbstractSDRelu, base.AbstractUnpool):
+    def __init__(self, *args, **kwargs):
+        super(Unpool, self).__init__(*args, **kwargs)
+        self.synapse = synapse.Unpool(**self.synapse_params)
+        if 'pre_hook_fx' not in kwargs.keys():
+            self.synapse.pre_hook_fx = self.neuron.quantize_8bit
+        del self.synapse_params
+
+
+Unpool.__doc__ = _doc_from_base(base.AbstractUnpool)
 
 
 # class KWTA(AbstractSDRelu, base.AbstractKWTA):
@@ -145,8 +170,8 @@ class Output(AbstractSDRelu):
 
     Parameters
     ----------
-    neuron_params : dict, optional
-        a dictionary of sigma delta neuron parameters. Defaults to None.
+    neuron_params : dict
+        a dictionary of sigma delta neuron parameters.
     in_neurons : int
         number of input neurons.
     out_neurons : int
