@@ -1151,11 +1151,22 @@ class AbstractRecurrent(torch.nn.Module):
         if z.shape[0] == self.spike_state.shape[0]:
             spike = spike + self.spike_state
 
-        for time in range(z.shape[-1]):
-            dendrite = z[..., time:time + 1]
-            feedback = self.recurrent_synapse(spike.reshape(dendrite.shape))
-            spike = self.neuron(dendrite + feedback)
-            x[..., time:time + 1] = spike
+        if 'PERMUTE_OPT' in os.environ and os.environ['PERMUTE_OPT'] == 'True':
+            # print("lava-dl using permute opt")
+            spike = spike.unsqueeze(2)
+            z_permuted = z.permute(2,0,1).contiguous()
+            for time in range(z.shape[-1]):
+                dendrite = z_permuted[time:time+1].squeeze().unsqueeze(2)
+                feedback = self.recurrent_synapse(spike)
+                spike = self.neuron(dendrite + feedback)
+                x[...,time:time + 1] = spike
+        else:
+            # print("lava-dl not using permute opt")
+            for time in range(z.shape[-1]):
+                dendrite = z[..., time:time + 1]
+                feedback = self.recurrent_synapse(spike.reshape(dendrite.shape))
+                spike = self.neuron(dendrite + feedback)
+                x[..., time:time + 1] = spike
 
         self.spike_state = spike.clone().detach().reshape(z.shape[:-1])
 
