@@ -137,8 +137,9 @@ class Recurrent(AbstractCuba, base.AbstractRecurrent):
         super(Recurrent, self).__init__(*args, **kwargs)
         self.input_synapse = synapse.Dense(**self.synapse_params)
         self.recurrent_synapse = synapse.Dense(**self.recurrent_params)
-        self.input_synapse.pre_hook_fx = self.neuron.quantize_8bit
-        self.recurrent_synapse.pre_hook_fx = self.neuron.quantize_8bit
+        if 'pre_hook_fx' not in kwargs.keys():
+            self.input_synapse.pre_hook_fx = self.neuron.quantize_8bit
+            self.recurrent_synapse.pre_hook_fx = self.neuron.quantize_8bit
         del self.synapse_params
         del self.recurrent_params
 
