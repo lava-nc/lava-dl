@@ -7,6 +7,8 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+import os
+
 from ..axon import delay
 
 
@@ -1124,6 +1126,10 @@ class AbstractRecurrent(torch.nn.Module):
         self.register_buffer('spike_state', torch.zeros(1, dtype=torch.float))
         self.persistent_state = True
         self.neuron_params['persistent_state'] = True
+        if 'PERSISTENT_STATE' in os.environ and os.environ['PERSISTENT_STATE'] == 'False':
+            print("environment variable PERSISTENT_STATE setting self.persistent_state = False AND self.neuron_params['persistent_state'] to False")
+            self.persistent_state = False
+            self.neuron_params['persistent_state'] = False
         # make sure persistent state is always enabled
         self.delay_shift = delay_shift
 
