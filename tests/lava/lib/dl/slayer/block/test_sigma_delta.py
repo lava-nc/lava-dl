@@ -67,8 +67,8 @@ class TestSDN(unittest.TestCase):
 
         # create equivalent lava network using netx and evaluate output
         lava_net = netx.hdf5.Network(net_config=tempdir + '/sdn_dense.net',
-                                     has_graded_input=True)
-        source = io.source.RingBuffer(x[0] * net.neuron.s_scale)
+                                     input_message_bits=16)
+        source = io.source.RingBuffer(data=x[0] * net.neuron.s_scale)
         sink = io.sink.RingBuffer(shape=lava_net.out.shape, buffer=time_steps)
         source.s_out.connect(lava_net.inp)
         lava_net.out.connect(sink.a_in)
@@ -116,8 +116,8 @@ class TestSDN(unittest.TestCase):
         # create equivalent lava network using netx and evaluate output
         lava_net = netx.hdf5.Network(net_config=tempdir + '/sdn_conv.net',
                                      input_shape=(width, height, in_features),
-                                     has_graded_input=True)
-        source = io.source.RingBuffer(x[0].permute((2, 1, 0, 3))
+                                     input_message_bits=16)
+        source = io.source.RingBuffer(data=x[0].permute((2, 1, 0, 3))
                                       * net.neuron.s_scale)
         sink = io.sink.RingBuffer(shape=lava_net.out.shape, buffer=time_steps)
         source.s_out.connect(lava_net.inp)

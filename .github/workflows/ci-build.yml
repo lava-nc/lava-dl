@@ -29,10 +29,13 @@ jobs:
 
     - name: Install dependencies
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-      run: poetry install --no-interaction --no-root
+      run: |
+        poetry update --no-interaction
+        poetry install --no-interaction --no-root
 
-    - name: Install Lava
-      run: poetry install --no-interaction
+    - name: Install Lava-DL
+      run: |
+        poetry install --no-interaction
 
     - name: Run flakeheaven (flake8)
       if: runner.os == 'Linux' || runner.os == 'macOS'
@@ -71,10 +74,13 @@ jobs:
 
     - name: Install dependencies
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-      run: poetry install --no-interaction --no-root
+      run: |
+        poetry update --no-interaction
+        poetry install --no-interaction --no-root
 
-    - name: Install Lava
-      run: poetry install --no-interaction
+    - name: Install Lava-DL
+      run: |
+        poetry install --no-interaction
 
     - name: Run bandit    
       uses: tj-actions/bandit@v5.1
@@ -113,10 +119,13 @@ jobs:
 
     - name: Install dependencies
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-      run: poetry install --no-interaction --no-root
+      run: |
+        poetry update --no-interaction
+        poetry install --no-interaction --no-root
 
-    - name: Install Lava
-      run: poetry install --no-interaction
+    - name: Install Lava-DL
+      run:  |
+        poetry install --no-interaction
 
     - name: Run unit tests
       if: runner.os == 'Linux' || runner.os == 'macOS'
