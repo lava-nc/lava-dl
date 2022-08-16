@@ -292,13 +292,17 @@ class Network(AbstractProcess):
         str
             table entry string for process.
         """
+        def expand(x):
+            if np.isscalar(x):
+                return np.array([x, x])
+            return x[::-1]
         shape = tuple(layer_config['shape'][::-1])  # WHC (XYZ)
         neuron_params = Network.get_neuron_params(layer_config['neuron'])
         weight = layer_config['weight'][:, :, ::-1, ::-1]
         weight = weight.reshape(weight.shape[:4]).transpose((0, 3, 2, 1))
-        stride = layer_config['stride'][::-1]
-        padding = layer_config['padding'][::-1]
-        dilation = layer_config['dilation'][::-1]
+        stride = expand(layer_config['stride'])
+        padding = expand(layer_config['padding'])
+        dilation = expand(layer_config['dilation'])
         groups = layer_config['groups']
 
         # arguments for conv block
@@ -371,9 +375,13 @@ class Network(AbstractProcess):
             layer_type = layer_config[i]['type']
 
             if layer_type == 'input':
-                layer, table = self.create_input(layer_config[i])
-                layers.append(layer)
-                input_message_bits = layer.output_message_bits
+                table = None
+                if 'neuron' in layer_config[i].keys():
+                    layer, table = self.create_input(layer_config[i])
+                    layers.append(layer)
+                    input_message_bits = layer.output_message_bits
+                elif 'shape' in layer_config[i].keys():
+                    self.input_shape = tuple(layer_config[i]['shape'][::-1])
 
             elif layer_type == 'conv':
                 if len(layers) > 0:
