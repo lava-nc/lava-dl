@@ -6,7 +6,7 @@ import torch
 from torch.utils.data import DataLoader
 
 import lava.lib.dl.slayer as slayer
-from .nmnist import NMNISTDataset, augment
+from tutorials.lava.lib.dl.slayer.nmnist.nmnist import NMNISTDataset, augment
 
 
 class DECOLLENetwork(torch.nn.Module):

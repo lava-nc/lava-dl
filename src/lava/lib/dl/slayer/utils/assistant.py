@@ -47,7 +47,7 @@ class Assistant:
     count_log
     lam
     device : torch.device or None
-        the main device memory where network is placed. It is not at start and
+        the main device memory where network is placed. It is None at start and
         gets initialized on the first call.
     """
     def __init__(
@@ -301,7 +301,7 @@ class DECOLLEAssistant(Assistant):
     count_log
     lam
     device : torch.device or None
-        the main device memory where network is placed. It is not at start and
+        the main device memory where network is placed. It is None at start and
         gets initialized on the first call.
     """
     def __init__(

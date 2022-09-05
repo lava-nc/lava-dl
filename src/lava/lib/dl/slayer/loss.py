@@ -215,17 +215,28 @@ class SpikeMax(torch.nn.Module):
 class DECOLLELoss(object):
     """
     Adapted from https://github.com/nmi-lab/decolle-public
-    Computes the DECOLLE Loss for the model, defined as the sum of the per-layer
-    local pseudo-losses + a regularization term
+    Computes the DECOLLE Loss for the model, comprising the sum of the per-layer
+    local pseudo-losses, and a regularization term. Mathematically,
+
+    .. math::
+        L = \\sum_t \\sum_{l} \\ell_{t}^{l} +
+         reg * \\left( \\langle \\text{reLu}(V_{i, t}^{l} + 0.01) \\rangle_{i}
+          + 0.003 * \\langle \\text{reLu}(0.1 - V_{i, t}^{l}) \\rangle_{i}
+           \\right)
+
+    Parameters
+    ----------
+    loss_fn: object
+        local loss function used for each layer
+    net: object
+        model to optimize
+    reg: float
+        strength of regulation
+    reduction: str
+        "mean" or "sum"
     """
 
     def __init__(self, loss_fn, net, reg=0, reduction='mean'):
-        """'
-        loss_fn: loss function used for each layer
-        net: model to optimize
-        reg: float: strength of regulation
-        reduction: "mean" or "sum", as in usual pytorch optimizers
-        """
         self.nlayers = len(net.readout_layers)
         self.loss_fn = loss_fn
         self.reg = reg
