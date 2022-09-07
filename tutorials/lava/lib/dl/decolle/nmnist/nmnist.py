@@ -1,11 +1,13 @@
-# Copyright (C) 2022 Intel Corporation
-# SPDX-License-Identifier:  BSD-3-Clause
+# Copyright : (c) UC Regents, Emre Neftci, 2022 Intel Corporation
+# Licence : GPLv3
 
 import os
 import torch
 from torch.utils.data import DataLoader
 
+import lava.lib.dl.decolle as decolle
 import lava.lib.dl.slayer as slayer
+
 from tutorials.lava.lib.dl.slayer.nmnist.nmnist import NMNISTDataset, augment
 
 
@@ -109,12 +111,12 @@ if __name__ == '__main__':
     train_loader = DataLoader(dataset=training_set, batch_size=32, shuffle=True)
     test_loader = DataLoader(dataset=testing_set, batch_size=32, shuffle=True)
 
-    error = slayer.loss.DECOLLELoss(torch.nn.CrossEntropyLoss,
+    error = decolle.loss.DECOLLELoss(torch.nn.CrossEntropyLoss,
                                     net, reg=0.01,
                                     reduction='mean')
 
     stats = slayer.utils.LearningStats()
-    assistant = slayer.utils.DECOLLEAssistant(
+    assistant = decolle.utils.DECOLLEAssistant(
         net, error, optimizer, stats,
         classifier=slayer.classifier.Rate.predict, count_log=True
     )
@@ -143,4 +145,3 @@ if __name__ == '__main__':
         stats.update()
         stats.save(trained_folder + '/')
         stats.plot(path=trained_folder + '/')
-        net.grad_flow(trained_folder + '/')

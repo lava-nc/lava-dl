@@ -13,5 +13,5 @@ __all__ = [
     'staticproperty', 'diagonal_mask',
     'LearningStat', 'LearningStats',
     'quantize', 'QUANTIZE_MODE',
-    'Assistant', 'DECOLLEAssistant'
+    'Assistant'
 ]
