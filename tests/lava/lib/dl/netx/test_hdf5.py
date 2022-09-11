@@ -162,6 +162,5 @@ class TestHdf5Netx(unittest.TestCase):
             f'Error was {error}.'
         )
 
-
 if __name__ == '__main__':
     unittest.main()

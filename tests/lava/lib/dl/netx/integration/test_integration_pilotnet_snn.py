@@ -15,7 +15,7 @@ from lava.proc import io
 from lava.magma.core.model.model import AbstractProcessModel
 
 from lava.lib.dl import netx
-from tutorials.lava.lib.dl.netx.pilotnet_snn.dataset import PilotNetDataset
+# from tutorials.lava.lib.dl.netx.pilotnet_snn.dataset import PilotNetDataset
 
 
 class CustomRunConfig(Loihi2HwCfg):
@@ -31,9 +31,10 @@ class CustomRunConfig(Loihi2HwCfg):
 
 
 class TestPilotNetSnn(unittest.TestCase):
-    run_it_tests: int = int(os.environ.get("RUN_IT_TESTS", 0))
+    # run_it_tests: int = int(os.environ.get("RUN_IT_TESTS", 0))
 
-    @unittest.skipUnless(run_it_tests == 1, "")
+    # @unittest.skipUnless(run_it_tests == 1, "")
+    @unittest.skip
     def test_pilotnet_snn(self):
         repo_dir = (
             subprocess.Popen(  # noqa
