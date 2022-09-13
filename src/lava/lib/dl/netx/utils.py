@@ -4,9 +4,12 @@
 """HDF5 net description manipulation utilities."""
 
 from typing import Tuple, Union
+import os
+import sys
 import h5py
 import numpy as np
 from enum import IntEnum, unique
+from lava.lib.dl.slayer.utils import staticproperty
 
 
 @unique
@@ -78,7 +81,8 @@ class NetDict:
 def optimize_weight_bits(weight: np.ndarray) -> Tuple[
     np.ndarray, int, int, SYNAPSE_SIGN_MODE
 ]:
-    """Optimizes the weight matrix to best fit in Loihi's synapse.
+    """Optimizes the weight matrix to best fit in Loihi's synapse by adjusting
+    weight scale and weight exponent.
 
     Parameters
     ----------
@@ -170,3 +174,40 @@ def num_delay_bits(delays: np.ndarray) -> int:
             f'Found {delays.max()=}.'
         )
     return np.ceil(np.log2(delays.max())).astype(int)
+
+
+class Loihi2Exec:
+    preferred_partition: str = 'kp_stack'
+
+    @staticmethod
+    def set_environ_settings(partititon: str = 'kp_stack') -> None:
+        """Sets the os environment for execution on Loihi.
+
+        Parameters
+        ----------
+        partititon : str, optional
+            Loihi partition name, by default 'kp_stack'
+        """
+        os.environ['SLURM'] = '1'
+        os.environ['LOIHI_GEN'] = 'N3B3'
+        os.environ['PARTITION'] = partititon
+
+    @staticproperty
+    def is_loihi2_available() -> bool:
+        """Checks if Loihi2 compiler is available and sets the environment
+        vairables.
+
+        Returns
+        -------
+        bool
+            Flag indicating whether Loih 2 is available or not.
+        """
+        try:
+            from lava.magma.compiler.subcompilers.nc.ncproc_compiler import \
+                CompilerOptions
+            CompilerOptions.verbose = True
+        except ModuleNotFoundError:
+            # Loihi2 compiler is not availabe
+            return False
+        Loihi2Exec.set_environ_settings(Loihi2Exec.preferred_partition)
+        return True

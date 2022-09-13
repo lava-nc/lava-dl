@@ -283,8 +283,9 @@ class TestHdf5NetxNx(unittest.TestCase):
         net.run(condition=run_cnd, run_cfg=run_cfg)
         # sigma2 = net.layers[1].neuron.sigma.get()
         sigma = net.out_layer.neuron.sigma.get()
-        output = sink.data.get()
+        output = sink.data.get().astype(np.int32)
         net.stop()
+        output = (output << 8) >> 8
 
         # Keeping this commented code to debug if something goes wrong in future
         # sigma2_gt = np.load(root + '/gts/pilotnet_sdnn/sigma2.npy')
