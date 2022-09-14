@@ -112,8 +112,7 @@ if __name__ == '__main__':
     test_loader = DataLoader(dataset=testing_set, batch_size=32, shuffle=True)
 
     error = decolle.loss.DECOLLELoss(torch.nn.CrossEntropyLoss,
-                                    net, reg=0.01,
-                                    reduction='mean')
+                                    reg=0.01, reduction='mean')
 
     stats = slayer.utils.LearningStats()
     assistant = decolle.utils.DECOLLEAssistant(

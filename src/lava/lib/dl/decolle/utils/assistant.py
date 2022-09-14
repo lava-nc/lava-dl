@@ -66,8 +66,9 @@ class DECOLLEAssistant(Assistant):
         super(DECOLLEAssistant, self).__init__(net, error, optimizer,
                                                stats, classifier,
                                                count_log, lam)
-        assert training_mode in ['online', 'batch'], \
-            "training_mode should be one of 'online' or 'batch'"
+        if training_mode not in ['online', 'batch']:
+            print("training_mode should be one of 'online' or 'batch'")
+            raise ValueError
         self.training_mode = training_mode
 
     def train(self, input, target):
