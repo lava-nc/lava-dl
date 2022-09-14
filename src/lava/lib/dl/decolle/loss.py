@@ -45,7 +45,7 @@ class DECOLLELoss(_Loss):
             for t in range(r.shape[-1]):
                 loss_t = self.loss_fn(r[..., t], target)
                 if self.reg > 0.:
-                    loss_t += _regularization(reg, v)
+                    loss_t += _regularization(self.reg, v)
                 if self.reduction == 'mean':
                     loss_t /= r.shape[-1]
                 loss += loss_t
