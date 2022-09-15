@@ -1428,18 +1428,20 @@ class AbstractRecurrent(torch.nn.Module):
             z = self.input_synapse(x)
         else:
             z = self.input_synapse(x) + self.bias
-        x = torch.zeros_like(z).to(x.device)
 
         spike = torch.zeros(z.shape[:-1]).to(x.device)
 
         if z.shape[0] == self.spike_state.shape[0]:
             spike = spike + self.spike_state
 
+        ###
+        x = torch.zeros_like(z).to(x.device)
         for time in range(z.shape[-1]):
             dendrite = z[..., time:time + 1]
             feedback = self.recurrent_synapse(spike.reshape(dendrite.shape))
             spike = self.neuron(dendrite + feedback)
             x[..., time:time + 1] = spike
+        ###
 
         self.spike_state = spike.clone().detach().reshape(z.shape[:-1])
 
