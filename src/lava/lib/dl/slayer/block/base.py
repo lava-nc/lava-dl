@@ -9,6 +9,8 @@ import torch.nn.functional as F
 
 from ..axon import delay
 
+from lava.lib.dl.slayer.utils import recurrent
+
 
 class AbstractInput(torch.nn.Module):
     """Abstract input block class. This should never be instantiated on its own.
@@ -1435,13 +1437,14 @@ class AbstractRecurrent(torch.nn.Module):
             spike = spike + self.spike_state
 
         ###
-        x = torch.zeros_like(z).to(x.device)
-        for time in range(z.shape[-1]):
-            dendrite = z[..., time:time + 1]
-            feedback = self.recurrent_synapse(spike.reshape(dendrite.shape))
-            spike = self.neuron(dendrite + feedback)
-            x[..., time:time + 1] = spike
+        # x = torch.zeros_like(z).to(x.device)
+        # for time in range(z.shape[-1]):
+        #     dendrite = z[..., time:time + 1]
+        #     feedback = self.recurrent_synapse(spike.reshape(dendrite.shape))
+        #     spike = self.neuron(dendrite + feedback)
+        #     x[..., time:time + 1] = spike
         ###
+        x = recurrent.custom_recurrent(z, self.neuron, self.recurrent_synapse)
 
         self.spike_state = spike.clone().detach().reshape(z.shape[:-1])
 
