@@ -86,7 +86,8 @@ class CustomRecurrent(torch.autograd.Function):
         grad_z = torch.zeros_like(grad_x).to(grad_x.device)
         grad_neuron = None
         grad_spike = 0
-        # grad_recurrent_mat = torch.zeros_like(ctx.recurrent_mat).to(grad_x.device)
+        # grad_recurrent_mat = 
+        # torch.zeros_like(ctx.recurrent_mat).to(grad_x.device)
         for time in range(grad_x.shape[-1])[::-1]:
             grad_spike = grad_spike + grad_x[..., time: time + 1]
             torch.autograd.backward(ctx.spikes[time], grad_spike)

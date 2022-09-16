@@ -49,8 +49,8 @@ class TestRecurrent(unittest.TestCase):
         if verbose is True:
             print(f"{z.shape=}")
 
-        # Create three independent neuron and recurrent_syanpse - one for each version
-        # of custom_recurrent
+        # Create three independent neuron and recurrent_syanpse 
+        # - one for each version of custom_recurrent
         neuron_list = list(
             map(
                 lambda _: Neuron(**cuba_params, persistent_state=True).to(
@@ -178,48 +178,51 @@ class TestRecurrent(unittest.TestCase):
         self.assertTrue(
             forward_error_1 < epsilon,
             "Error in recurrent. Expected "
-            + f"forward_error_1<{epsilon}. Found {forward_error_1=}.",
+            + f"forward_error_1<{epsilon}."
+            + f" Found {forward_error_1=}.",
         )
         self.assertTrue(
             forward_error_2 < epsilon,
             "Error in recurrent. Expected "
-            + f"forward_error_2<{epsilon}. Found {forward_error_2=}.",
+            + f"forward_error_2<{epsilon}."
+            + f" Found {forward_error_2=}.",
         )
 
         self.assertTrue(
             recurrent_weight_error_1 < epsilon,
             "Error in recurrent. Expected "
-            + f"recurrent_weight_error_1<{epsilon}. Found {recurrent_weight_error_1=}.",
+            + f"recurrent_weight_error_1<{epsilon}."
+            + f" Found {recurrent_weight_error_1=}.",
         )
         self.assertTrue(
             recurrent_weight_error_2 < epsilon,
             "Error in recurrent. Expected "
-            + f"recurrent_weight_error_2<{epsilon}. Found {recurrent_weight_error_2=}.",
+            + f"recurrent_weight_error_2<{epsilon}."
+            + f" Found {recurrent_weight_error_2=}.",
         )
 
         self.assertTrue(
             current_decay_error_1 < epsilon,
             "Error in recurrent. Expected "
-            + f"recurrent_weight_error_1<{epsilon}. Found {current_decay_error_1=}.",
+            + f"recurrent_weight_error_1<{epsilon}."
+            + f" Found {current_decay_error_1=}.",
         )
         self.assertTrue(
             current_decay_error_2 < epsilon,
             "Error in recurrent. Expected "
-            + f"recurrent_weight_error_1<{epsilon}. Found {current_decay_error_2=}.",
+            + f"recurrent_weight_error_1<{epsilon}."
+            + f" Found {current_decay_error_2=}.",
         )
 
         self.assertTrue(
             voltage_decay_error_1 < epsilon,
             "Error in recurrent. Expected "
-            + f"recurrent_weight_error_1<{epsilon}. Found {voltage_decay_error_1=}.",
+            + f"recurrent_weight_error_1<{epsilon}."
+            + f" Found {voltage_decay_error_1=}.",
         )
         self.assertTrue(
             voltage_decay_error_2 < epsilon,
             "Error in recurrent. Expected "
-            + f"recurrent_weight_error_2<{epsilon}. Found {voltage_decay_error_2=}.",
+            + f"recurrent_weight_error_2<{epsilon}."
+            + f" Found {voltage_decay_error_2=}.",
         )
-
-        # if error > 1e-6:
-        #     raise Exception(
-        #         f'Error in replication. Expected error<1e-6. Found {error=}.'
-        #     )
