@@ -1,42 +1,18 @@
 import torch
 
 
-# dendrite_print_time_index = -1
-# feedback_print_time_index = -1
-spike_print_time_index = 48
-
-
 def custom_recurrent_ground_truth_1(z, neuron, recurrent_synapse):
-    log = []
-    # x = torch.zeros_like(z).to(x.device)
-    print("custom_recurrent_ground_truth_1")
     x = torch.zeros_like(z).to(z.device)
     spike = torch.zeros(z.shape[:-1]).to(x.device)
     for time in range(z.shape[-1]):
-        log_item = {}
         dendrite = z[..., time: time + 1]
-        log_item["dendrite"] = dendrite
-        # if time == dendrite_print_time_index:
-        #     print(f'{dendrite.shape=}')
-        #     print(f'{dendrite.squeeze()=}')
         feedback = recurrent_synapse(spike.reshape(dendrite.shape))
-        log_item["feedback"] = feedback
-        # if time == feedback_print_time_index:
-        #     print(f'{feedback.shape=}')
-        #     print(f'{feedback.squeeze()=}')
         spike = neuron(dendrite + feedback)
-        log_item["spike"] = spike
-        if time == spike_print_time_index:
-            print(f"{spike.shape=}")
-            print(f"{spike.squeeze()=}")
         x[..., time: time + 1] = spike
-        log.append(log_item)
-    return x, log
+    return x
 
 
 def custom_recurrent_ground_truth_2(z, neuron, recurrent_synapse):
-    log = []
-    print("custom_recurrent_ground_truth_2")
     x = torch.zeros_like(z).to(z.device)
     mat_shape = recurrent_synapse.weight.shape[:2]
     pre_hook = recurrent_synapse.pre_hook_fx
@@ -47,25 +23,11 @@ def custom_recurrent_ground_truth_2(z, neuron, recurrent_synapse):
     recurrent_mat_T = recurrent_mat.transpose(0, 1)
     spike = torch.zeros(z.shape[:-1] + (1,)).to(x.device)
     for time in range(z.shape[-1]):
-        log_item = {}
-        dendrite = z[..., time]
-        log_item["dendrite"] = dendrite
-        # if time == dendrite_print_time_index:
-        #     print(f'{dendrite.shape=}')
-        #     print(f'{dendrite.squeeze()=}')
+        dendrite = z[..., time]     
         feedback = torch.matmul(spike[..., 0], recurrent_mat_T)
-        log_item["feedback"] = feedback
-        # if time == feedback_print_time_index:
-        #     print(f'{feedback.shape=}')
-        #     print(f'{feedback.squeeze()=}')
         spike = neuron(torch.unsqueeze(dendrite + feedback, dim=-1))
-        log_item["spike"] = spike
-        if time == spike_print_time_index:
-            print(f"{spike.shape=}")
-            print(f"{spike.squeeze()=}")
         x[..., time: time + 1] = spike
-        log.append(log_item)
-    return x, log
+    return x
 
 
 def custom_recurrent(z, neuron, recurrent_synapse):

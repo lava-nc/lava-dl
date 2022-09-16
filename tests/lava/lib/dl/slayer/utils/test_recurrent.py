@@ -10,8 +10,6 @@ from src.lava.lib.dl.slayer.utils.recurrent import (
 from src.lava.lib.dl.slayer.neuron.cuba import Neuron
 from src.lava.lib.dl.slayer.synapse.layer import Dense
 
-import itertools
-
 verbose = True if (("-v" in sys.argv) or ("--verbose" in sys.argv)) else False
 
 
@@ -26,14 +24,6 @@ class TestRecurrent(unittest.TestCase):
         batch_size = 2
         n_time_steps = 1024
         n_neur = 100
-
-        # batch_size = 3
-        # n_time_steps = 10
-        # n_neur = 8
-
-        # batch_size = 32
-        # n_time_steps = 1024
-        # n_neur = 256
 
         device = torch.device("cuda")
 
@@ -86,33 +76,31 @@ class TestRecurrent(unittest.TestCase):
         ):
             recurrent_synapse.pre_hook_fx = neuron.quantize_8bit
 
-        list(
-            map(
-                lambda i: print(
-                    f"recurrent_synapse_list[{i}].pre_hook_fx"
-                    + "={recurrent_synapse_list[i].pre_hook_fx}"
-                ),
-                range(3),
+        if verbose is True:
+            list(
+                map(
+                    lambda i: print(
+                        f"recurrent_synapse_list[{i}].pre_hook_fx"
+                        + "={recurrent_synapse_list[i].pre_hook_fx}"
+                    ),
+                    range(3),
+                )
             )
-        )
-
-        # import pdb; pdb.set_trace()
-        # recurrent_synapse_list[0].
 
         custom_recurrent_output = custom_recurrent(
             z, neuron_list[0], recurrent_synapse_list[0]
         )
-        (
-            custom_recurrent_ground_truth_1_output,
-            log_1,
-        ) = custom_recurrent_ground_truth_1(
-            z, neuron_list[1], recurrent_synapse_list[1]
+
+        custom_recurrent_ground_truth_1_output = (
+            custom_recurrent_ground_truth_1(
+                z, neuron_list[1], recurrent_synapse_list[1]
+            )
         )
-        (
-            custom_recurrent_ground_truth_2_output,
-            log_2,
-        ) = custom_recurrent_ground_truth_2(
-            z, neuron_list[2], recurrent_synapse_list[2]
+
+        custom_recurrent_ground_truth_2_output = (
+            custom_recurrent_ground_truth_2(
+                z, neuron_list[2], recurrent_synapse_list[2]
+            )
         )
 
         forward_error_1 = torch.norm(
@@ -182,33 +170,6 @@ class TestRecurrent(unittest.TestCase):
         if verbose is True:
             print(f"Voltage Decay Grad Error 1: {voltage_decay_error_1}")
             print(f"Voltage Decay Grad Error 2: {voltage_decay_error_2}")
-
-        # examine logs
-        dendrite_norms, feedback_norms, spike_norms = map(
-            lambda key: (
-                list(
-                    map(
-                        lambda log_item_1, log_item_2, i: (
-                            i,
-                            torch.norm(
-                                log_item_1[key].squeeze()
-                                - log_item_2[key].squeeze()
-                            ).item(),
-                        ),
-                        log_1,
-                        log_2,
-                        itertools.count(),
-                    )
-                )
-            ),
-            ("dendrite", "feedback", "spike"),
-        )
-
-        print(f"{dendrite_norms=}")
-        print(f"{feedback_norms=}")
-        print(f"{spike_norms=}")
-        # import pdb; pdb.set_trace()
-        # custom_recurrent_ground_truth_2(z, neuron_list[0], recurrent_synapse_list[0])
 
         epsilon = 1e-3
         self.assertTrue(
