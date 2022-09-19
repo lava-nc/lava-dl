@@ -22,13 +22,23 @@ class TestRecurrent(unittest.TestCase):
         if verbose is True:
             print("testing recurrent")
 
+        if torch.cuda.is_available():
+            device = torch.device('cuda')
+        else:
+            if verbose:
+                print(
+                    'CUDA is not available in the system. '
+                    'Testing for CPU version only.'
+                )
+            device = torch.device('cpu')
+
         torch.manual_seed(298101)
 
         batch_size = 2
-        n_time_steps = 1024
-        n_neur = 100
+        n_time_steps = 128
+        n_neur = 10
 
-        device = torch.device("cuda")
+        device = torch.device(device)
 
         cuba_params = {
             "threshold": 1.25,
@@ -49,7 +59,7 @@ class TestRecurrent(unittest.TestCase):
         if verbose is True:
             print(f"{z.shape=}")
 
-        # Create three independent neuron and recurrent_syanpse 
+        # Create three independent neuron and recurrent_syanpse
         # - one for each version of custom_recurrent
         neuron_list = list(
             map(

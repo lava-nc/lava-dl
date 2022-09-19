@@ -26,7 +26,7 @@ def custom_recurrent_ground_truth_2(z, neuron, recurrent_synapse):
     recurrent_mat_T = recurrent_mat.transpose(0, 1)
     spike = torch.zeros(z.shape[:-1] + (1,)).to(x.device)
     for time in range(z.shape[-1]):
-        dendrite = z[..., time]     
+        dendrite = z[..., time]
         feedback = torch.matmul(spike[..., 0], recurrent_mat_T)
         spike = neuron(torch.unsqueeze(dendrite + feedback, dim=-1))
         x[..., time: time + 1] = spike
@@ -36,7 +36,6 @@ def custom_recurrent_ground_truth_2(z, neuron, recurrent_synapse):
 def custom_recurrent(z, neuron, recurrent_synapse):
     mat_shape = recurrent_synapse.weight.shape[:2]
     pre_hook = recurrent_synapse.pre_hook_fx
-    # recurrent_mat = pre_hook(recurrent_synapse.weight.reshape(mat_shape))
     recurrent_mat = recurrent_synapse.weight.reshape(mat_shape)
     if pre_hook is not None:
         recurrent_mat = pre_hook(recurrent_mat)
@@ -86,18 +85,14 @@ class CustomRecurrent(torch.autograd.Function):
         grad_z = torch.zeros_like(grad_x).to(grad_x.device)
         grad_neuron = None
         grad_spike = 0
-        # grad_recurrent_mat = 
-        # torch.zeros_like(ctx.recurrent_mat).to(grad_x.device)
+
         for time in range(grad_x.shape[-1])[::-1]:
             grad_spike = grad_spike + grad_x[..., time: time + 1]
             torch.autograd.backward(ctx.spikes[time], grad_spike)
             grad_dend_sum = ctx.dend_sums[time].grad
             grad_feedback = grad_dend_sum
             grad_dendrite = grad_dend_sum
-            # if time >= 1:
-            #     grad_recurrent_mat += 
-            #     torch.matmul(grad_feedback.transpose(0, 1),
-            #     ctx.spikes[time - 1][..., 0])
+
             grad_spike = torch.unsqueeze(
                 torch.matmul(grad_feedback, ctx.recurrent_mat), dim=-1
             )
@@ -111,9 +106,6 @@ class CustomRecurrent(torch.autograd.Function):
             grad_z[..., 1:].transpose(0, 1).reshape(grad_dendrite.shape[1], -1)
         )
         input = ctx.x[..., :-1].transpose(1, 2).reshape(-1, ctx.x.shape[1])
-        # grad_output = 
-        # grad_z[..., 1:].permute([1, 0, 2]).reshape(grad_dendrite.shape[1], -1)
-        # input = ctx.x[..., :-1].permute([0, 2, 1]).reshape(-1, ctx.x.shape[1])
         grad_recurrent_mat = torch.matmul(grad_output, input)
 
         return grad_z, grad_neuron, grad_recurrent_mat
