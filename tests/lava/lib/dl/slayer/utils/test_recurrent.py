@@ -38,8 +38,6 @@ class TestRecurrent(unittest.TestCase):
         n_time_steps = 128
         n_neur = 10
 
-        device = torch.device(device)
-
         cuba_params = {
             "threshold": 1.25,
             "current_decay": 0.25,
