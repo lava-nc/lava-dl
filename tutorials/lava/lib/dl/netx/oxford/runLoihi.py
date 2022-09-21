@@ -6,7 +6,7 @@ from lava.magma.core.run_configs import Loihi2HwCfg
 from lava.magma.core.run_conditions import RunSteps
 from lava.proc.io.sink import RingBuffer as ReceiveProcess
 from lava.proc.io.source import RingBuffer as SendProcess
-from lava.proc import snip_io as sio
+from lava.proc import embedded_io as eio
 
 from lava.lib.dl import netx
 from lava.lib.dl import slayer
@@ -25,8 +25,8 @@ input = slayer.io.read_np_spikes(root + '/input.npy')
 target = slayer.io.read_np_spikes(root + '/output.npy')
 source = SendProcess(data=input.to_tensor(dim=(1, 200, 2000)).squeeze())
 sink = ReceiveProcess(shape=net.out.shape, buffer=2000)
-inp_adapter = sio.spike.PyToNxAdapter(shape=net.inp.shape)
-out_adapter = sio.spike.NxToPyAdapter(shape=net.out.shape)
+inp_adapter = eio.spike.PyToNxAdapter(shape=net.inp.shape)
+out_adapter = eio.spike.NxToPyAdapter(shape=net.out.shape)
 
 source.s_out.connect(inp_adapter.inp)
 inp_adapter.out.connect(net.inp)
