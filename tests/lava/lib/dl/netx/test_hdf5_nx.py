@@ -183,6 +183,7 @@ class TestHdf5NetxNx(unittest.TestCase):
             self.assertTrue(np.array_equal(result,
                                            ground_truth[..., num_steps - 1]))
 
+    @unittest.skipIf(skip_loihi_test, skip_message_loihi)
     def test_pilotnet_sdnn_square(self) -> None:
         """Tests the output of pilotnet sdnn with reduced x dimension."""
         net_config = root + '/gts/pilotnet_sdnn/square_network.net'
@@ -226,6 +227,7 @@ class TestHdf5NetxNx(unittest.TestCase):
         self.assertTrue(np.array_equal(sigma3, sigma3_gt[..., num_steps - 1]))
         self.assertTrue(np.array_equal(sigma4, sigma4_gt[..., num_steps - 1]))
 
+    @unittest.skipIf(skip_loihi_test, skip_message_loihi)
     def test_pilotnet_sdnn(self) -> None:
         """Tests the output of pilotnet sdnn."""
         net_config = root + '/gts/pilotnet_sdnn/network.net'
