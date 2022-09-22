@@ -8,6 +8,7 @@ import h5py
 import numpy as np
 from enum import IntEnum, unique
 
+
 @unique
 class SYNAPSE_SIGN_MODE(IntEnum):
     """Enum for synapse sign mode. Options are {``MIXED : 1``,
@@ -32,6 +33,7 @@ class NetDict:
         hdf5 file object handle. Overwrites the function of filename if it is
         not ``None``. Default is None.
     """
+
     def __init__(
         self,
         filename: Union[str, None] = None,
