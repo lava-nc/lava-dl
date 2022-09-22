@@ -765,7 +765,7 @@ unittest2 = "^1.1.0"
 type = "git"
 url = "https://github.com/lava-nc/lava.git"
 reference = "main"
-resolved_reference = "7ad8e488c1859d92c15833689c3dbf978166d9ef"
+resolved_reference = "4431f6105ea1e6d772ed7e57f00f64aee56da13b"
 
 [[package]]
 name = "linecache2"
