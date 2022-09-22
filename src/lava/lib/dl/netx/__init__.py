@@ -3,5 +3,6 @@
 
 from . import hdf5
 from . import blocks
+from . import utils
 
-__all__ = ['hdf5', 'blocks']
+__all__ = ['hdf5', 'blocks', 'utils']

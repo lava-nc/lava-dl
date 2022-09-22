@@ -33,6 +33,7 @@ class NetDict:
         hdf5 file object handle. Overwrites the function of filename if it is
         not ``None``. Default is None.
     """
+
     def __init__(
         self,
         filename: Union[str, None] = None,
