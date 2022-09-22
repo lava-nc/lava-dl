@@ -178,7 +178,7 @@ class PilotNetPyDecoderModel(PyLoihiProcessModel):
 class PilotNetFixedPtDecoder(AbstractProcess):
     """PilotNet fixed point output decoder."""
     def __init__(self,
-                 shape: int) -> None:
+                 shape: Tuple[int, ...]) -> None:
         super().__init__(shape=shape)
         self.inp = InPort(shape=shape)
         self.out = OutPort(shape=shape)
@@ -216,17 +216,22 @@ class PilotNetNxDecoderModel(AbstractSubProcessModel):
 
 # Monitor #####################################################################
 class PilotNetMonitor(AbstractProcess):
-    def __init__(self, shape, output_offset=0) -> None:
+    def __init__(self,
+                 shape: Tuple[int, ...],
+                 transform: Dict[str, float],
+                 output_offset=0) -> None:
         """PilotNet monitor process.
 
         Parameters
         ----------
         shape : Tuple[int, ...]
             Shape of input.
+        transform : Dict[str, float]
+            Input transformation specs.
         output_offset : int, optional
             Latency of output, by default 0.
         """
-        super().__init__(shape=shape)
+        super().__init__(shape=shape, transform=transform)
         self.frame_in = InPort(shape=shape)
         self.output_in = InPort(shape=(1,))
         self.gt_in = InPort(shape=(1,))
@@ -248,6 +253,9 @@ class PilotNetMonitorModel(PyLoihiProcessModel):
         self.ax2 = self.fig.add_subplot(1, 3, 2)
         self.ax3 = self.fig.add_subplot(1, 3, 3)
         output_offset = self.proc_params['output_offset']
+        transform = self.proc_params['transform']
+        self.weight = transform['weight']
+        self.bias = transform['bias']
         self.output_offset = output_offset
         self.gt_history = [0] * output_offset
         self.steering = Image.open('images/pilotnet_steering.png')
@@ -263,11 +271,13 @@ class PilotNetMonitorModel(PyLoihiProcessModel):
             angle = output_data
         self.gt_history.append(gt_data)
         self.output_history.append(angle)
+        frame  = (frame_data.transpose([1, 0, 2])
+                  - self.bias) / (2 * self.weight) + 0.5
 
         self.ax1.clear()
         self.ax2.clear()
         self.ax3.clear()
-        self.ax1.imshow(frame_data.transpose([1, 0, 2]))
+        self.ax1.imshow(frame)
         self.ax2.imshow(self.steering.rotate(-angle * 180 / np.pi,
                                              fillcolor=(255, 255, 255)))
         print(f'ground_truth = {self.gt_history[-self.output_offset + 1]}, '
