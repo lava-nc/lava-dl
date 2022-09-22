@@ -29,6 +29,7 @@ utils.TORCH_IS_AVAILABLE = False
 class TestRunConfig(RunConfig):
     """Run configuration selects appropriate ProcessModel based on tag:
     floating point precision or Loihi bit-accurate fixed point precision"""
+
     def __init__(self, select_tag: str = 'fixed_pt') -> None:
         super().__init__(custom_sync_domains=None)
         self.select_tag = select_tag
@@ -78,8 +79,10 @@ class TestHdf5Netx(unittest.TestCase):
 
         # layer reset mechanism
         for i, l in enumerate(net.layers):
-            u_resetter = io.reset.Reset(interval=steps_per_sample, offset=i - 1)
-            v_resetter = io.reset.Reset(interval=steps_per_sample, offset=i - 1)
+            u_resetter = io.reset.Reset(
+                interval=steps_per_sample, offset=i - 1)
+            v_resetter = io.reset.Reset(
+                interval=steps_per_sample, offset=i - 1)
             u_resetter.connect_var(l.neuron.u)
             v_resetter.connect_var(l.neuron.v)
 
