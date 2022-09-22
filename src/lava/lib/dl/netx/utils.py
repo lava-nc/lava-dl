@@ -7,8 +7,6 @@ from typing import Tuple, Union
 import h5py
 import numpy as np
 from enum import IntEnum, unique
-from lava.lib.dl.slayer.utils import staticproperty
-
 
 @unique
 class SYNAPSE_SIGN_MODE(IntEnum):
@@ -79,8 +77,7 @@ class NetDict:
 def optimize_weight_bits(weight: np.ndarray) -> Tuple[
     np.ndarray, int, int, SYNAPSE_SIGN_MODE
 ]:
-    """Optimizes the weight matrix to best fit in Loihi's synapse by adjusting
-    weight scale and weight exponent.
+    """Optimizes the weight matrix to best fit in Loihi's synapse.
 
     Parameters
     ----------
