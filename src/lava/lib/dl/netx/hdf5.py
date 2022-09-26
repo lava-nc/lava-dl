@@ -6,6 +6,7 @@
 from typing import List, Optional, Tuple, Union
 from lava.magma.core.decorator import implements
 from lava.magma.core.sync.protocols.loihi_protocol import LoihiProtocol
+from lava.proc.rf.process import RF
 import numpy as np
 import h5py
 
@@ -15,7 +16,7 @@ from lava.proc.lif.process import LIF
 from lava.proc.sdn.process import Sigma, Delta, SigmaDelta
 from lava.lib.dl.netx.utils import NetDict
 from lava.lib.dl.netx.utils import optimize_weight_bits
-from lava.lib.dl.netx.blocks.process import Input, Dense, Conv
+from lava.lib.dl.netx.blocks.process import Input, Dense, Conv, DenseComplex
 from lava.lib.dl.netx.blocks.models import AbstractPyBlockModel
 
 
@@ -135,6 +136,17 @@ class Network(AbstractProcess):
                                  'state_exp': 6,
                                  'num_message_bits': num_message_bits}
             return neuron_params
+        elif neuron_type in ['RF_PHASE']:
+            if num_message_bits is None:
+                num_message_bits = 0  # default value
+            neuron_process = RF 
+            neuron_params = {
+                'neuron_proc': neuron_process,
+                'vth': neuron_config['vThMant'],
+                'sin_decay': neuron_config['sinDecay'] - 1,
+                'cos_decay':  neuron_config['cosDecay'] - 1,
+            }
+            return neuron_params
 
     @staticmethod
     def _table_str(type_str: str = '',
@@ -221,6 +233,7 @@ class Network(AbstractProcess):
 
         return Input(**params), table_entry
 
+
     @staticmethod
     def create_dense(layer_config: h5py.Group,
                      input_message_bits: int = 0) -> Tuple[Dense, str]:
@@ -268,6 +281,62 @@ class Network(AbstractProcess):
                                          delay='delay' in layer_config.keys())
 
         return Dense(**params), table_entry
+
+    @staticmethod
+    def create_complex_dense(layer_config: h5py.Group,
+                     input_message_bits: int = 0) -> Tuple[Dense, str]:
+        """Creates dense layer from layer configuration
+
+        Parameters
+        ----------
+        layer_config : h5py.Group
+            hdf5 handle to layer description.
+        input_message_bits : int, optional
+            number of message bits in input spike. Defaults to 0 meaning unary
+            spike.
+
+        Returns
+        -------
+        AbstractProcess
+            dense block process.
+        str
+            table entry string for process.
+        """
+        shape = (np.prod(layer_config['shape']),)
+        neuron_params = Network.get_neuron_params(layer_config['neuron'])
+        weight_real = layer_config['weight_real']
+        weight_imag = layer_config['weight_imag']
+        if weight_real.ndim == 1:
+            weight_real = weight_real.reshape(shape[0], -1)
+            weight_imag = weight_imag.reshape(shape[0], -1)
+
+        opt_weights_real = optimize_weight_bits(weight_real)
+        opt_weights_imag = optimize_weight_bits(weight_imag)
+        weight_real, num_weight_bits_real, weight_exponent_real, sign_mode_real = opt_weights_real
+        weight_imag, num_weight_bits_imag, weight_exponent_imag, sign_mode_imag = opt_weights_imag
+
+        # arguments for dense block
+        params = {'shape': shape,
+                  'neuron_params': neuron_params,
+                  'weight_real': weight_real,
+                  'weight_imag': weight_imag,
+                  'num_weight_bits_real': num_weight_bits_real,
+                  'num_weight_bits_imag': num_weight_bits_imag,
+                  'weight_exponent_real': weight_exponent_real,
+                  'weight_exponent_imag': weight_exponent_imag,
+                  'sign_mode_real': sign_mode_real,
+                  'sign_mode_imag': sign_mode_imag,
+                  'input_message_bits': input_message_bits}
+
+        # optional arguments
+        if 'bias' in layer_config.keys():
+            params['bias'] = layer_config['bias']
+
+        table_entry = Network._table_str(type_str='Dense', width=1, height=1,
+                                         channel=shape[0],
+                                         delay='delay' in layer_config.keys())
+
+        return DenseComplex(**params), table_entry
 
     @staticmethod
     def create_conv(layer_config: h5py.Group,
@@ -369,7 +438,6 @@ class Network(AbstractProcess):
 
         for i in range(num_layers):
             layer_type = layer_config[i]['type']
-
             if layer_type == 'input':
                 layer, table = self.create_input(layer_config[i])
                 layers.append(layer)
@@ -423,7 +491,21 @@ class Network(AbstractProcess):
                 else:
                     if len(layers) > 1:
                         layers[-2].out.connect(layers[-1].inp)
-
+            elif layer_type == "dense_comp":
+                layer, table = self.create_complex_dense(
+                    layer_config=layer_config[i],
+                    input_message_bits=input_message_bits
+                )
+                layers.append(layer)
+                input_message_bits = layer.output_message_bits
+                if flatten_next:
+                    layers[-2].out.transpose([2, 1, 0]).flatten().connect(
+                        layers[-1].inp
+                    )
+                    flatten_next = False
+                else:
+                    if len(layers) > 1:
+                        layers[-2].out.connect(layers[-1].inp)
             elif layer_type == 'average':
                 raise NotImplementedError(f'{layer_type} is not implemented.')
 
