@@ -45,7 +45,7 @@ class NetDict:
         self.array_keys = [
             'shape', 'stride', 'padding', 'dilation', 'groups', 'delay',
             'iDecay', 'refDelay', 'scaleRho', 'tauRho', 'theta', 'vDecay',
-            'vThMant', 'wgtExp', 'sinDecay', 'cosDecay'
+            'vThMant', 'wgtExp', 'sinDecay', 'cosDecay', "complex_synapse"
         ]
         self.copy_keys = ['weight', 'bias', 'weight_real', 'weight_imag']
 
@@ -64,9 +64,6 @@ class NetDict:
                 value = value[()]
             return value.decode('ascii')
         elif key in self.copy_keys:  
-            # if len(self.f[key]) == 2:# this is needed to extract the complex val weights 
-            #     vals =  np.stack([i[()].astype(int).copy() for i in self.f[key].values()]) 
-            #     return vals
             return self.f[key][()].astype(int).copy()
         elif key in self.array_keys:
             return self.f[key][()]

@@ -11,7 +11,7 @@ from lava.magma.core.model.sub.model import AbstractSubProcessModel
 from lava.magma.core.sync.protocols.loihi_protocol import LoihiProtocol
 from lava.magma.core.resources import CPU
 
-from lava.lib.dl.netx.blocks.process import Input, Dense, Conv, DenseComplex
+from lava.lib.dl.netx.blocks.process import Input, Dense, Conv, ComplexDense
 
 
 @requires(CPU)
@@ -52,8 +52,8 @@ class PyDenseModel(AbstractPyBlockModel):
     def __init__(self, proc: AbstractProcess) -> None:
         super().__init__(proc)
         
-@implements(proc=DenseComplex, protocol=LoihiProtocol)
-class PyDenseComplexModel(AbstractPyBlockModel):
+@implements(proc=ComplexDense, protocol=LoihiProtocol)
+class PyComplexDenseModel(AbstractPyBlockModel):
     def __init__(self, proc: AbstractProcess) -> None:
         super().__init__(proc)
         

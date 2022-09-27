@@ -546,13 +546,19 @@ class AbstractDense(torch.nn.Module):
         def delay(d):
             return torch.floor(d.delay).flatten().cpu().data.numpy()
 
+        handle.create_dataset(
+            'type', (1, ), 'S10', ['dense'.encode('ascii', 'ignore')]
+        )
+
         handle.create_dataset('shape', data=np.array(self.neuron.shape))
         handle.create_dataset('inFeatures', data=self.synapse.in_channels)
         handle.create_dataset('outFeatures', data=self.synapse.out_channels)
 
         if self.synapse.weight_norm_enabled:
             self.synapse.disable_weight_norm()
+
         if hasattr(self.synapse, 'imag'):   # complex synapse
+            handle.create_dataset("complex_synapse", data=np.array(True)) # TODO
             handle.create_dataset(
                 'weight_real',
                 data=weight(self.synapse.real)
@@ -561,14 +567,10 @@ class AbstractDense(torch.nn.Module):
                 'weight_imag',
                 data=weight(self.synapse.imag)
             )
-            type_str = "dense_comp"
         else:
+            handle.create_dataset("complex_synapse", data=np.array(False))
             handle.create_dataset('weight', data=weight(self.synapse))
-            type_str = "dense"
             
-        handle.create_dataset(
-            'type', (1, ), 'S10', [type_str.encode('ascii', 'ignore')]
-        )
         # bias
         has_norm = False
         if hasattr(self.neuron, 'norm'):

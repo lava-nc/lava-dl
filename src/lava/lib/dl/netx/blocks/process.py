@@ -162,7 +162,7 @@ class Dense(AbstractBlock):
         raise NotImplementedError
 
 
-class DenseComplex(AbstractBlock):
+class ComplexDense(AbstractBlock):
     """Dense layer block.
 
     Parameters
