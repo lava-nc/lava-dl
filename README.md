@@ -105,6 +105,22 @@ Required test coverage of 45.0% reached. Total coverage: 46.99%
 ======================= 86 passed, 3 warnings in 46.56s ========================
 ```
 
+### [Alternative] Installing Lava via Conda
+If you use the Conda package manager, you can simply install the Lava package
+via:
+```bash
+conda install lava-dl -c conda-forge
+```
+
+Alternatively with intel numpy and scipy:
+
+```bash
+conda create -n lava-dl python=3.9 -c intel
+conda activate lava-dl
+conda install -n lava-dl -c intel numpy scipy
+conda install -n lava-dl -c conda-forge lava-dl --freeze-installed
+```
+
 ### [Alternative] Installing Lava from Binaries
 
 If you only need the lava-dl package in your python environment, we will publish
