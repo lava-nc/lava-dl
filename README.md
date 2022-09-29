@@ -46,7 +46,7 @@ The output should contain something like this `/home/user/lava`
 cd $HOME
 git clone git@github.com:lava-dl/lava-dl.git
 cd lava-dl
-pip install "poetry>=1.1.13"
+curl -sSL https://install.python-poetry.org | python3 -
 poetry config virtualenvs.in-project true
 poetry install
 source .venv/bin/activate
@@ -60,8 +60,8 @@ git clone git@github.com:lava-dl/lava-dl.git
 cd lava-dl
 python3 -m venv .venv
 .venv\Scripts\activate
+curl -sSL https://install.python-poetry.org | python3 -
 pip install -U pip
-pip install "poetry>=1.1.13"
 poetry config virtualenvs.in-project true
 poetry install
 pytest
