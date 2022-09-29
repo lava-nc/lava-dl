@@ -17,6 +17,7 @@ jobs:
     - name: Install Poetry
       uses: snok/install-poetry@v1
       with:
+        version: 1.2.1
         virtualenvs-create: true
         virtualenvs-in-project: true
     
@@ -33,9 +34,8 @@ jobs:
         poetry update --no-interaction
         poetry install --no-interaction --no-root
 
-    - name: Install Lava
+    - name: Install Lava-DL
       run: |
-        poetry update --no-interaction
         poetry install --no-interaction
 
     - name: Run flakeheaven (flake8)
@@ -63,6 +63,7 @@ jobs:
     - name: Install Poetry
       uses: snok/install-poetry@v1
       with:
+        version: 1.2.1
         virtualenvs-create: true
         virtualenvs-in-project: true
     
@@ -79,9 +80,8 @@ jobs:
         poetry update --no-interaction
         poetry install --no-interaction --no-root
 
-    - name: Install Lava
+    - name: Install Lava-DL
       run: |
-        poetry update --no-interaction
         poetry install --no-interaction
 
     - name: Run bandit    
@@ -109,6 +109,7 @@ jobs:
     - name: Install Poetry
       uses: snok/install-poetry@v1
       with:
+        version: 1.2.1
         virtualenvs-create: true
         virtualenvs-in-project: true
     
@@ -125,9 +126,8 @@ jobs:
         poetry update --no-interaction
         poetry install --no-interaction --no-root
 
-    - name: Install Lava
+    - name: Install Lava-DL
       run:  |
-        poetry update --no-interaction
         poetry install --no-interaction
 
     - name: Run unit tests
