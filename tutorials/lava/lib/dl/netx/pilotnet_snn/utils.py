@@ -34,12 +34,13 @@ if Loihi2.is_loihi2_available:
 
 class Buffer(AbstractProcess):
     """A simple buffer process that introduces a time step delay.
-    
+
     Parameters
     ----------
     shape : tuple of ints
         Shape of the buffer.
     """
+
     def __init__(self, shape: Tuple[int, ...]) -> None:
         super().__init__(shape=shape)
         self.inp = InPort(shape=shape)
@@ -73,6 +74,7 @@ class PilotNetEncoder(AbstractProcess):
     compression : Compression mode enum
         Compression mode of encoded data.
     """
+
     def __init__(self,
                  shape: Tuple[int, ...],
                  interval: int = 1,
@@ -90,6 +92,7 @@ class PilotNetEncoder(AbstractProcess):
 @requires(CPU)
 class PilotNetPyEncoderModel(AbstractSubProcessModel):
     """PilotNet encoder model for CPU."""
+
     def __init__(self, proc: AbstractProcess) -> None:
         self.inp: PyInPort = LavaPyType(np.ndarray, np.int32)
         self.out: PyOutPort = LavaPyType(np.ndarray, np.int32)
@@ -112,6 +115,7 @@ class PilotNetPyEncoderModel(AbstractSubProcessModel):
 @requires(Loihi2NeuroCore)
 class PilotNetNxEncoderModel(AbstractSubProcessModel):
     """PilotNet encoder model for Loihi 2."""
+
     def __init__(self, proc: AbstractProcess) -> None:
         self.inp: PyInPort = LavaPyType(np.ndarray, np.int32)
         self.out: PyOutPort = LavaPyType(np.ndarray, np.int32)
@@ -129,21 +133,23 @@ class PilotNetNxEncoderModel(AbstractSubProcessModel):
                                                    compression=compression)
         self.conv = Conv(weight=np.eye(3).reshape(3, 1, 1, 3),
                          input_shape=shape, num_message_bits=16)
-        
+
         proc.inp.connect(self.encoder.a_in)
         self.encoder.s_out.connect(self.adapter.inp)
         self.adapter.out.connect(self.conv.s_in)
         self.conv.a_out.connect(proc.out)
 
 # Voltage Reader ##############################################################
+
+
 class VoltageReader(AbstractProcess):
     def __init__(self,
-                shape: Tuple[int, ...],
-                interval: int = 16,
-                offset: int = 0) -> None:
+                 shape: Tuple[int, ...],
+                 interval: int = 16,
+                 offset: int = 0) -> None:
         super().__init__(shape=shape,
-                        interval=interval,
-                        offset=offset % interval)
+                         interval=interval,
+                         offset=offset % interval)
         self.ref = RefPort(shape=shape)
         self.out = OutPort(shape=shape)
 
@@ -182,18 +188,21 @@ class PyVoltageReaderModel(PyLoihiProcessModel):
         self.data = self.ref.read()
 
 # Output Decoder ##############################################################
+
+
 class PilotNetDecoder(AbstractProcess):
     """A simple affine transformer process that transforms the input.
-    
+
     Parameters
     ----------
     shape : tuple of ints
         Shape of the buffer.
     """
+
     def __init__(self,
                  shape: Tuple[int, ...],
-                 weight: float=1,
-                 bias: float=0,
+                 weight: float = 1,
+                 bias: float = 0,
                  interval: int = 1,
                  offset: int = 0) -> None:
         super().__init__(shape=shape,
@@ -221,80 +230,10 @@ class PyPilotNetDecoderModel(PyLoihiProcessModel):
     def run_spk(self):
         if (self.time_step - 1) % self.interval == self.offset:
             data = self.inp.recv()
-            data = (data.astype(np.int32) << 8) >> 8  # reinterpret the data as 24 bit 
+            # reinterpret the data as 24 bit
+            data = (data.astype(np.int32) << 8) >> 8
             self.data = data * self.weight + self.bias
         self.out.send(self.data)
-
-
-# class PilotNetDecoder(AbstractProcess):
-#     """Output decoder process for PilotNet LIF.
-
-#     Parameters
-#     ----------
-#     shape : Tuple[int, ...]
-#         Shape of output.
-#     """
-#     def __init__(self,
-#                  shape: Tuple[int, ...],
-#                  interval: int = 16,
-#                  offset: int = 0) -> None:
-#         super().__init__(shape=shape)
-#         self.ref = RefPort(shape=shape)
-#         self.out = OutPort(shape=shape)
-#         self.data = Var(shape=shape, init=0)
-#         self.proc_params['interval'] = interval
-#         self.proc_params['offset'] = offset % interval
-
-#     def connect_var(self, var: Var) -> None:
-#         self.ref.connect_var(var)
-
-
-# @implements(proc=PilotNetDecoder, protocol=LoihiProtocol)
-# @requires(CPU)
-# class PilotNetPyDecoderModel(PyLoihiProcessModel):
-#     """PilotNet decoder model for CPU."""
-#     ref: PyRefPort = LavaPyType(PyRefPort.VEC_DENSE, float)
-#     out: PyOutPort = LavaPyType(PyOutPort.VEC_DENSE, float)
-#     data: np.ndarray = LavaPyType(np.ndarray, np.int32)
-
-#     def __init__(self, proc_params):
-#         super().__init__(proc_params)
-#         self.interval = proc_params['interval']
-#         self.offset = proc_params['offset']
-
-#     def run_spk(self):
-#         self.out.send(self.data)
-
-#     def post_guard(self) -> None:
-#         return (self.time_step - 1) % self.interval == self.offset
-
-#     def run_post_mgmt(self) -> None:
-#         raw_data = self.ref.read()
-#         self.data = raw_data / self.interval / 32 / 64
-
-
-# @implements(proc=PilotNetDecoder, protocol=LoihiProtocol)
-# @requires(Loihi2NeuroCore)
-# class PilotNetNxDecoderModel(AbstractSubProcessModel):
-#     """PilotNet decoder model for Loihi."""
-#     def __init__(self, proc: AbstractProcess) -> None:
-#         self.ref: CRefPort = LavaCType(CRefPort, d_type=LavaCDataType.INT32)
-#         self.out: PyOutPort = LavaPyType(np.ndarray, np.int32)
-#         shape = proc.proc_params.get('shape')
-#         interval = proc.proc_params.get('interval')
-#         offset = proc.proc_params.get('offset')
-#         weight = 1 / interval / 32 / 64
-#         self.adapter = eio.state.Read(shape=shape,
-#                                       interval=interval,
-#                                       offset=offset)
-#         self.decoder = AffineTransformer(shape=shape,
-#                                          weight=weight,
-#                                          interval=interval,
-#                                          offset=offset)
-
-#         proc.ref.connect(self.adapter.ref)
-#         self.adapter.out.connect(self.decoder.inp)
-#         self.decoder.out.connect(proc.out)
 
 
 # Monitor #####################################################################
@@ -361,18 +300,18 @@ class PilotNetMonitorModel(PyLoihiProcessModel):
             self.output_history.append(angle)
             frame = (frame_data.transpose([1, 0, 2])
                      - self.bias) / (2 * self.weight) + 0.5
-            
+
             self.ax1.clear()
             self.ax2.clear()
             self.ax3.clear()
             self.ax1.imshow(frame)
             self.ax2.imshow(self.steering.rotate(-angle * 180 / np.pi,
-                                                fillcolor=(255, 255, 255)))
+                                                 fillcolor=(255, 255, 255)))
             print(f'ground_truth = {self.gt_history[-1]}, '
-                f'prediction = {angle}')
+                  f'prediction = {angle}')
             self.ax3.plot(np.array(self.gt_history), label='ground truth')
             self.ax3.plot(np.array(self.output_history),
-                        label='network prediction')
+                          label='network prediction')
             self.ax1.set_title('Input Frame')
             self.ax2.set_title('Network Prediction')
             self.ax3.set_ylabel('Prediction angle')
