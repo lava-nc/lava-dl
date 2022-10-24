@@ -5,13 +5,13 @@ import sys
 import unittest
 import torch
 
-from src.lava.lib.dl.slayer.utils.recurrent import (
+from lava.lib.dl.slayer.utils.recurrent import (
     custom_recurrent,
     custom_recurrent_ground_truth_1,
     custom_recurrent_ground_truth_2,
 )
-from src.lava.lib.dl.slayer.neuron.cuba import Neuron
-from src.lava.lib.dl.slayer.synapse.layer import Dense
+from lava.lib.dl.slayer.neuron.cuba import Neuron
+from lava.lib.dl.slayer.synapse.layer import Dense
 
 verbose = True if (("-v" in sys.argv) or ("--verbose" in sys.argv)) else False
 
