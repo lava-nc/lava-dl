@@ -193,7 +193,7 @@ class PilotNetFixedPtDecoderModel(PyLoihiProcessModel):
 
     def run_spk(self):
         raw_data = self.inp.recv()
-        # interpret it as 32 bit signed integer
+        # interpret it as 24 bit signed integer
         raw_data = (raw_data.astype(np.int32) << 8) >> 8
         data = raw_data / (1 << 18)
         self.out.send(data)
