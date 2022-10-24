@@ -33,6 +33,7 @@ jobs:
     - name: Install dependencies
       # if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       run: |
+        echo | which poetry
         poetry update --no-interaction
         poetry install --no-interaction --no-root
 
