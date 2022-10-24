@@ -167,9 +167,9 @@ class WgtScaleBatchNorm(torch.nn.Module):
         """
         """
         std = torch.sqrt(var + self.eps)
-        return torch.ones(1) << torch.ceil(torch.log2(std)).clamp(
+        return torch.pow(2., torch.ceil(torch.log2(std)).clamp(
             -self.weight_exp_bits, self.weight_exp_bits
-        )
+        ))
 
     @property
     def bias(self):
