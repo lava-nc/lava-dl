@@ -13,15 +13,8 @@ jobs:
         repository: 'Lava-DL'
 
     - name: Run flakeheaven (flake8)
-      if: runner.os == 'Linux' || runner.os == 'macOS'
-      run: |
-        source $VENV
-        flakeheaven lint src/lava tests/
-    - name: Run flakeheaven (flake8)
-      if: runner.os == 'Windows'
-      run: |
-        .venv\Scripts\activate.ps1
-        flakeheaven lint src/lava tests/
+      run: poetry run flakeheaven lint src/lava tests/
+
   security-lint:
     name: Security Lint Code
     runs-on: ubuntu-latest
@@ -53,11 +46,5 @@ jobs:
         repository: 'Lava-DL'    
 
     - name: Run unit tests
-      if: runner.os == 'Linux' || runner.os == 'macOS'
-      run: |
-        poetry run pytest
-        
-    - name: Run unit tests
-      if: runner.os == 'Windows'
-      run: |
-        poetry run pytest
+      run: poetry run pytest
+      
