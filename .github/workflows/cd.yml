@@ -53,7 +53,7 @@ jobs:
         run: |
           python3.9 -m venv artifact-test
           source artifact-test/bin/activate
-          artifact=$(ls | grep lava-dl | grep tar)
+          artifact=$(ls | grep lava_dl | grep tar)
           pip install --no-input $artifact
           python -c 'import lava.lib.dl.netx'
           python -c 'import lava.lib.dl.slayer'
@@ -65,7 +65,7 @@ jobs:
         run: |
           python3.9 -m venv artifact-test
           source artifact-test/bin/activate
-          artifact=$(ls | grep lava-dl | grep whl)
+          artifact=$(ls | grep lava_dl | grep whl)
           pip install --no-input $artifact
           python -c 'import lava.lib.dl.netx'
           python -c 'import lava.lib.dl.slayer'
@@ -83,7 +83,7 @@ jobs:
       - name: Download lava-dl artifact
         uses: actions/download-artifact@v3
         with:
-          name: lava
+          name: lava-dl
 
       - name: Set up Python 3.9
         uses: actions/setup-python@v4
@@ -99,7 +99,7 @@ jobs:
           source artifact-unittest/bin/activate
           pip install -U pip
           pip install nbconvert>=7.2.2 pytest>=7.2.0 matplotlib>=3.5.1 ipykernel>=6.15.0 nbformat>=5.3.0 nbconvert>=7.2.2
-          artifact=$(ls | grep lava-dl | grep tar)
+          artifact=$(ls | grep lava_dl | grep tar)
           pip install --no-input $artifact          
           tar -xvf $artifact
           mv ./lava*/tests .
@@ -118,10 +118,10 @@ jobs:
           source artifact-unittest/bin/activate
           pip install -U pip
           pip install nbconvert>=7.2.2 pytest>=7.2.0 matplotlib>=3.5.1 ipykernel>=6.15.0 nbformat>=5.3.0 nbconvert>=7.2.2
-          artifact=$(ls | grep lava-dl | grep whl)
+          artifact=$(ls | grep lava_dl | grep whl)
           pip install --no-input $artifact
           # Change $artifact to tar.gz
-          artifact=$(ls | grep lava-dl | grep tar)
+          artifact=$(ls | grep lava_dl | grep tar)
           tar -xvf $artifact
           mv ./lava*/tests .
           mv ./lava*/tutorials .
