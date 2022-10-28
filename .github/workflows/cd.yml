@@ -57,7 +57,7 @@ jobs:
           pip install --no-input $artifact
           python -c 'import lava.lib.dl.netx'
           python -c 'import lava.lib.dl.slayer'
-          pip uninstall -y lava-nc
+          pip uninstall -y lava-dl
           deactivate
           rm -rf artifact-test
 
@@ -69,7 +69,7 @@ jobs:
           pip install --no-input $artifact
           python -c 'import lava.lib.dl.netx'
           python -c 'import lava.lib.dl.slayer'
-          pip uninstall -y lava-nc
+          pip uninstall -y lava-dl
           deactivate
           rm -rf artifact-test
 
