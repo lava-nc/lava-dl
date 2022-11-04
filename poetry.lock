@@ -815,7 +815,7 @@ scipy = "^1.8.0"
 [package.source]
 type = "git"
 url = "https://github.com/lava-nc/lava.git"
-reference = "v0.5.1"
+reference = "main"
 resolved_reference = "d321a8b01b7cac017c52f196329c4e486558b8b7"
 
 [[package]]
@@ -1666,7 +1666,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "flake8 
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8, <3.11"
-content-hash = "94741c6b4b8650d55c943b4ac1a443f59cdac21b0ed5f32aada597844f05f0e5"
+content-hash = "48f647a635897a0a23355b31b2c13315bbfcb9270c220ed08045ee610c08f0d9"
 
 [metadata.files]
 argparse = []
