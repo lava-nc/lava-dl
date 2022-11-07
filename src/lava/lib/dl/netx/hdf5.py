@@ -4,6 +4,7 @@
 """HDF5 network exchange module."""
 
 from typing import List, Optional, Tuple, Union
+import warnings
 from lava.magma.core.decorator import implements
 from lava.magma.core.sync.protocols.loihi_protocol import LoihiProtocol
 from lava.proc.rf.process import RF
@@ -13,8 +14,9 @@ import h5py
 
 from lava.magma.core.process.process import AbstractProcess
 from lava.magma.core.process.ports.ports import InPort, OutPort
-from lava.proc.lif.process import LIF
+from lava.proc.lif.process import LIF, LIFReset
 from lava.proc.sdn.process import Sigma, Delta, SigmaDelta
+from lava.lib.dl.slayer.neuron.rf import neuron_params as get_rf_params
 from lava.lib.dl.netx.utils import NetDict
 from lava.lib.dl.netx.utils import optimize_weight_bits
 from lava.lib.dl.netx.blocks.process import Input, Dense, Conv, ComplexDense
@@ -29,22 +31,37 @@ class Network(AbstractProcess):
     net_config : str
         name of the hdf5 config filename.
     num_layers : int, optional
-        number of blocks to generate. An integer valuew will only generate the
+        number of blocks to generate. An integer value will only generate the
         first ``num_layers`` blocks in the description. The actual number of
         generated layers may be less than ``num_layers``. If it is None, all
         the layers are generated. Defaults to None.
+    skip_layers : int
+        number of blocks to skip. The nework generator will skip the first
+        ``skip_layers`` blocks that have been generated accoridng to
+        ``num_layers`` parametr. If it is None, no layers are skipped.
+        Defaults to None.
     input_message_bits : int, optional
         number of message bits in input spike. Defaults to 0 meaning unary
         spike.
     input_shape : tuple of ints, optional
         shape of input to the network. If None, input layer is assumed to be
         the first layer. Defaults to None.
+    reset_interval: int, optional
+        determines how often the network needs to be reset. Reset is
+        orchestrated with a timestep offset as per the layer number. If that is
+        not desired, it can be changed by directly accessing the layer's
+        neuron's reset parameter. None means no reset. Defaults to None.
+    reset_offset: int
+        determines the phase shift of network reset if enabled. Defaults to 0.
     """
     def __init__(self,
                  net_config: str,
                  num_layers: Optional[int] = None,
+                 skip_layers: int = 0,
                  input_message_bits: Optional[int] = 0,
-                 input_shape: Optional[Tuple[int, ...]] = None) -> None:
+                 input_shape: Optional[Tuple[int, ...]] = None,
+                 reset_interval: Optional[int] = None,
+                 reset_offset: int = 0) -> None:
         super().__init__(net_config=net_config,
                          num_layers=num_layers,
                          input_message_bits=input_message_bits)
@@ -52,8 +69,11 @@ class Network(AbstractProcess):
         self.net_config = NetDict(self.filename)
 
         self.num_layers = num_layers
+        self.skip_layers = skip_layers
         self.input_message_bits = input_message_bits
         self.input_shape = input_shape
+        self.reset_interval = reset_interval
+        self.reset_offset = reset_offset
 
         self.net_str = ''
         self.layers = self._create()
@@ -79,7 +99,9 @@ class Network(AbstractProcess):
 
     @staticmethod
     def get_neuron_params(neuron_config: h5py.Group,
-                          input: bool = False) -> AbstractProcess:
+                          input: bool = False,
+                          reset_interval: Optional[int] = None,
+                          reset_offset: int = 0) -> AbstractProcess:
         """Provides the correct neuron configuration process and parameters
         from the neuron description in hdf5 config.
 
@@ -90,6 +112,11 @@ class Network(AbstractProcess):
         input: bool
             flag to indicate if the layer is input. For some cases special
             processing may be done.
+        reset_interval: int, optional
+            the reset interval. None means no reset. Default is None.
+        reset_offset: int
+            the offset/phase of reset. It is only valid of reset_interval is
+            not None.
 
         Returns
         -------
@@ -103,7 +130,10 @@ class Network(AbstractProcess):
         if neuron_type in ['LOIHI', 'CUBA']:
             if num_message_bits is None:
                 num_message_bits = 0  # default value
-            neuron_process = LIF
+            if reset_interval is None:
+                neuron_process = LIF
+            else:
+                neuron_process = LIFReset
             neuron_params = {'neuron_proc': neuron_process,
                              # Map bias parameter in hdf5 config to bias_mant
                              'bias_key': 'bias_mant',
@@ -113,8 +143,14 @@ class Network(AbstractProcess):
                              'dv': neuron_config['vDecay'],
                              'bias_exp': 6,
                              'num_message_bits': num_message_bits}
+            if reset_interval is not None:
+                neuron_params['reset_interval'] = reset_interval
+                neuron_params['reset_offset'] = reset_offset
             return neuron_params
         elif neuron_type in ['SDNN']:
+            if reset_interval is not None:
+                warnings.warn("Reset is not supported with Sigma Delta "
+                              "neurons. It will be ignored.")
             if num_message_bits is None:
                 num_message_bits = 16  # default value
             if input is True:
@@ -137,26 +173,18 @@ class Network(AbstractProcess):
                                  'state_exp': 6,
                                  'num_message_bits': num_message_bits}
             return neuron_params
-        elif neuron_type in ['RF_PHASE']:
+        elif "RF" in neuron_type:
             if num_message_bits is None:
                 num_message_bits = 0  # default value
-            neuron_process = RF 
+            neuron_process = RF if "PHASE" in neuron_type else RF_IZ
+            neuron_params = get_rf_params(neuron_config)
             neuron_params = {
                 'neuron_proc': neuron_process,
                 'vth': neuron_config['vThMant'],
-                'sin_decay': neuron_config['sinDecay'] - 1,
-                'cos_decay':  neuron_config['cosDecay'] - 1,
-            }
-            return neuron_params
-        elif neuron_type in ['RF_IZHIKEVICH']:
-            if num_message_bits is None:
-                num_message_bits = 0  # default value
-            neuron_process = RF_IZ 
-            neuron_params = {
-                'neuron_proc': neuron_process,
-                'vth': neuron_config['vThMant'],
-                'sin_decay': neuron_config['sinDecay'] - 1,
-                'cos_decay':  neuron_config['cosDecay'] - 1,
+                'period': neuron_params['period'],
+                'alpha':  neuron_params['decay'],
+                'state_exp': 6,
+                'decay_bits': 12
             }
             return neuron_params
 
@@ -202,13 +230,20 @@ class Network(AbstractProcess):
             return entry
 
     @staticmethod
-    def create_input(layer_config: h5py.Group) -> Tuple[Input, str]:
+    def create_input(layer_config: h5py.Group,
+                     reset_interval: Optional[int] = None,
+                     reset_offset: int = 0) -> Tuple[Input, str]:
         """Creates input layer from layer configuration.
 
         Parameters
         ----------
         layer_config : h5py.Group
             hdf5 handle to layer description.
+        reset_interval: int, optional
+            the reset interval. None means no reset. Default is None.
+        reset_offset: int
+            the offset/phase of reset. It is only valid of reset_interval is
+            not None.
 
         Returns
         -------
@@ -219,6 +254,8 @@ class Network(AbstractProcess):
         """
         shape = tuple(layer_config['shape'][::-1])  # WHC (XYZ)
         neuron_params = Network.get_neuron_params(layer_config['neuron'],
+                                                  reset_interval=reset_interval,
+                                                  reset_offset=reset_offset,
                                                   input=True)
 
         if 'weight' in layer_config.keys():
@@ -248,7 +285,9 @@ class Network(AbstractProcess):
 
     @staticmethod
     def create_dense(layer_config: h5py.Group,
-                     input_message_bits: int = 0) -> Tuple[Dense, str]:
+                     input_message_bits: int = 0,
+                     reset_interval: Optional[int] = None,
+                     reset_offset: int = 0) -> Tuple[Dense, str]:
         """Creates dense layer from layer configuration
 
         Parameters
@@ -258,6 +297,11 @@ class Network(AbstractProcess):
         input_message_bits : int, optional
             number of message bits in input spike. Defaults to 0 meaning unary
             spike.
+        reset_interval: int, optional
+            the reset interval. None means no reset. Default is None.
+        reset_offset: int
+            the offset/phase of reset. It is only valid of reset_interval is
+            not None.
 
         Returns
         -------
@@ -267,7 +311,10 @@ class Network(AbstractProcess):
             table entry string for process.
         """
         shape = (np.prod(layer_config['shape']),)
-        neuron_params = Network.get_neuron_params(layer_config['neuron'])
+
+        neuron_params = Network.get_neuron_params(layer_config['neuron'],
+                                                  reset_interval=reset_interval,
+                                                  reset_offset=reset_offset)
         if layer_config["complex_synapse"]:
             weight_real = layer_config['weight_real']
             weight_imag = layer_config['weight_imag']
@@ -293,10 +340,6 @@ class Network(AbstractProcess):
                     'sign_mode_imag': sign_mode_imag,
                     'input_message_bits': input_message_bits}
 
-            # optional arguments
-            if 'bias' in layer_config.keys():
-                params['bias'] = layer_config['bias']
-
             proc = ComplexDense(**params)
             
         else:
@@ -316,11 +359,11 @@ class Network(AbstractProcess):
                     'sign_mode': sign_mode,
                     'input_message_bits': input_message_bits}
 
-            # optional arguments
-            if 'bias' in layer_config.keys():
-                params['bias'] = layer_config['bias']
-
             proc = Dense(**params)
+
+        # optional arguments
+        if 'bias' in layer_config.keys():
+            params['bias'] = layer_config['bias']
 
         table_entry = Network._table_str(type_str='Dense', width=1, height=1,
                                         channel=shape[0],
@@ -331,7 +374,9 @@ class Network(AbstractProcess):
     @staticmethod
     def create_conv(layer_config: h5py.Group,
                     input_shape: Tuple[int, int, int],
-                    input_message_bits: int = 0) -> Tuple[Conv, str]:
+                    input_message_bits: int = 0,
+                    reset_interval: Optional[int] = None,
+                    reset_offset: int = 0) -> Tuple[Conv, str]:
         """Creates conv layer from layer configuration
 
         Parameters
@@ -343,6 +388,11 @@ class Network(AbstractProcess):
         input_message_bits : int, optional
             number of message bits in input spike. Defaults to 0 meaning unary
             spike.
+        reset_interval: int, optional
+            the reset interval. None means no reset. Default is None.
+        reset_offset: int
+            the offset/phase of reset. It is only valid of reset_interval is
+            not None.
 
         Returns
         -------
@@ -351,13 +401,19 @@ class Network(AbstractProcess):
         str
             table entry string for process.
         """
+        def expand(x):
+            if np.isscalar(x):
+                return np.array([x, x])
+            return x[::-1]
         shape = tuple(layer_config['shape'][::-1])  # WHC (XYZ)
-        neuron_params = Network.get_neuron_params(layer_config['neuron'])
+        neuron_params = Network.get_neuron_params(layer_config['neuron'],
+                                                  reset_interval=reset_interval,
+                                                  reset_offset=reset_offset)
         weight = layer_config['weight'][:, :, ::-1, ::-1]
         weight = weight.reshape(weight.shape[:4]).transpose((0, 3, 2, 1))
-        stride = layer_config['stride'][::-1]
-        padding = layer_config['padding'][::-1]
-        dilation = layer_config['dilation'][::-1]
+        stride = expand(layer_config['stride'])
+        padding = expand(layer_config['padding'])
+        dilation = expand(layer_config['dilation'])
         groups = layer_config['groups']
 
         # arguments for conv block
@@ -426,12 +482,25 @@ class Network(AbstractProcess):
         if self.num_layers is not None:
             num_layers = min(num_layers, self.num_layers)
 
+        reset_interval = self.reset_interval
+        reset_offset = self.reset_offset + 1  # time starts from 1 in hardware
         for i in range(num_layers):
             layer_type = layer_config[i]['type']
             if layer_type == 'input':
-                layer, table = self.create_input(layer_config[i])
-                layers.append(layer)
-                input_message_bits = layer.output_message_bits
+                table = None
+                if 'neuron' in layer_config[i].keys():
+                    layer, table = self.create_input(
+                        layer_config[i],
+                        reset_interval=reset_interval,
+                        reset_offset=reset_offset)
+                    if i >= self.skip_layers:
+                        layers.append(layer)
+                        reset_offset += 1
+                    else:
+                        self.input_shape = layer.shape
+                    input_message_bits = layer.output_message_bits
+                elif 'shape' in layer_config[i].keys():
+                    self.input_shape = tuple(layer_config[i]['shape'][::-1])
 
             elif layer_type == 'conv':
                 if len(layers) > 0:
@@ -446,9 +515,14 @@ class Network(AbstractProcess):
                 layer, table = self.create_conv(
                     layer_config=layer_config[i],
                     input_shape=input_shape,
-                    input_message_bits=input_message_bits
-                )
-                layers.append(layer)
+                    input_message_bits=input_message_bits,
+                    reset_interval=reset_interval,
+                    reset_offset=reset_offset)
+                if i >= self.skip_layers:
+                    layers.append(layer)
+                    reset_offset += 1
+                else:
+                    self.input_shape = layer.shape
                 input_message_bits = layer.output_message_bits
                 if len(layers) > 1:
                     layers[-2].out.connect(layers[-1].inp)
@@ -469,9 +543,12 @@ class Network(AbstractProcess):
             elif layer_type == 'dense':
                 layer, table = self.create_dense(
                     layer_config=layer_config[i],
-                    input_message_bits=input_message_bits
-                )
-                layers.append(layer)
+                    input_message_bits=input_message_bits,
+                    reset_interval=reset_interval,
+                    reset_offset=reset_offset)
+                if i >= self.skip_layers:
+                    layers.append(layer)
+                    reset_offset += 1
                 input_message_bits = layer.output_message_bits
                 if flatten_next:
                     layers[-2].out.transpose([2, 1, 0]).flatten().connect(
@@ -502,7 +579,7 @@ class Network(AbstractProcess):
             elif layer_type == 'concat':
                 raise NotImplementedError(f'{layer_type} is not implemented.')
 
-            if table:
+            if table and i >= self.skip_layers:
                 self.net_str += table + '\n'
 
         self.net_str = self.net_str[:-1]

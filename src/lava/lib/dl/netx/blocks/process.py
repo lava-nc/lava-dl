@@ -171,16 +171,22 @@ class ComplexDense(AbstractBlock):
         shape of the layer block in (x, y, z)/WHC format.
     neuron_params : dict, optional
         dictionary of neuron parameters. Defaults to None.
-    weight : np.ndarray
-        synaptic weight.
+    weight_real : np.ndarray
+        synaptic real weight.
+    weight_imag : np.ndarray
+        synaptic imag weight.
     bias : np.ndarray or None
         bias of neuron. None means no bias. Defaults to None.
     has_graded_input : dict
         flag for graded spikes at input. Defaults to False.
-    num_weight_bits : int
-        number of weight bits. Defaults to 8.
-    weight_exponent : int
-        weight exponent value. Defaults to 0.
+    num_weight_bits_real : int
+        number of real weight bits. Defaults to 8.
+    num_weight_bits_imag : int
+        number of imag weight bits. Defaults to 8.
+    weight_exponent_real : int
+        real weight exponent value. Defaults to 0.
+    weight_exponent_imag : int
+        imag weight exponent value. Defaults to 0.
     input_message_bits : int, optional
         number of message bits in input spike. Defaults to 0 meaning unary
         spike.

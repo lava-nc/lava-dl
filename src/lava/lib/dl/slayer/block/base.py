@@ -94,7 +94,7 @@ class AbstractInput(torch.nn.Module):
             if self.neuron is not None:
                 self.input_shape = self.neuron.shape
             else:
-                self.input_shape = input.shape[1:-1]
+                self.input_shape = x.shape[1:-1]
 
         if self.count_log is True:
             return x, torch.mean(x > 0)
