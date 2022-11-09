@@ -46,7 +46,7 @@ The output should contain something like this `/home/user/lava`
 cd $HOME
 git clone git@github.com:lava-dl/lava-dl.git
 cd lava-dl
-pip install "poetry>=1.1.13"
+curl -sSL https://install.python-poetry.org | python3 -
 poetry config virtualenvs.in-project true
 poetry install
 source .venv/bin/activate
@@ -60,8 +60,8 @@ git clone git@github.com:lava-dl/lava-dl.git
 cd lava-dl
 python3 -m venv .venv
 .venv\Scripts\activate
+curl -sSL https://install.python-poetry.org | python3 -
 pip install -U pip
-pip install "poetry>=1.1.13"
 poetry config virtualenvs.in-project true
 poetry install
 pytest
@@ -105,6 +105,22 @@ Required test coverage of 45.0% reached. Total coverage: 46.99%
 ======================= 86 passed, 3 warnings in 46.56s ========================
 ```
 
+### [Alternative] Installing Lava via Conda
+If you use the Conda package manager, you can simply install the Lava package
+via:
+```bash
+conda install lava-dl -c conda-forge
+```
+
+Alternatively with intel numpy and scipy:
+
+```bash
+conda create -n lava-dl python=3.9 -c intel
+conda activate lava-dl
+conda install -n lava-dl -c intel numpy scipy
+conda install -n lava-dl -c conda-forge lava-dl --freeze-installed
+```
+
 ### [Alternative] Installing Lava from Binaries
 
 If you only need the lava-dl package in your python environment, we will publish
@@ -134,8 +150,10 @@ $ pip install lava-dl-0.2.0.tar.gz
 
 **Inference tutorials**
 * [Oxford Inference](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/oxford/run.ipynb)
-* [PilotNet SNN Inference](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/pilotnet_snn/run.ipynb)
+* [PilotNet LIF Inference](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/pilotnet_snn/run.ipynb)
+* [PilotNet LIF Benchmarking](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/pilotnet_snn/benchmark.ipynb)
 * [PilotNet SDNN Inference](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/pilotnet_sdnn/run.ipynb)
+* [PilotNet SDNN Benchmarking](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/pilotnet_sdnn/benchmark.ipynb)
 
 ## __`lava.lib.dl.slayer`__ 
 

@@ -111,8 +111,7 @@ class PilotNetDataset():
                 + float(self.samples[index + 1][1])
             ) / 2
         gt_val = ground_truth * np.pi / 180
-        print(f'\rSample: {index}', end='')
-        return image, gt_val
+        return image.reshape(image.shape + (1,)), gt_val
 
     def __len__(self) -> int:
         return len(self.samples)
