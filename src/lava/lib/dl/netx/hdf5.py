@@ -315,7 +315,8 @@ class Network(AbstractProcess):
         neuron_params = Network.get_neuron_params(layer_config['neuron'],
                                                   reset_interval=reset_interval,
                                                   reset_offset=reset_offset)
-        if layer_config["complex_synapse"]:
+        # check to see for nested weights
+        if isinstance(layer_config["weight"], NetDict): 
             weight_real = layer_config['weight/real']
             weight_imag = layer_config['weight/imag']
             if weight_real.ndim == 1:
@@ -343,6 +344,7 @@ class Network(AbstractProcess):
             proc = ComplexDense(**params)
             
         else:
+            print("WENT INTO REGULAR STATEMENT")
             weight = layer_config['weight']
             if weight.ndim == 1:
                 weight = weight.reshape(shape[0], -1)
@@ -359,12 +361,11 @@ class Network(AbstractProcess):
                     'sign_mode': sign_mode,
                     'input_message_bits': input_message_bits}
 
-            proc = Dense(**params)
-
             # optional arguments
             if 'bias' in layer_config.keys():
                 params['bias'] = layer_config['bias']
 
+            proc = Dense(**params)
         table_entry = Network._table_str(type_str='Dense', width=1, height=1,
                                         channel=shape[0],
                                         delay='delay' in layer_config.keys())
