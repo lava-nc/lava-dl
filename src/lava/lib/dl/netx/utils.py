@@ -48,7 +48,7 @@ class NetDict:
             'iDecay', 'refDelay', 'scaleRho', 'tauRho', 'theta', 'vDecay',
             'vThMant', 'wgtExp', 'sinDecay', 'cosDecay', "complex_synapse"
         ]
-        self.copy_keys = ['weight', 'bias', 'weight_real', 'weight_imag']
+        self.copy_keys = ['weight', 'bias', 'weight/real', 'weight/imag']
 
     def keys(self) -> h5py._hl.base.KeysViewHDF5:
         return self.f.keys()

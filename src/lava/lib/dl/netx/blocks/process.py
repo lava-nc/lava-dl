@@ -175,8 +175,6 @@ class ComplexDense(AbstractBlock):
         synaptic real weight.
     weight_imag : np.ndarray
         synaptic imag weight.
-    bias : np.ndarray or None
-        bias of neuron. None means no bias. Defaults to None.
     has_graded_input : dict
         flag for graded spikes at input. Defaults to False.
     num_weight_bits_real : int
@@ -203,8 +201,7 @@ class ComplexDense(AbstractBlock):
         weight_real = kwargs.pop('weight_real')
         weight_imag = kwargs.pop('weight_imag')
 
-        self.neuron = self._neuron(kwargs.pop('bias', None))
-
+        self.neuron = self._neuron(None)
         self.real_synapse = DenseSynapse(
             weights=weight_real,
             weight_exp=weight_exponent_real,
@@ -235,6 +232,33 @@ class ComplexDense(AbstractBlock):
 
     def export_hdf5(self, handle: Union[h5py.File, h5py.Group]) -> None:
         raise NotImplementedError
+
+class ComplexInput(AbstractBlock):
+    """Input layer block.
+
+    Parameters
+    ----------
+    shape : tuple or list
+        shape of the layer block in (x, y, z)/WHC format.
+    neuron_params : dict, optional
+        dictionary of neuron parameters. Defaults to None.
+    """
+
+    def __init__(self, **kwargs: Union[dict, tuple, list, int, bool]) -> None:
+        super().__init__(**kwargs)
+        self.neuron = self._neuron(None)
+
+        self.inp = InPort(shape=self.neuron.a_real_in.shape)
+        self.inp.connect(self.neuron.a_real_in)
+        self.inp.connect(self.neuron.a_imag_in)
+        self.out = OutPort(shape=self.neuron.s_out.shape)
+        self.neuron.s_out.connect(self.out)
+
+        self._clean()
+
+    def export_hdf5(self, handle: Union[h5py.File, h5py.Group]) -> None:
+        raise NotImplementedError
+
 
 class Conv(AbstractBlock):
     """Conv layer block.

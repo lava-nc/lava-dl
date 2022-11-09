@@ -316,8 +316,8 @@ class Network(AbstractProcess):
                                                   reset_interval=reset_interval,
                                                   reset_offset=reset_offset)
         if layer_config["complex_synapse"]:
-            weight_real = layer_config['weight_real']
-            weight_imag = layer_config['weight_imag']
+            weight_real = layer_config['weight/real']
+            weight_imag = layer_config['weight/imag']
             if weight_real.ndim == 1:
                 weight_real = weight_real.reshape(shape[0], -1)
                 weight_imag = weight_imag.reshape(shape[0], -1)
@@ -329,16 +329,16 @@ class Network(AbstractProcess):
 
             # arguments for dense block
             params = {'shape': shape,
-                    'neuron_params': neuron_params,
-                    'weight_real': weight_real,
-                    'weight_imag': weight_imag,
-                    'num_weight_bits_real': num_weight_bits_real,
-                    'num_weight_bits_imag': num_weight_bits_imag,
-                    'weight_exponent_real': weight_exponent_real,
-                    'weight_exponent_imag': weight_exponent_imag,
-                    'sign_mode_real': sign_mode_real,
-                    'sign_mode_imag': sign_mode_imag,
-                    'input_message_bits': input_message_bits}
+                      'neuron_params': neuron_params,
+                      'weight_real': weight_real,
+                      'weight_imag': weight_imag,
+                      'num_weight_bits_real': num_weight_bits_real,
+                      'num_weight_bits_imag': num_weight_bits_imag,
+                      'weight_exponent_real': weight_exponent_real,
+                      'weight_exponent_imag': weight_exponent_imag,
+                      'sign_mode_real': sign_mode_real,
+                      'sign_mode_imag': sign_mode_imag,
+                      'input_message_bits': input_message_bits}
 
             proc = ComplexDense(**params)
             
@@ -361,9 +361,9 @@ class Network(AbstractProcess):
 
             proc = Dense(**params)
 
-        # optional arguments
-        if 'bias' in layer_config.keys():
-            params['bias'] = layer_config['bias']
+            # optional arguments
+            if 'bias' in layer_config.keys():
+                params['bias'] = layer_config['bias']
 
         table_entry = Network._table_str(type_str='Dense', width=1, height=1,
                                         channel=shape[0],

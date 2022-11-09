@@ -560,11 +560,11 @@ class AbstractDense(torch.nn.Module):
         if hasattr(self.synapse, 'imag'):   # complex synapse
             handle.create_dataset("complex_synapse", data=np.array(True)) # TODO
             handle.create_dataset(
-                'weight_real',
+                'weight/real',
                 data=weight(self.synapse.real)
             )
             handle.create_dataset(
-                'weight_imag',
+                'weight/imag',
                 data=weight(self.synapse.imag)
             )
         else:
