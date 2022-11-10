@@ -182,7 +182,7 @@ class Network(AbstractProcess):
                 'neuron_proc': neuron_process,
                 'vth': neuron_config['vThMant'],
                 'period': neuron_params['period'],
-                'alpha':  neuron_params['decay'],
+                'alpha': neuron_params['decay'],
                 'state_exp': 6,
                 'decay_bits': 12
             }
@@ -282,7 +282,6 @@ class Network(AbstractProcess):
 
         return Input(**params), table_entry
 
-
     @staticmethod
     def create_dense(layer_config: h5py.Group,
                      input_message_bits: int = 0,
@@ -316,7 +315,7 @@ class Network(AbstractProcess):
                                                   reset_interval=reset_interval,
                                                   reset_offset=reset_offset)
         # check to see for nested weights
-        if isinstance(layer_config["weight"], NetDict): 
+        if isinstance(layer_config["weight"], NetDict):
             weight_real = layer_config['weight/real']
             weight_imag = layer_config['weight/imag']
             if weight_real.ndim == 1:
@@ -325,10 +324,12 @@ class Network(AbstractProcess):
 
             opt_weights_real = optimize_weight_bits(weight_real)
             opt_weights_imag = optimize_weight_bits(weight_imag)
-            weight_real, num_weight_bits_real, weight_exponent_real, sign_mode_real = opt_weights_real
-            weight_imag, num_weight_bits_imag, weight_exponent_imag, sign_mode_imag = opt_weights_imag
+            weight_real, num_weight_bits_real, weight_exponent_real,\
+                sign_mode_real = opt_weights_real
+            weight_imag, num_weight_bits_imag, weight_exponent_imag,\
+                sign_mode_imag = opt_weights_imag
 
-            # arguments for dense block
+            # arguments for complex dense block
             params = {'shape': shape,
                       'neuron_params': neuron_params,
                       'weight_real': weight_real,
@@ -342,9 +343,8 @@ class Network(AbstractProcess):
                       'input_message_bits': input_message_bits}
 
             proc = ComplexDense(**params)
-            
+
         else:
-            print("WENT INTO REGULAR STATEMENT")
             weight = layer_config['weight']
             if weight.ndim == 1:
                 weight = weight.reshape(shape[0], -1)
@@ -354,12 +354,12 @@ class Network(AbstractProcess):
 
             # arguments for dense block
             params = {'shape': shape,
-                    'neuron_params': neuron_params,
-                    'weight': weight,
-                    'num_weight_bits': num_weight_bits,
-                    'weight_exponent': weight_exponent,
-                    'sign_mode': sign_mode,
-                    'input_message_bits': input_message_bits}
+                      'neuron_params': neuron_params,
+                      'weight': weight,
+                      'num_weight_bits': num_weight_bits,
+                      'weight_exponent': weight_exponent,
+                      'sign_mode': sign_mode,
+                      'input_message_bits': input_message_bits}
 
             # optional arguments
             if 'bias' in layer_config.keys():
@@ -367,10 +367,9 @@ class Network(AbstractProcess):
 
             proc = Dense(**params)
         table_entry = Network._table_str(type_str='Dense', width=1, height=1,
-                                        channel=shape[0],
-                                        delay='delay' in layer_config.keys())
+                                         channel=shape[0],
+                                         delay='delay' in layer_config.keys())
         return proc, table_entry
-
 
     @staticmethod
     def create_conv(layer_config: h5py.Group,

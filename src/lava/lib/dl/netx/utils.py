@@ -64,7 +64,7 @@ class NetDict:
             else:
                 value = value[()]
             return value.decode('ascii')
-        elif key in self.copy_keys:  
+        elif key in self.copy_keys:
             return self.f[key][()].astype(int).copy()
         elif key in self.array_keys:
             return self.f[key][()]

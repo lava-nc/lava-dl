@@ -105,6 +105,7 @@ class Input(AbstractBlock):
     def export_hdf5(self, handle: Union[h5py.File, h5py.Group]) -> None:
         raise NotImplementedError
 
+
 class Dense(AbstractBlock):
     """Dense layer block.
     Parameters
@@ -163,7 +164,7 @@ class Dense(AbstractBlock):
 
 
 class ComplexDense(AbstractBlock):
-    """Dense layer block.
+    """Dense Complex layer block.
 
     Parameters
     ----------
@@ -215,7 +216,7 @@ class ComplexDense(AbstractBlock):
             num_message_bits=self.input_message_bits,
         )
 
-        if self.shape != self.real_synapse.a_out.shape or self.shape != self.imag_synapse.a_out.shape:
+        if self.shape != self.real_synapse.a_out.shape:
             raise RuntimeError(
                 f'Expected synapse output shape to be {self.shape[-1]}, '
                 f'found {self.synapse.a_out.shape}.'
@@ -228,10 +229,12 @@ class ComplexDense(AbstractBlock):
         self.real_synapse.a_out.connect(self.neuron.a_real_in)
         self.imag_synapse.a_out.connect(self.neuron.a_imag_in)
         self.neuron.s_out.connect(self.out)
+
         self._clean()
 
     def export_hdf5(self, handle: Union[h5py.File, h5py.Group]) -> None:
         raise NotImplementedError
+
 
 class ComplexInput(AbstractBlock):
     """Input layer block.

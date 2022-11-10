@@ -21,7 +21,8 @@ from lava.proc.rf_iz.process import RF_IZ
 from lava.proc.sdn.process import Sigma, Delta, SigmaDelta
 from lava.proc.conv import utils
 
-from lava.lib.dl.netx.blocks.process import Dense, Conv, Input, ComplexDense, ComplexInput
+from lava.lib.dl.netx.blocks.process import Dense, Conv, Input, ComplexDense,\
+    ComplexInput
 
 
 verbose = True if (('-v' in sys.argv) or ('--verbose' in sys.argv)) else False
@@ -225,6 +226,7 @@ class TestLIFBlocks(unittest.TestCase):
             f'Error was {s_error}.'
         )
 
+
 class TestRFBlocks(unittest.TestCase):
 
     def test_input(self) -> None:
@@ -288,8 +290,8 @@ class TestRFBlocks(unittest.TestCase):
         dense_blk = ComplexDense(
             shape=(256,),
             neuron_params={'neuron_proc': RF, **rf_params},
-            weight_real = np.load(root + '/gts/complex_dense/weight_r.npy'),
-            weight_imag = np.load(root + '/gts/complex_dense/weight_img.npy'),
+            weight_real=np.load(root + '/gts/complex_dense/weight_r.npy'),
+            weight_imag=np.load(root + '/gts/complex_dense/weight_img.npy'),
         )
 
         source = SendProcess(data=np.load(root + '/gts/complex_dense/in.npy'))
@@ -327,6 +329,8 @@ class TestRFBlocks(unittest.TestCase):
             f'Found {s[s != s_gt] = } and {s_gt[s != s_gt] = }. '
             f'Error was {s_error}.'
         )
+
+
 class TestSDNBlocks(unittest.TestCase):
     def test_input(self) -> None:
         """Tests SDN input block driven by known input."""

@@ -558,7 +558,7 @@ class AbstractDense(torch.nn.Module):
             self.synapse.disable_weight_norm()
 
         if hasattr(self.synapse, 'imag'):   # complex synapse
-            handle.create_dataset("complex_synapse", data=np.array(True)) # TODO
+            handle.create_dataset("complex_synapse", data=np.array(True))
             handle.create_dataset(
                 'weight/real',
                 data=weight(self.synapse.real)
@@ -570,7 +570,7 @@ class AbstractDense(torch.nn.Module):
         else:
             handle.create_dataset("complex_synapse", data=np.array(False))
             handle.create_dataset('weight', data=weight(self.synapse))
-            
+
         # bias
         has_norm = False
         if hasattr(self.neuron, 'norm'):
