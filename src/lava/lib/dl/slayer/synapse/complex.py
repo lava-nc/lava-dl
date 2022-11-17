@@ -105,6 +105,10 @@ class Dense(ComplexLayer):
             weight_scale, weight_norm, pre_hook_fx
         )
 
+        self.in_channels = self.real.in_channels
+        self.out_channels = self.real.out_channels
+        self.weight_norm_enabled = self.real.weight_norm_enabled
+
 
 class Conv(ComplexLayer):
     """Convolution complex-synapse layer.

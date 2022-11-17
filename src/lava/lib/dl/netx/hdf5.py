@@ -7,6 +7,8 @@ from typing import List, Optional, Tuple, Union
 import warnings
 from lava.magma.core.decorator import implements
 from lava.magma.core.sync.protocols.loihi_protocol import LoihiProtocol
+from lava.proc.rf.process import RF
+from lava.proc.rf_iz.process import RF_IZ
 import numpy as np
 import h5py
 
@@ -14,9 +16,10 @@ from lava.magma.core.process.process import AbstractProcess
 from lava.magma.core.process.ports.ports import InPort, OutPort
 from lava.proc.lif.process import LIF, LIFReset
 from lava.proc.sdn.process import Sigma, Delta, SigmaDelta
+from lava.lib.dl.slayer.neuron.rf import neuron_params as get_rf_params
 from lava.lib.dl.netx.utils import NetDict
 from lava.lib.dl.netx.utils import optimize_weight_bits
-from lava.lib.dl.netx.blocks.process import Input, Dense, Conv
+from lava.lib.dl.netx.blocks.process import Input, Dense, Conv, ComplexDense
 from lava.lib.dl.netx.blocks.models import AbstractPyBlockModel
 
 
@@ -170,6 +173,20 @@ class Network(AbstractProcess):
                                  'state_exp': 6,
                                  'num_message_bits': num_message_bits}
             return neuron_params
+        elif "RF" in neuron_type:
+            if num_message_bits is None:
+                num_message_bits = 0  # default value
+            neuron_process = RF if "PHASE" in neuron_type else RF_IZ
+            neuron_params = get_rf_params(neuron_config)
+            neuron_params = {
+                'neuron_proc': neuron_process,
+                'vth': neuron_config['vThMant'],
+                'period': neuron_params['period'],
+                'alpha': neuron_params['decay'],
+                'state_exp': 6,
+                'decay_bits': 12
+            }
+            return neuron_params
 
     @staticmethod
     def _table_str(type_str: str = '',
@@ -293,34 +310,66 @@ class Network(AbstractProcess):
             table entry string for process.
         """
         shape = (np.prod(layer_config['shape']),)
+
         neuron_params = Network.get_neuron_params(layer_config['neuron'],
                                                   reset_interval=reset_interval,
                                                   reset_offset=reset_offset)
-        weight = layer_config['weight']
-        if weight.ndim == 1:
-            weight = weight.reshape(shape[0], -1)
+        # check to see for nested weights
+        if isinstance(layer_config["weight"], NetDict):
+            weight_real = layer_config['weight/real']
+            weight_imag = layer_config['weight/imag']
+            if weight_real.ndim == 1:
+                weight_real = weight_real.reshape(shape[0], -1)
+                weight_imag = weight_imag.reshape(shape[0], -1)
 
-        opt_weights = optimize_weight_bits(weight)
-        weight, num_weight_bits, weight_exponent, sign_mode = opt_weights
+            opt_weights_real = optimize_weight_bits(weight_real)
+            opt_weights_imag = optimize_weight_bits(weight_imag)
+            weight_real, num_weight_bits_real, weight_exponent_real,\
+                sign_mode_real = opt_weights_real
+            weight_imag, num_weight_bits_imag, weight_exponent_imag,\
+                sign_mode_imag = opt_weights_imag
 
-        # arguments for dense block
-        params = {'shape': shape,
-                  'neuron_params': neuron_params,
-                  'weight': weight,
-                  'num_weight_bits': num_weight_bits,
-                  'weight_exponent': weight_exponent,
-                  'sign_mode': sign_mode,
-                  'input_message_bits': input_message_bits}
+            # arguments for complex dense block
+            params = {'shape': shape,
+                      'neuron_params': neuron_params,
+                      'weight_real': weight_real,
+                      'weight_imag': weight_imag,
+                      'num_weight_bits_real': num_weight_bits_real,
+                      'num_weight_bits_imag': num_weight_bits_imag,
+                      'weight_exponent_real': weight_exponent_real,
+                      'weight_exponent_imag': weight_exponent_imag,
+                      'sign_mode_real': sign_mode_real,
+                      'sign_mode_imag': sign_mode_imag,
+                      'input_message_bits': input_message_bits}
 
-        # optional arguments
-        if 'bias' in layer_config.keys():
-            params['bias'] = layer_config['bias']
+            proc = ComplexDense(**params)
 
+        else:
+            weight = layer_config['weight']
+            if weight.ndim == 1:
+                weight = weight.reshape(shape[0], -1)
+
+            opt_weights = optimize_weight_bits(weight)
+            weight, num_weight_bits, weight_exponent, sign_mode = opt_weights
+
+            # arguments for dense block
+            params = {'shape': shape,
+                      'neuron_params': neuron_params,
+                      'weight': weight,
+                      'num_weight_bits': num_weight_bits,
+                      'weight_exponent': weight_exponent,
+                      'sign_mode': sign_mode,
+                      'input_message_bits': input_message_bits}
+
+            # optional arguments
+            if 'bias' in layer_config.keys():
+                params['bias'] = layer_config['bias']
+
+            proc = Dense(**params)
         table_entry = Network._table_str(type_str='Dense', width=1, height=1,
                                          channel=shape[0],
                                          delay='delay' in layer_config.keys())
-
-        return Dense(**params), table_entry
+        return proc, table_entry
 
     @staticmethod
     def create_conv(layer_config: h5py.Group,
@@ -437,7 +486,6 @@ class Network(AbstractProcess):
         reset_offset = self.reset_offset + 1  # time starts from 1 in hardware
         for i in range(num_layers):
             layer_type = layer_config[i]['type']
-
             if layer_type == 'input':
                 table = None
                 if 'neuron' in layer_config[i].keys():
@@ -510,7 +558,21 @@ class Network(AbstractProcess):
                 else:
                     if len(layers) > 1:
                         layers[-2].out.connect(layers[-1].inp)
-
+            elif layer_type == "dense_comp":
+                layer, table = self.create_complex_dense(
+                    layer_config=layer_config[i],
+                    input_message_bits=input_message_bits
+                )
+                layers.append(layer)
+                input_message_bits = layer.output_message_bits
+                if flatten_next:
+                    layers[-2].out.transpose([2, 1, 0]).flatten().connect(
+                        layers[-1].inp
+                    )
+                    flatten_next = False
+                else:
+                    if len(layers) > 1:
+                        layers[-2].out.connect(layers[-1].inp)
             elif layer_type == 'average':
                 raise NotImplementedError(f'{layer_type} is not implemented.')
 
