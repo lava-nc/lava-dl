@@ -16,10 +16,13 @@ from lava.magma.core.model.py.model import PyLoihiProcessModel
 from lava.proc.io.source import RingBuffer as SendProcess
 from lava.proc.io.sink import RingBuffer as ReceiveProcess
 from lava.proc.lif.process import LIF
+from lava.proc.rf.process import RF
+from lava.proc.rf_iz.process import RF_IZ
 from lava.proc.sdn.process import Sigma, Delta, SigmaDelta
 from lava.proc.conv import utils
 
-from lava.lib.dl.netx.blocks.process import Dense, Conv, Input
+from lava.lib.dl.netx.blocks.process import Dense, Conv, Input, ComplexDense,\
+    ComplexInput
 
 
 verbose = True if (('-v' in sys.argv) or ('--verbose' in sys.argv)) else False
@@ -219,6 +222,110 @@ class TestLIFBlocks(unittest.TestCase):
         self.assertTrue(
             s_error == 0,
             f'Output spike and ground truth do not match for Conv block. '
+            f'Found {s[s != s_gt] = } and {s_gt[s != s_gt] = }. '
+            f'Error was {s_error}.'
+        )
+
+
+class TestRFBlocks(unittest.TestCase):
+
+    def test_input(self) -> None:
+        """Tests input rf block driven by known input."""
+        num_steps = 2000
+        rf_params = {'vth': 1.1,
+                     'period': 7,
+                     'state_exp': 6,
+                     'decay_bits': 12,
+                     'alpha': .05}
+
+        input_blk = ComplexInput(
+            shape=(200,),
+            neuron_params={'neuron_proc': RF_IZ, **rf_params},
+        )
+        source = SendProcess(data=np.load(root + '/gts/complex_dense/in.npy'))
+        source.s_out.connect(input_blk.inp)
+        sink = ReceiveProcess(shape=input_blk.out.shape, buffer=num_steps)
+        input_blk.out.connect(sink.a_in)
+
+        run_condition = RunSteps(num_steps=num_steps)
+        run_config = TestRunConfig(select_tag='fixed_pt')
+        input_blk.run(condition=run_condition, run_cfg=run_config)
+        output = sink.data.get()
+        input_blk.stop()
+
+        gt = np.load(root + '/gts/complex_dense/current.npy')
+
+        error = np.abs(output - gt).sum()
+        if verbose:
+            print('Input spike error:', error)
+            if HAVE_DISPLAY:
+                plt.figure()
+                out_ae = np.argwhere(output.reshape((-1, num_steps)) > 0)
+                gt_ae = np.argwhere(gt.reshape((-1, num_steps)) > 0)
+                plt.plot(gt_ae[:, 1],
+                         gt_ae[:, 0],
+                         '.', markersize=15, label='Ground Truth')
+                plt.plot(out_ae[:, 1], out_ae[:, 0], '.', label='Input Block')
+                plt.xlabel('Time')
+                plt.ylabel('Neuron ID')
+                plt.legend()
+                plt.show()
+
+        self.assertTrue(
+            error == 0,
+            f'Output spike and ground truth do not match for Input block. '
+            f'Found {output[output != gt] = } and {gt[output != gt] = }. '
+            f'Error was {error}.'
+        )
+
+    def test_dense(self) -> None:
+        """Tests RF dense block driven by known input."""
+        num_steps = 2000
+        rf_params = {'vth': 25,
+                     'period': 11,
+                     'state_exp': 6,
+                     'decay_bits': 12,
+                     'alpha': .05}
+
+        dense_blk = ComplexDense(
+            shape=(256,),
+            neuron_params={'neuron_proc': RF, **rf_params},
+            weight_real=np.load(root + '/gts/complex_dense/weight_r.npy'),
+            weight_imag=np.load(root + '/gts/complex_dense/weight_img.npy'),
+        )
+
+        source = SendProcess(data=np.load(root + '/gts/complex_dense/in.npy'))
+        sink = ReceiveProcess(shape=dense_blk.out.shape, buffer=num_steps)
+        source.s_out.connect(dense_blk.inp)
+        dense_blk.out.connect(sink.a_in)
+
+        run_condition = RunSteps(num_steps=num_steps)
+        run_config = TestRunConfig(select_tag='fixed_pt')
+        dense_blk.run(condition=run_condition, run_cfg=run_config)
+        s = sink.data.get()
+        dense_blk.stop()
+
+        s_gt = np.load(root + '/gts/complex_dense/out.npy')
+        s_error = np.abs(s - s_gt).sum()
+
+        if verbose:
+            print('Dense spike error:', s_error)
+            if HAVE_DISPLAY:
+                plt.figure()
+                out_ae = np.argwhere(s.reshape((-1, num_steps)) > 0)
+                gt_ae = np.argwhere(s_gt.reshape((-1, num_steps)) > 0)
+                plt.plot(gt_ae[:, 1],
+                         gt_ae[:, 0],
+                         '.', markersize=15, label='Ground Truth')
+                plt.plot(out_ae[:, 1], out_ae[:, 0], '.', label='Input Block')
+                plt.xlabel('Time')
+                plt.ylabel('Neuron ID')
+                plt.legend()
+                plt.show()
+
+        self.assertTrue(
+            s_error == 0,
+            f'Output spike and ground truth do not match for Dense block. '
             f'Found {s[s != s_gt] = } and {s_gt[s != s_gt] = }. '
             f'Error was {s_error}.'
         )
