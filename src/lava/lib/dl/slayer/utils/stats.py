@@ -43,6 +43,10 @@ class LearningStat:
         self.accuracy_log = []
         self.best_loss = False
         self.best_accuracy = False
+        self.loss_str = 'loss'
+        self.loss_unit = ''
+        self.accuracy_str = 'accuracy'
+        self.accuracy_unit = ''
 
     def reset(self):
         """Reset stat."""
@@ -61,7 +65,7 @@ class LearningStat:
     @property
     def accuracy(self):
         """Current accuracy."""
-        if self.num_samples > 0 and self.correct_samples > 0:
+        if self.num_samples > 0:
             return self.correct_samples / self.num_samples
         else:
             return None
@@ -99,20 +103,24 @@ class LearningStat:
             return ''
         elif self.accuracy is None:
             if self.min_loss is None:
-                return f'loss = {self.loss:11.5f}'
+                return f'{self.loss_str} = {self.loss:11.5f}'
             else:
-                return f'loss = {self.loss:11.5f} '\
+                return f'{self.loss_str} = {self.loss:11.5f} '\
                     f'(min = {self.min_loss:11.5f})'
         else:
             if self.min_loss is None:
                 if self.max_accuracy is None:
-                    return f'loss = {self.loss:11.5f}{" "*24}'\
-                        f'accuracy = {self.accuracy:7.5f}'
+                    return (f'{self.loss_str} = {self.loss:11.5f}  '
+                            f'{self.loss_unit}{" "*24}'
+                            f'{self.accuracy_str} = {self.accuracy:7.5f} '
+                            f'{self.accuracy_unit}')
             else:
-                return f'loss = {self.loss:11.5f} '\
-                    f'(min = {self.min_loss:11.5f}){" "*4}'\
-                    f'accuracy = {self.accuracy:7.5f} '\
-                    f'(max = {self.max_accuracy:7.5f})'
+                return (f'{self.loss_str} = {self.loss:11.5f} '
+                        f'(min = {self.min_loss:11.5f}) '
+                        f'{self.loss_unit}{" "*4}'
+                        f'{self.accuracy_str} = {self.accuracy:7.5f} '
+                        f'(max = {self.max_accuracy:7.5f}) '
+                        f'{self.accuracy_unit}')
 
 
 class LearningStats:
@@ -127,11 +135,27 @@ class LearningStats:
     validation : LearningStat
         `LearningStat` object to manage validation statistics.
     """
-    def __init__(self):
+    def __init__(self,
+                 loss_str='loss',
+                 loss_unit='',
+                 accuracy_str='accuracy',
+                 accuracy_unit=''):
         self.lines_printed = 0
         self.training = LearningStat()
         self.testing = LearningStat()
         self.validation = LearningStat()
+        self.training.accuracy_str = accuracy_str
+        self.training.accuracy_unit = accuracy_unit
+        self.training.loss_str = loss_str
+        self.training.loss_unit = loss_unit
+        self.testing.accuracy_str = accuracy_str
+        self.testing.accuracy_unit = accuracy_unit
+        self.testing.loss_str = loss_str
+        self.testing.loss_unit = loss_unit
+        self.validation.accuracy_str = accuracy_str
+        self.validation.accuracy_unit = accuracy_unit
+        self.validation.loss_str = loss_str
+        self.validation.loss_unit = loss_unit
 
     def update(self):
         """Update all the stats. Typically called at the end of epoch."""
@@ -246,8 +270,11 @@ class LearningStats:
             if loss_plot_exists is False:
                 loss_plot_exists = figure_init(figures[0])
             plt.semilogy(self.testing.loss_log, label='Testing')
+        loss_ylabel = self.training.loss_str.capitalize()
+        if self.training.loss_unit != '':
+            loss_ylabel += f' {self.training.loss_unit}'
         plt.xlabel('Epoch')
-        plt.ylabel('Loss')
+        plt.ylabel(loss_ylabel)
         plt.legend()
         if path is not None:
             plt.savefig(path + 'loss.png')
@@ -268,8 +295,11 @@ class LearningStats:
             if acc_plot_exists is False:
                 acc_plot_exists = figure_init(figures[1])
             plt.plot(self.testing.accuracy_log, label='Testing')
+        accuracy_ylabel = self.training.accuracy_str.capitalize()
+        if self.training.accuracy_unit != '':
+            accuracy_ylabel += f' {self.training.accuracy_unit}'
         plt.xlabel('Epoch')
-        plt.ylabel('Accuracy')
+        plt.ylabel(accuracy_ylabel)
         plt.legend()
         if path is not None:
             plt.savefig(path + 'accuracy.png')
@@ -283,7 +313,7 @@ class LearningStats:
             Folder path to save the stats. Defaults to ''.
 
         """
-        with open(path + 'loss.txt', 'wt') as loss:
+        with open(path + self.training.loss_str + '.txt', 'wt') as loss:
             header = ''
             if self.training.valid_loss_log:
                 header += ' Train       '
@@ -308,7 +338,7 @@ class LearningStats:
             self.validation.valid_accuracy_log is False and \
                 self.testing.valid_accuracy_log is False:
             return
-        with open(path + 'accuracy.txt', 'wt') as accuracy:
+        with open(path + self.testing.accuracy_str + '.txt', 'wt') as accuracy:
             header = ''
             if self.training.valid_loss_log:
                 header += ' Train       '
