@@ -18,16 +18,20 @@ The library presently consists of
 2. `lava.lib.dl.bootstrap` for training rate coded SNNs.
 3. `lava.lib.dl.netx` for training and deployment of event-based deep neural networks on traditional as well as neuromorphic backends.
 
+Lava-dl also has the following external, fully compatible, plugin.
+1. [`lava.lib.dl.decolle`](https://github.com/kclip/lava-decolle) for training Deep SNNs with local learning using surrogate gradients. This extension is the port of [DECOLLE](https://github.com/nmi-lab/decolle-public) learning repo to be fully compatible to lava-dl training tools. Refer [here](https://github.com/kclip/lava-decolle) for the detailed description of the extension, examples and tutorials. 
+    > J. Kaiser, H. Mostafa, and E. Neftci, _Synaptic Plasticity Dynamics for Deep Continuous Local Learning (DECOLLE)._ pp 424,  Frontiers in Neuroscience 2020.
+
 More tools will be added in the future.
 
 ## Lava-DL Workflow
 
 <p align="center">
-<img src="https://user-images.githubusercontent.com/29907126/140595634-a97886c6-280a-4771-830b-ae47a9324612.png" alt="Drawing" style="max-height: 400px;"/>
+<img src="https://user-images.githubusercontent.com/29907126/204445058-eb7b34c8-70b7-40ee-a698-eea67008ff82.png" alt="Drawing" style="max-height: 400px;"/>
 </p>
 
 Typical Lava-DL workflow:
-* **Training:** using `lava.lib.dl.{slayer/bootstrap}` which results in a _hdf5 network description_. Training usually follows an iterative cycle of architecture design, hyperparameter tuning, and backpropagation training.
+* **Training:** using `lava.lib.dl.{slayer/bootstrap/decolle}` which results in a _hdf5 network description_. Training usually follows an iterative cycle of architecture design, hyperparameter tuning, and backpropagation training.
 * **Inference:** using `lava.lib.dl.netx` which generates lava proces from the hdf5 network description of the trained network and enables inference on different backends.
 
 ## Installation
