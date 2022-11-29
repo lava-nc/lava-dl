@@ -150,8 +150,10 @@ $ pip install lava-dl-0.2.0.tar.gz
 
 **Inference tutorials**
 * [Oxford Inference](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/oxford/run.ipynb)
-* [PilotNet SNN Inference](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/pilotnet_snn/run.ipynb)
+* [PilotNet LIF Inference](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/pilotnet_snn/run.ipynb)
+* [PilotNet LIF Benchmarking](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/pilotnet_snn/benchmark.ipynb)
 * [PilotNet SDNN Inference](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/pilotnet_sdnn/run.ipynb)
+* [PilotNet SDNN Benchmarking](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/pilotnet_sdnn/benchmark.ipynb)
 
 ## __`lava.lib.dl.slayer`__ 
 
