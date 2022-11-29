@@ -19,7 +19,7 @@ The library presently consists of
 3. `lava.lib.dl.netx` for training and deployment of event-based deep neural networks on traditional as well as neuromorphic backends.
 
 Lava-dl also has the following external, fully compatible, plugin.
-1. [`lava.lib.dl.decolle`](https://github.com/kclip/lava-decolle) for training Deep SNNs with local learning and surrogate gradients. This extension is the port of [DECOLLE](https://github.com/nmi-lab/decolle-public) learning repo to be fully compatible to lava-dl training tools. Refer [here](https://github.com/kclip/lava-decolle) for the detailed description of the extension, examples and tutorials. 
+1. [`lava.lib.dl.decolle`](https://github.com/kclip/lava-decolle) for training Deep SNNs with local learning and surrogate gradients. This extension is an implementation of [DECOLLE](https://github.com/nmi-lab/decolle-public) learning repo to be fully compatible to lava-dl training tools. Refer [here](https://github.com/kclip/lava-decolle) for the detailed description of the extension, examples and tutorials. 
     > J. Kaiser, H. Mostafa, and E. Neftci, _Synaptic Plasticity Dynamics for Deep Continuous Local Learning (DECOLLE)._ pp 424,  Frontiers in Neuroscience 2020.
 
 More tools will be added in the future.
