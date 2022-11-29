@@ -27,7 +27,7 @@ More tools will be added in the future.
 ## Lava-DL Workflow
 
 <p align="center">
-<img src="https://user-images.githubusercontent.com/29907126/204445058-eb7b34c8-70b7-40ee-a698-eea67008ff82.png" alt="Drawing" style="max-height: 400px;"/>
+<img src="https://user-images.githubusercontent.com/29907126/204448416-1c222fa9-822a-4fd7-a2b8-eebcabf7316d.png" alt="Drawing" style="max-height: 400px;"/>
 </p>
 
 Typical Lava-DL workflow:
