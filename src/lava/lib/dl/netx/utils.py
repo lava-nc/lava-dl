@@ -46,7 +46,7 @@ class NetDict:
         self.array_keys = [
             'shape', 'stride', 'padding', 'dilation', 'groups', 'delay',
             'iDecay', 'refDelay', 'scaleRho', 'tauRho', 'theta', 'vDecay',
-            'vThMant', 'wgtExp', 'sinDecay', 'cosDecay', "complex_synapse"
+            'vThMant', 'wgtExp', 'sinDecay', 'cosDecay'
         ]
         self.copy_keys = ['weight', 'bias', 'weight/real', 'weight/imag']
 
