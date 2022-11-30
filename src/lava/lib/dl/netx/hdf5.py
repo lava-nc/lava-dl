@@ -314,8 +314,7 @@ class Network(AbstractProcess):
         neuron_params = Network.get_neuron_params(layer_config['neuron'],
                                                   reset_interval=reset_interval,
                                                   reset_offset=reset_offset)
-        # check to see for nested weights
-        if isinstance(layer_config["weight"], NetDict):
+        if "weight/imag" in layer_config.f:
             weight_real = layer_config['weight/real']
             weight_imag = layer_config['weight/imag']
             if weight_real.ndim == 1:
