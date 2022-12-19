@@ -18,16 +18,20 @@ The library presently consists of
 2. `lava.lib.dl.bootstrap` for training rate coded SNNs.
 3. `lava.lib.dl.netx` for training and deployment of event-based deep neural networks on traditional as well as neuromorphic backends.
 
+Lava-dl also has the following external, fully compatible, plugin.
+1. [`lava.lib.dl.decolle`](https://github.com/kclip/lava-decolle) for training Deep SNNs with local learning and surrogate gradients. This extension is an implementation of [DECOLLE](https://github.com/nmi-lab/decolle-public) learning repo to be fully compatible to lava-dl training tools. Refer [here](https://github.com/kclip/lava-decolle) for the detailed description of the extension, examples and tutorials. 
+    > J. Kaiser, H. Mostafa, and E. Neftci, _Synaptic Plasticity Dynamics for Deep Continuous Local Learning (DECOLLE)._ pp 424,  Frontiers in Neuroscience 2020.
+
 More tools will be added in the future.
 
 ## Lava-DL Workflow
 
 <p align="center">
-<img src="https://user-images.githubusercontent.com/29907126/140595634-a97886c6-280a-4771-830b-ae47a9324612.png" alt="Drawing" style="max-height: 400px;"/>
+<img src="https://user-images.githubusercontent.com/29907126/204448416-1c222fa9-822a-4fd7-a2b8-eebcabf7316d.png" alt="Drawing" style="max-height: 400px;"/>
 </p>
 
 Typical Lava-DL workflow:
-* **Training:** using `lava.lib.dl.{slayer/bootstrap}` which results in a _hdf5 network description_. Training usually follows an iterative cycle of architecture design, hyperparameter tuning, and backpropagation training.
+* **Training:** using `lava.lib.dl.{slayer/bootstrap/decolle}` which results in a _hdf5 network description_. Training usually follows an iterative cycle of architecture design, hyperparameter tuning, and backpropagation training.
 * **Inference:** using `lava.lib.dl.netx` which generates lava proces from the hdf5 network description of the trained network and enables inference on different backends.
 
 ## Installation
@@ -46,7 +50,7 @@ The output should contain something like this `/home/user/lava`
 cd $HOME
 git clone git@github.com:lava-dl/lava-dl.git
 cd lava-dl
-pip install "poetry>=1.1.13"
+curl -sSL https://install.python-poetry.org | python3 -
 poetry config virtualenvs.in-project true
 poetry install
 source .venv/bin/activate
@@ -60,8 +64,8 @@ git clone git@github.com:lava-dl/lava-dl.git
 cd lava-dl
 python3 -m venv .venv
 .venv\Scripts\activate
+curl -sSL https://install.python-poetry.org | python3 -
 pip install -U pip
-pip install "poetry>=1.1.13"
 poetry config virtualenvs.in-project true
 poetry install
 pytest
@@ -105,6 +109,22 @@ Required test coverage of 45.0% reached. Total coverage: 46.99%
 ======================= 86 passed, 3 warnings in 46.56s ========================
 ```
 
+### [Alternative] Installing Lava via Conda
+If you use the Conda package manager, you can simply install the Lava package
+via:
+```bash
+conda install lava-dl -c conda-forge
+```
+
+Alternatively with intel numpy and scipy:
+
+```bash
+conda create -n lava-dl python=3.9 -c intel
+conda activate lava-dl
+conda install -n lava-dl -c intel numpy scipy
+conda install -n lava-dl -c conda-forge lava-dl --freeze-installed
+```
+
 ### [Alternative] Installing Lava from Binaries
 
 If you only need the lava-dl package in your python environment, we will publish
@@ -134,8 +154,10 @@ $ pip install lava-dl-0.2.0.tar.gz
 
 **Inference tutorials**
 * [Oxford Inference](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/oxford/run.ipynb)
-* [PilotNet SNN Inference](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/pilotnet_snn/run.ipynb)
+* [PilotNet LIF Inference](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/pilotnet_snn/run.ipynb)
+* [PilotNet LIF Benchmarking](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/pilotnet_snn/benchmark.ipynb)
 * [PilotNet SDNN Inference](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/pilotnet_sdnn/run.ipynb)
+* [PilotNet SDNN Benchmarking](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/pilotnet_sdnn/benchmark.ipynb)
 
 ## __`lava.lib.dl.slayer`__ 
 

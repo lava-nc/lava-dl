@@ -55,24 +55,25 @@ class Network(torch.nn.Module):
         for i, b in enumerate(self.blocks):
             b.export_hdf5(layer.create_group(f'{i}'))
 
-trained_folder = 'Trained'
-os.makedirs(trained_folder, exist_ok=True)
+if __name__ == '__main__':
+    trained_folder = 'Trained'
+    os.makedirs(trained_folder, exist_ok=True)
 
-# device = torch.device('cpu')
-device = torch.device('cuda') 
+    # device = torch.device('cpu')
+    device = torch.device('cuda') 
 
-net = Network().to(device)
+    net = Network().to(device)
 
-training_set = OxfordDataset()
-train_loader = DataLoader(dataset=training_set, batch_size=1)
+    training_set = OxfordDataset()
+    train_loader = DataLoader(dataset=training_set, batch_size=1)
 
-for i, (input, target) in enumerate(train_loader):
+    for i, (input, target) in enumerate(train_loader):
+        output = net(input.to(device))
+
+    # net.load_state_dict(torch.load(trained_folder + '/network.pt'))
+    net = slayer.auto.SequentialNetwork(trained_folder + '/network.net').to(device)
     output = net(input.to(device))
-
-# net.load_state_dict(torch.load(trained_folder + '/network.pt'))
-net = slayer.auto.SequentialNetwork(trained_folder + '/network.net').to(device)
-output = net(input.to(device))
-event = slayer.io.tensor_to_event(output.cpu().data.numpy())
-# event.show(plt.figure(figsize=(10, 10)))
-plt.plot(event.t, event.x, '.')
-plt.show()
+    event = slayer.io.tensor_to_event(output.cpu().data.numpy())
+    # event.show(plt.figure(figsize=(10, 10)))
+    plt.plot(event.t, event.x, '.')
+    plt.show()

@@ -7,6 +7,7 @@ from typing import Tuple, Union
 import h5py
 import numpy as np
 from enum import IntEnum, unique
+import torch
 
 
 @unique
@@ -33,6 +34,7 @@ class NetDict:
         hdf5 file object handle. Overwrites the function of filename if it is
         not ``None``. Default is None.
     """
+
     def __init__(
         self,
         filename: Union[str, None] = None,
@@ -44,9 +46,9 @@ class NetDict:
         self.array_keys = [
             'shape', 'stride', 'padding', 'dilation', 'groups', 'delay',
             'iDecay', 'refDelay', 'scaleRho', 'tauRho', 'theta', 'vDecay',
-            'vThMant', 'wgtExp',
+            'vThMant', 'wgtExp', 'sinDecay', 'cosDecay'
         ]
-        self.copy_keys = ['weight', 'bias']
+        self.copy_keys = ['weight', 'bias', 'weight/real', 'weight/imag']
 
     def keys(self) -> h5py._hl.base.KeysViewHDF5:
         return self.f.keys()
