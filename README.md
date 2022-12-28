@@ -48,7 +48,7 @@ The output should contain something like this `/home/user/lava`
 #### [Linux/MacOS]
 ```bash
 cd $HOME
-git clone git@github.com:lava-dl/lava-dl.git
+git clone git@github.com:lava-nc/lava-dl.git
 cd lava-dl
 curl -sSL https://install.python-poetry.org | python3 -
 poetry config virtualenvs.in-project true
@@ -60,7 +60,7 @@ pytest
 ```powershell
 # Commands using PowerShell
 cd $HOME
-git clone git@github.com:lava-dl/lava-dl.git
+git clone git@github.com:lava-nc/lava-dl.git
 cd lava-dl
 python3 -m venv .venv
 .venv\Scripts\activate
