@@ -195,7 +195,7 @@ class SpikeMax(torch.nn.Module):
             return F.nll_loss(log_p, label, reduction=self.reduction)
         else:
             if len(label.shape) == 1:  # assume label is in (batch, time) form
-                float_label = label[...,None].float()
+                float_label = label[..., None].float()
                 label = replicate(float_label, input.shape[-1]).to(label.dtype)
             # transpose the time dimension to the end
             # (batch, time, num_class) -> (batch, num_class, time)
