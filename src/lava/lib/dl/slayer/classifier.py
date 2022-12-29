@@ -214,8 +214,7 @@ class MovingWindow(torch.nn.Module):
         >>> confidence = classifier.confidence(spike)
         """
         sliding_rate = self.rate(spike).reshape(
-            spike.shape[0], spike.shape[-1]
-        )
+            spike.shape[0], -1, spike.shape[-1])
 
         if mode is None:
             mode = self.mode
