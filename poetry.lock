@@ -2265,6 +2265,7 @@ files = [
 [[package]]
 name = "pydocstyle"
 version = "6.2.2"
+
 description = "Python docstring style checker"
 category = "dev"
 optional = false
@@ -2272,6 +2273,7 @@ python-versions = ">=3.6"
 files = [
     {file = "pydocstyle-6.2.2-py3-none-any.whl", hash = "sha256:021b33525927b43b4469c2715694c38082cb98146b52342df652b30806e3cb61"},
     {file = "pydocstyle-6.2.2.tar.gz", hash = "sha256:5714e3a96f6ece848a1c35f581e89f3164867733609f0dd8a99f7e7c6b526bdd"},
+
 ]
 
 [package.dependencies]
