@@ -53,16 +53,12 @@ class TestHdf5NetxNx(unittest.TestCase):
         net.out.connect(out_adapter.inp)
         out_adapter.out.connect(out_logger.a_in)
 
-        pre_run_fxs = []
-        post_run_fxs = []
-
         if verbose:
             print(net)
             net._log_config.level = logging.INFO
 
         net.run(condition=RunSteps(num_steps=num_steps),
-                run_cfg=Loihi2HwCfg(pre_run_fxs=pre_run_fxs,
-                                    post_run_fxs=post_run_fxs))
+                run_cfg=Loihi2HwCfg())
         output = out_logger.data.get()
         net.stop()
 
@@ -107,15 +103,11 @@ class TestHdf5NetxNx(unittest.TestCase):
         net.in_layer.neuron.bias_mant.init = np.load(
             root + '/gts/pilotnet_lif/image.npy').astype(int)
 
-        pre_run_fxs = []
-        post_run_fxs = []
-
         if verbose:
             print(net)
             net._log_config.level = logging.INFO
         net.run(condition=RunSteps(num_steps=num_steps),
-                run_cfg=Loihi2HwCfg(pre_run_fxs=pre_run_fxs,
-                                    post_run_fxs=post_run_fxs))
+                run_cfg=Loihi2HwCfg())
         if idx == 0:
             result = net.layers[0].neuron.v.get()
         else:
@@ -165,15 +157,11 @@ class TestHdf5NetxNx(unittest.TestCase):
         source.s_out.connect(spike_gen.inp)
         spike_gen.out.connect(net.inp)
 
-        pre_run_fxs = []
-        post_run_fxs = []
-
         if verbose:
             print(net)
             net._log_config.level = logging.INFO
         net.run(condition=RunSteps(num_steps=num_steps),
-                run_cfg=Loihi2HwCfg(pre_run_fxs=pre_run_fxs,
-                                    post_run_fxs=post_run_fxs))
+                run_cfg=Loihi2HwCfg())
         result = net.out_layer.neuron.u.get()
         net.stop()
 
@@ -201,12 +189,8 @@ class TestHdf5NetxNx(unittest.TestCase):
         source.s_out.connect(inp_adapter.inp)
         inp_adapter.out.connect(net.in_layer.synapse.s_in)
 
-        pre_run_fxs = []
-        post_run_fxs = []
-
         # Loihi Execution
-        run_cfg = Loihi2HwCfg(pre_run_fxs=pre_run_fxs,
-                              post_run_fxs=post_run_fxs)
+        run_cfg = Loihi2HwCfg()
         run_cnd = RunSteps(num_steps=num_steps)
         if verbose:
             net._log_config.level = logging.INFO
@@ -253,12 +237,8 @@ class TestHdf5NetxNx(unittest.TestCase):
         net.out.connect(out_adapter.inp)
         out_adapter.out.connect(sink.a_in)
 
-        pre_run_fxs = []
-        post_run_fxs = []
-
         # Loihi Execution
-        run_cfg = Loihi2HwCfg(pre_run_fxs=pre_run_fxs,
-                              post_run_fxs=post_run_fxs)
+        run_cfg = Loihi2HwCfg()
         run_cnd = RunSteps(num_steps=num_steps)
         if verbose:
             net._log_config.level = logging.INFO
