@@ -66,6 +66,15 @@ class TestHdf5Netx(unittest.TestCase):
             f'Expected transformation weight to be 36. Found {weight}.'
         )
 
+    def test_mnist(self) -> None:
+        """Tests loading of MNIST MLP."""
+        net = netx.hdf5.Network(net_config=root + '/mnist.net')
+        self.assertEqual(len(net), 4)
+        self.assertTrue(type(net.layers[0]) == netx.blocks.process.Input)
+        self.assertTrue(type(net.layers[1]) == netx.blocks.process.Dense)
+        self.assertTrue(type(net.layers[2]) == netx.blocks.process.Dense)
+        self.assertTrue(type(net.layers[3]) == netx.blocks.process.Dense)
+
     def test_tinynet(self) -> None:
         """Tests the output of three layer CNN."""
         steps_per_sample = 17
