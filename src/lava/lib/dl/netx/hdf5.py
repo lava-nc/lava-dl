@@ -275,10 +275,21 @@ class Network(AbstractProcess):
                   'neuron_params': neuron_params,
                   'transform': transform}
 
-        table_entry = Network._table_str(type_str='Input',
-                                         width=shape[0],
-                                         height=shape[1],
-                                         channel=shape[2])
+        if len(shape) == 1:
+            table_entry = Network._table_str(type_str='Input',
+                                             width=1,
+                                             height=1,
+                                             channel=shape[0])
+        elif len(shape) == 2:
+            table_entry = Network._table_str(type_str='Input',
+                                             width=shape[0],
+                                             height=shape[1],
+                                             channel=1)
+        else:
+            table_entry = Network._table_str(type_str='Input',
+                                             width=shape[0],
+                                             height=shape[1],
+                                             channel=shape[2])
 
         return Input(**params), table_entry
 
@@ -311,7 +322,17 @@ class Network(AbstractProcess):
         """
         shape = (np.prod(layer_config['shape']),)
 
-        neuron_params = Network.get_neuron_params(layer_config['neuron'],
+        if 'neuron' in layer_config.keys():
+            neuron_config = layer_config['neuron']
+        else:
+            # Non-leaky integrator by default
+            neuron_config = {'type' : 'CUBA',
+                             'iDecay' : 0,
+                             'vDecay' : 4096,
+                             'vThMant' : 1<<18 - 1,
+                             'refDelay' : 1,
+                             'gradedSpike' : False}
+        neuron_params = Network.get_neuron_params(neuron_config,
                                                   reset_interval=reset_interval,
                                                   reset_offset=reset_offset)
         if "weight/imag" in layer_config.f:
