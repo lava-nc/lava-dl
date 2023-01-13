@@ -329,7 +329,7 @@ class Network(AbstractProcess):
             neuron_config = {'type' : 'CUBA',
                              'iDecay' : 0,
                              'vDecay' : 4096,
-                             'vThMant' : 1<<18 - 1,
+                             'vThMant' : 1 << 18 - 1,
                              'refDelay' : 1,
                              'gradedSpike' : False}
         neuron_params = Network.get_neuron_params(neuron_config,

@@ -75,7 +75,6 @@ class TestHdf5Netx(unittest.TestCase):
         self.assertTrue(type(net.layers[1]) == netx.blocks.process.Dense)
         self.assertTrue(type(net.layers[2]) == netx.blocks.process.Dense)
         self.assertTrue(type(net.layers[3]) == netx.blocks.process.Dense)
-        
 
     def test_tinynet(self) -> None:
         """Tests the output of three layer CNN."""
