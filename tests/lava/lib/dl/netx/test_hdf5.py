@@ -68,7 +68,6 @@ class TestHdf5Netx(unittest.TestCase):
 
     def test_mnist(self) -> None:
         """Tests loading of MNIST MLP."""
-        # Just tests if the network loads correctly or not
         net = netx.hdf5.Network(net_config=root + '/mnist.net')
         self.assertEqual(len(net), 4)
         self.assertTrue(type(net.layers[0]) == netx.blocks.process.Input)
