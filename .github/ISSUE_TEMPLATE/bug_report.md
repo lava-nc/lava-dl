@@ -10,9 +10,9 @@ assignees: ''
 <!-- 
 - Before submitting an issue please refer to https://lava-nc.org/developer_guide.html#how-to-contribute-to-lava.
 
-- Please make sure you are posting an issue pertaining to the github.com/lava-nc/lava. For issues with lava libraries please file in the appropriate library repository, for example, github.com/lava-nc/lava-dl/issues.
+- Please make sure you are posting an issue pertaining to the github.com/lava-nc/lava-dl. For issues with lava or other libraries please file in the appropriate repository, for example, github.com/lava-nc/lava/issues.
 
-- Please do not submit support requests or "How to" questions here, use discussions Q&A https://github.com/lava-nc/lava/discussions/categories/q-a
+- Please do not submit support requests or "How to" questions here, use discussions Q&A https://github.com/lava-nc/lava-dl/discussions/categories/q-a
 
 - ISSUES MISSING IMPORTANT INFORMATION MAY BE CLOSED WITHOUT INVESTIGATION. 
 -->
