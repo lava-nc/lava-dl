@@ -12,25 +12,27 @@ from ..axon import delay
 from lava.lib.dl.slayer.utils import recurrent
 
 
-def step_delay(self, x):
+def step_delay(module, x):
     """Step delay computation. This simulates the 1 timestep delay needed
     for communication between layers.
 
     Parameters
     ----------
+    module: module
+        python module instance
     x : torch.tensor
         Tensor data to be delayed.
     """
-    if hasattr(self, 'delay_buffer') is False:
-        self.delay_buffer = None
-    persistent_state = hasattr(self, 'neuron') \
-        and self.neuron.persistent_state is True
-    if self.delay_buffer is not None:
-        if self.delay_buffer.shape[0] != x.shape[0]:  # batch mismatch
-            self.delay_buffer = None
+    if hasattr(module, 'delay_buffer') is False:
+        module.delay_buffer = None
+    persistent_state = hasattr(module, 'neuron') \
+        and module.neuron.persistent_state is True
+    if module.delay_buffer is not None:
+        if module.delay_buffer.shape[0] != x.shape[0]:  # batch mismatch
+            module.delay_buffer = None
     if persistent_state:
-        delay_buffer = 0 if self.delay_buffer is None else self.delay_buffer
-        self.delay_buffer = x[..., -1]
+        delay_buffer = 0 if module.delay_buffer is None else module.delay_buffer
+        module.delay_buffer = x[..., -1]
     x = delay(x, 1)
     if persistent_state:
         x[..., 0] = delay_buffer
