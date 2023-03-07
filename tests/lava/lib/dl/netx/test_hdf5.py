@@ -175,6 +175,9 @@ class TestHdf5Netx(unittest.TestCase):
         )
 
     def test_axonal_delay_ntidigits(self) -> None:
+        """Tests the output of ntidigits hdf5 description. This network
+        consists of axonal delay. So this tests specifically tests for
+        correctness of axonal delay."""
         net_config = root + '/gts/ntidigits/ntidigits.net'
         input = np.load(root + '/gts/ntidigits/input.npy')
         gt = np.load(root + '/gts/ntidigits/output.npy')
