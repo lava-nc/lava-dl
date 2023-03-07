@@ -54,6 +54,7 @@ class Network(AbstractProcess):
     reset_offset: int
         determines the phase shift of network reset if enabled. Defaults to 0.
     """
+
     def __init__(self,
                  net_config: str,
                  num_layers: Optional[int] = None,
@@ -326,12 +327,12 @@ class Network(AbstractProcess):
             neuron_config = layer_config['neuron']
         else:
             # Non-leaky integrator by default
-            neuron_config = {'type' : 'CUBA',
-                             'iDecay' : 0,
-                             'vDecay' : 4096,
-                             'vThMant' : 1 << 18 - 1,
-                             'refDelay' : 1,
-                             'gradedSpike' : False}
+            neuron_config = {'type': 'CUBA',
+                             'iDecay': 0,
+                             'vDecay': 4096,
+                             'vThMant': 1 << 18 - 1,
+                             'refDelay': 1,
+                             'gradedSpike': False}
         neuron_params = Network.get_neuron_params(neuron_config,
                                                   reset_interval=reset_interval,
                                                   reset_offset=reset_offset)
@@ -380,6 +381,27 @@ class Network(AbstractProcess):
                       'weight_exponent': weight_exponent,
                       'sign_mode': sign_mode,
                       'input_message_bits': input_message_bits}
+
+            if 'delay' in layer_config.keys():
+                delay = layer_config['delay']
+
+                if np.isscalar(delay):
+                    delay = delay * np.ones_like(weight)
+                elif len(delay.shape) == 1:  # delay is one dimensional
+                    num_delays = np.prod(delay.shape)
+                    if num_delays == weight.shape[0]:  # axonal delays to syn
+                        delay = np.repeat(delay.reshape(-1, 1),
+                                          weight.shape[1], axis=1)
+                    elif num_delays == weight.shape[1]:  # input delays
+                        delay = np.repeat(delay.reshape(1, -1),
+                                          weight.shape[0], axis=0)
+                    else:
+                        raise RuntimeError(f'Found invalid delay of shape '
+                                           f'{delay.shape} to be incompatible '
+                                           f'with weight of shape '
+                                           f'{weight.shape}.')
+
+                params['delay'] = delay
 
             # optional arguments
             if 'bias' in layer_config.keys():
@@ -571,9 +593,10 @@ class Network(AbstractProcess):
                     reset_offset += 1
                 input_message_bits = layer.output_message_bits
                 if flatten_next:
-                    layers[-2].out.transpose([2, 1, 0]).flatten().connect(
-                        layers[-1].inp
-                    )
+                    if len(layers) > 1:
+                        layers[-2].out.transpose([2, 1, 0]).flatten().connect(
+                            layers[-1].inp
+                        )
                     flatten_next = False
                 else:
                     if len(layers) > 1:

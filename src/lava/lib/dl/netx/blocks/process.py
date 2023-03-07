@@ -9,6 +9,7 @@ import h5py
 from lava.magma.core.process.ports.ports import InPort, OutPort
 from lava.magma.core.process.process import AbstractProcess
 from lava.proc.dense.process import Dense as DenseSynapse
+from lava.proc.dense.process import DelayDense as DelayDenseSynapse
 from lava.proc.conv.process import Conv as ConvSynapse
 
 
@@ -116,6 +117,8 @@ class Dense(AbstractBlock):
         dictionary of neuron parameters. Defaults to None.
     weight : np.ndarray
         synaptic weight.
+    delay : np.ndarray
+        synaptic delay.
     bias : np.ndarray or None
         bias of neuron. None means no bias. Defaults to None.
     has_graded_input : dict
@@ -133,15 +136,25 @@ class Dense(AbstractBlock):
         super().__init__(**kwargs)
 
         weight = kwargs.pop('weight')
+        delay = kwargs.pop('delay', None)
         num_weight_bits = kwargs.pop('num_weight_bits', 8)
         weight_exponent = kwargs.pop('weight_exponent', 0)
 
-        self.synapse = DenseSynapse(
-            weights=weight,
-            weight_exp=weight_exponent,
-            num_weight_bits=num_weight_bits,
-            num_message_bits=self.input_message_bits,
-        )
+        if delay is None:
+            self.synapse = DenseSynapse(
+                weights=weight,
+                weight_exp=weight_exponent,
+                num_weight_bits=num_weight_bits,
+                num_message_bits=self.input_message_bits,
+            )
+        else:
+            self.synapse = DelayDenseSynapse(
+                weights=weight,
+                delays=delay.astype(int),
+                max_delay=62,
+                num_weight_bits=num_weight_bits,
+                num_message_bits=self.input_message_bits,
+            )
 
         if self.shape != self.synapse.a_out.shape:
             raise RuntimeError(
