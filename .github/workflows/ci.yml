@@ -59,6 +59,8 @@ jobs:
   
   unit-tests-pp:
     name: Unit Test Code + Coverage + PP
+    env:
+        LAVA_PURE_PYTHON: '1'
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
@@ -72,5 +74,5 @@ jobs:
 
     - name: Run unit tests
       run: |
-        LAVA_PURE_PYTHON=1 poetry run pytest
+        poetry run pytest
       
