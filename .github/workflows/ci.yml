@@ -71,5 +71,5 @@ jobs:
         repository: 'Lava-DNF'    
 
     - name: Run unit tests
-      run: LAVA_PURE_PYTHON=1 poetry run pytest
+      run: poetry run LAVA_PURE_PYTHON=1 pytest
       
