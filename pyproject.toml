@@ -47,7 +47,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = ">=3.8, <3.11"
 
-lava-nc = { git = "https://github.com/lava-nc/lava.git", branch = "main", develop = true }
+lava-nc = { git = "https://github.com/lava-nc/lava.git", branch = "messaging_refactor_release2nd", develop = true }
 
 torchvision = "^0.14.0"
 h5py = "^3.7.0"
