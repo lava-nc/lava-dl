@@ -174,6 +174,54 @@ class TestHdf5Netx(unittest.TestCase):
             f'Error was {error}.'
         )
 
+    def test_axonal_delay_ntidigits(self) -> None:
+        """Tests the output of ntidigits hdf5 description. This network
+        consists of axonal delay. So this tests specifically tests for
+        correctness of axonal delay."""
+        net_config = root + '/gts/ntidigits/ntidigits.net'
+        input = np.load(root + '/gts/ntidigits/input.npy')
+        gt = np.load(root + '/gts/ntidigits/output.npy')
+        num_steps = input.shape[1]
+
+        # skipping the last average layer which is not suppprted
+        net = netx.hdf5.Network(net_config=net_config, num_layers=5)
+
+        inp_gen = io.source.RingBuffer(data=input)
+        output_logger = io.sink.RingBuffer(shape=net.out_layer.shape,
+                                           buffer=num_steps)
+
+        inp_gen.s_out.connect(net.inp)
+        net.out.connect(output_logger.a_in)
+
+        run_condition = RunSteps(num_steps=num_steps)
+        run_config = TestRunConfig(select_tag='fixed_pt')
+        net.run(condition=run_condition, run_cfg=run_config)
+        output = output_logger.data.get()
+        net.stop()
+
+        out_ev = np.argwhere(output > 0)
+        gt_ev = np.argwhere(gt > 0)
+
+        error = np.abs(output[:, -1] - gt[:, 1]).sum()
+
+        if verbose:
+            if bool(os.environ.get('DISPLAY', None)):
+                plt.figure(figsize=(10, 5))
+                plt.plot(out_ev[:, 1], out_ev[:, 0], '.',
+                         markersize=12, label='Output Spikes')
+                plt.plot(gt_ev[:, 1], gt_ev[:, 0], '.', label='GT Spikes')
+                plt.xlabel(f'time')
+                plt.ylabel('Neuron ID')
+                plt.legend()
+                plt.show()
+
+        self.assertTrue(
+            error == 0,
+            f'Output spike and ground truth do not match for NTIDIGITS network.'
+            f'Found {output[output != gt] = } and {gt[output != gt] = }. '
+            f'Error was {error}.'
+        )
+
 
 if __name__ == '__main__':
     unittest.main()
