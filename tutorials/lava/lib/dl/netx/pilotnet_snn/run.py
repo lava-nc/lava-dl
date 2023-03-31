@@ -241,13 +241,21 @@ def run(output, gst, loihi2_is_available, net, num_steps, steps_per_sample, outp
 
 if __name__ == '__main__':
     import timeit
+    import time
     from __main__ import setup
     global gts
     gts = None
     global output
     output = None
     loihi2_is_available, net, num_steps, steps_per_sample, output_logger, gt_logger, readout_offset = setup()
-    print(timeit.timeit("run(output, gts, loihi2_is_available, net, num_steps, steps_per_sample, output_logger, gt_logger)", setup="from __main__ import run, gts, output, loihi2_is_available, net, num_steps, steps_per_sample, output_logger, gt_logger", number=3))
+    start = time.time()
+    run(output, gts, loihi2_is_available, net, num_steps, steps_per_sample, output_logger, gt_logger)
+    end = time.time()
+
+    #print(timeit.timeit("run(output, gts, loihi2_is_available, net, num_steps, steps_per_sample, output_logger, gt_logger)", setup="from __main__ import run, gts, output, loihi2_is_available, net, num_steps, steps_per_sample, output_logger, gt_logger", number=3))
+
+    delta = end - start
+    print("took %.2f seconds to process" % delta)
 
     # result = output[readout_offset::steps_per_sample]
 
