@@ -55,4 +55,24 @@ jobs:
 
     - name: Run unit tests
       run: poetry run pytest
+  
+  
+  unit-tests-pp:
+    name: Unit Test Code + Coverage + PP
+    env:
+        LAVA_PURE_PYTHON: '1'
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      matrix:
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+    - name: Setup CI
+      uses: lava-nc/ci-setup-composite-action@v1.1
+      with:
+        repository: 'Lava-DNF'    
+
+    - name: Run unit tests
+      run: |
+        poetry run pytest
       
