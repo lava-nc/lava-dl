@@ -1267,8 +1267,8 @@ scipy = "^1.8.0"
 [package.source]
 type = "git"
 url = "https://github.com/lava-nc/lava.git"
-reference = "main"
-resolved_reference = "3bd26b1a32288367ef51a2fdbf731b4985a12676"
+reference = "port_perf_fix"
+resolved_reference = "8667204ced6a980170bd59955101049ea18e3e4b"
 
 [[package]]
 name = "linecache2"
@@ -2781,4 +2781,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8, <3.11"
-content-hash = "499d5e89025848339277f5d9b978e53fb3bd219d4a1ea8437f4e5ce752b115a8"
+content-hash = "c8ead9457399b668113c2a45e3f59fae200e5b0984fa9f7bcb197676beb0a6a6"
