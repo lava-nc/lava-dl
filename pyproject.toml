@@ -47,7 +47,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = ">=3.8, <3.11"
 
-lava-nc = { git = "https://github.com/lava-nc/lava.git", branch = "port_perf_fix", develop = true }
+lava-nc = { git = "https://github.com/lava-nc/lava.git", branch = "main", develop = true }
 
 torchvision = "^0.14.0"
 h5py = "^3.7.0"
@@ -64,7 +64,7 @@ torch = "^1.13.1"
 bandit = "1.7.4"
 coverage = "^6.3.2"
 darglint = "^1.8.1"
-#nbconvert = "^7.2.7"
+nbconvert = ">=7.2.10, <7.3"
 flake8 = "^4.0.1"
 flake8-bandit = "^3.0.0"
 flake8-bugbear = "^22.1.11"
