@@ -179,8 +179,8 @@ class TestHdf5Netx(unittest.TestCase):
         consists of axonal delay. So this tests specifically tests for
         correctness of axonal delay."""
         net_config = root + '/gts/ntidigits/ntidigits.net'
-        input = np.load(root + '/gts/ntidigits/input.npy')
-        gt = np.load(root + '/gts/ntidigits/output.npy')
+        input = np.load(root + '/gts/ntidigits/input.npy', allow_pickle=True)
+        gt = np.load(root + '/gts/ntidigits/output.npy', allow_pickle=True)
         num_steps = input.shape[1]
 
         # skipping the last average layer which is not suppprted
