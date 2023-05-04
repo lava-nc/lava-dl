@@ -10,7 +10,7 @@ packages = [
     {include = "tests"}
 ]
 include = ["tutorials"]
-version = "0.3.2"
+version = "0.3.3"
 description = "A library of deep learning tools, which consists of lava.lib.dl.slayer and lava.lib.dl.netx for training and deployment of event-based deep neural networks on traditional as well as neuromorphic backends. Lava-DL is part of Lava Framework"
 homepage = "https://lava-nc.org/"
 repository = "https://github.com/lava-nc/lava-dl"
@@ -64,7 +64,7 @@ torch = "^1.13.1"
 bandit = "1.7.4"
 coverage = "^6.3.2"
 darglint = "^1.8.1"
-#nbconvert = "^7.2.7"
+nbconvert = ">=7.2.10, <7.3"
 flake8 = "^4.0.1"
 flake8-bandit = "^3.0.0"
 flake8-bugbear = "^22.1.11"
