@@ -195,14 +195,16 @@ class Event():
                     0,
                     x_event[valid_ind],
                     t_event[valid_ind]
-                ] = payload if self.graded is True else 1 / sampling_time
+                ] = payload[valid_ind] if self.graded is True else \
+                    1 / sampling_time
             elif binning_mode.upper() == 'SUM':
                 empty_tensor[
                     c_event[valid_ind],
                     0,
                     x_event[valid_ind],
                     t_event[valid_ind]
-                ] += payload if self.graded is True else 1 / sampling_time
+                ] += payload[valid_ind] if self.graded is True else \
+                    1 / sampling_time
             else:
                 raise Exception(
                     f'Unsupported binning_mode. It was {binning_mode}'
@@ -227,14 +229,16 @@ class Event():
                     y_event[valid_ind],
                     x_event[valid_ind],
                     t_event[valid_ind]
-                ] = payload if self.graded is True else 1 / sampling_time
+                ] = payload[valid_ind] if self.graded is True else \
+                    1 / sampling_time
             elif binning_mode.upper() == 'SUM':
                 empty_tensor[
                     c_event[valid_ind],
                     y_event[valid_ind],
                     x_event[valid_ind],
                     t_event[valid_ind]
-                ] += payload if self.graded is True else 1 / sampling_time
+                ] += payload[valid_ind] if self.graded is True else \
+                    1 / sampling_time
             else:
                 raise Exception(
                     'Unsupported binning_mode. It was {binning_mode}'
