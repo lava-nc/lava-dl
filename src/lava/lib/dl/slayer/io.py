@@ -6,6 +6,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import animation
+import torch
 
 
 class Event():
@@ -194,14 +195,16 @@ class Event():
                     0,
                     x_event[valid_ind],
                     t_event[valid_ind]
-                ] = payload if self.graded is True else 1 / sampling_time
+                ] = payload[valid_ind] if self.graded is True else \
+                    1 / sampling_time
             elif binning_mode.upper() == 'SUM':
                 empty_tensor[
                     c_event[valid_ind],
                     0,
                     x_event[valid_ind],
                     t_event[valid_ind]
-                ] += payload if self.graded is True else 1 / sampling_time
+                ] += payload[valid_ind] if self.graded is True else \
+                    1 / sampling_time
             else:
                 raise Exception(
                     f'Unsupported binning_mode. It was {binning_mode}'
@@ -226,14 +229,16 @@ class Event():
                     y_event[valid_ind],
                     x_event[valid_ind],
                     t_event[valid_ind]
-                ] = payload if self.graded is True else 1 / sampling_time
+                ] = payload[valid_ind] if self.graded is True else \
+                    1 / sampling_time
             elif binning_mode.upper() == 'SUM':
                 empty_tensor[
                     c_event[valid_ind],
                     y_event[valid_ind],
                     x_event[valid_ind],
                     t_event[valid_ind]
-                ] += payload if self.graded is True else 1 / sampling_time
+                ] += payload[valid_ind] if self.graded is True else \
+                    1 / sampling_time
             else:
                 raise Exception(
                     'Unsupported binning_mode. It was {binning_mode}'
@@ -541,10 +546,10 @@ class Event():
 
 
 def tensor_to_event(spike_tensor, sampling_time=1):
-    """Returns td_event event from a numpy array (of dimension 3 or 4).
-    The numpy array must be of dimension (channels, height, time) or ``CHT``
+    """Returns td_event event from a numpy or torch tensor (of dimension 3 or 4).
+    The array or tensor must be of dimension (channels, height, time) or ``CHT``
     for 1D data.
-    The numpy array must be of dimension (channels, height, width, time) or
+    The array or tensor must be of dimension (channels, height, width, time) or
     ``CHWT`` for 2D data.
 
     Parameters
@@ -564,8 +569,17 @@ def tensor_to_event(spike_tensor, sampling_time=1):
 
     >>> td_event = tensor_to_Event(spike)
     """
-    if spike_tensor.ndim == 3:
+    if isinstance(spike_tensor, torch.Tensor):
+        spike_event = torch.argwhere(spike_tensor != 0)
+    elif isinstance(spike_tensor, np.ndarray):
         spike_event = np.argwhere(spike_tensor != 0)
+    else:
+        raise Exception(
+            f'Expected numpy or torch tensor of 3 or 4 dimension. '
+            f'It was {type(spike_tensor)}'
+        )
+
+    if spike_tensor.ndim == 3:
         x_event = spike_event[:, 1]
         y_event = None
         c_event = spike_event[:, 0]
@@ -576,7 +590,6 @@ def tensor_to_event(spike_tensor, sampling_time=1):
             spike_event[:, 2]
         ] * sampling_time
     elif spike_tensor.ndim == 4:
-        spike_event = np.argwhere(spike_tensor != 0)
         x_event = spike_event[:, 2]
         y_event = spike_event[:, 1]
         c_event = spike_event[:, 0]
@@ -589,8 +602,8 @@ def tensor_to_event(spike_tensor, sampling_time=1):
         ] * sampling_time
     else:
         raise Exception(
-            f'Expected numpy array of 3 or 4 dimension. '
-            f'It was {spike_tensor.ndim}'
+            f'Expected numpy array or torch tensor of 3 or 4 dimension. '
+            f'It was {spike_tensor.ndim} dimensions'
         )
 
     if np.abs(payload - np.ones_like(payload)).sum() < 1e-6:  # binary spikes
