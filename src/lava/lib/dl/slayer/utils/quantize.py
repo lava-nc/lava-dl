@@ -4,6 +4,15 @@
 """Quantization utility."""
 
 import torch
+from enum import IntEnum, unique
+
+
+@unique
+class MODE(IntEnum):
+    """Quantization mode constants. Options are {``ROUND : 0``, ``FLOOR : 1``}.
+    """
+    ROUND = 0
+    FLOOR = 1
 
 
 class _quantize(torch.autograd.Function):
@@ -23,9 +32,26 @@ class _quantize(torch.autograd.Function):
         return gradOutput, None
 
 
-def quantize(input, step=1):
-    """Implements quantization of parameters. Rounds the parameter before
-    quantization.
+class _floor(torch.autograd.Function):
+    """ """
+    @staticmethod
+    def forward(ctx, input, step=1):
+        """
+        """
+        # return input
+        # print('input quantized with step', step)
+        return torch.floor(input / step) * step
+
+    @staticmethod
+    def backward(ctx, gradOutput):
+        """
+        """
+        return gradOutput, None
+
+
+def quantize(input, step=1, mode=MODE.ROUND):
+    """Implements quantization of parameters. Round or floor behavior can be
+    selected using mode argument.
 
     Parameters
     ----------
@@ -33,6 +59,8 @@ def quantize(input, step=1):
         input tensor
     step : float
         quantization step. Default is 1.
+    mode : MODE
+        quantization mode. Default is MODE.ROUND.
 
     Returns
     -------
@@ -45,4 +73,9 @@ def quantize(input, step=1):
     >>> # Quantize in step of 0.5
     >>> x_quantized = quantize(x, step=0.5)
     """
-    return _quantize.apply(input, step)
+    if mode == MODE.ROUND:
+        return _quantize.apply(input, step)
+    elif mode == MODE.FLOOR:
+        return _floor.apply(input, step)
+    else:
+        raise ValueError(f'{mode=} is not recognized.')

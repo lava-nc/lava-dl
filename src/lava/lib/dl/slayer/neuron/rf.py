@@ -39,8 +39,8 @@ def neuron_params(device_params, scale=1 << 6, p_scale=1 << 12):
         dictionary of neuron parameters that can be used to initialize neuron
         class.
     """
-    sin_decay = device_params['sinDecay'] / p_scale,
-    cos_decay = device_params['cosDecay'] / p_scale,
+    sin_decay = device_params['sinDecay'] / p_scale
+    cos_decay = device_params['cosDecay'] / p_scale
     decay = 1 - np.sqrt(sin_decay ** 2 + cos_decay ** 2)
     frequency = np.arctan2(sin_decay, cos_decay) / 2 / np.pi
     return {
