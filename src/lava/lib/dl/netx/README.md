@@ -54,3 +54,23 @@ conv   : {shape, type, neuron, inChannels, outChannels, kernelSize, stride,
                         |-> this is the description of the compartment parameters
                         |-> {iDecay, vDecay, vThMant, refDelay, ... (other additional params)}
 ```
+
+## Connection to other frameworks via NIR
+
+The neuromorphic intermediate representation (NIR) is a standard for representing neural networks that is supported by various neuromorphic simulators and hardware platforms. You can learn more about the NIR project and the supported frameworks [here](https://github.com/neuromorphs/NIR).
+
+Converting your lava-dl stored using netx to NIR is simple:
+```python
+from lava.lib.dl.netx import nir
+# convert the lava-dl netx model to nir and save to file
+nir.convert_to_nir(net_config='network.net', path='network.nir')
+```
+
+Importing a NIR network into lava-dl works similarly:
+```python
+from lava.lib.dl.netx import nir, hdf5
+# import the NIR model
+net = nir.Network(path='network.nir')
+```
+
+This enables you to train your network using other frameworks (e.g. snnTorch, Norse, and others - see the NIR project website) and easily import them into lava through lava-dl's netx. 
