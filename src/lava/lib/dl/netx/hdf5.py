@@ -389,7 +389,6 @@ class Network(AbstractProcess):
                                   f' Clamping the delays.')
                     delay = np.clip(delay, a_min=0, a_max=62)
 
-
                 if np.isscalar(delay):
                     delay = delay * np.ones_like(weight)
                 elif len(delay.shape) == 1:  # delay is one dimensional
