@@ -384,6 +384,11 @@ class Network(AbstractProcess):
 
             if 'delay' in layer_config.keys():
                 delay = layer_config['delay']
+                if delay.max() > 62:
+                    warnings.warn(f'Found max delay of {delay.max()}.'
+                                  f' Clamping the delays.')
+                    delay = np.clip(delay, a_min=0, a_max=62)
+
 
                 if np.isscalar(delay):
                     delay = delay * np.ones_like(weight)
