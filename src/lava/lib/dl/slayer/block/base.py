@@ -388,6 +388,7 @@ class AbstractAffine(torch.nn.Module):
             handle.create_dataset('weight', data=weight(self.synapse))
 
         if self.delay is not None:
+            self.delay.clamp()  # clamp the delay value
             handle.create_dataset('delay', data=delay(self.delay))
 
         # for key, value in self.neuron.device_params.items():
@@ -609,6 +610,7 @@ class AbstractDense(torch.nn.Module):
 
         # delay
         if self.delay is not None:
+            self.delay.clamp()  # clamp the delay value
             handle.create_dataset('delay', data=delay(self.delay))
 
         # neuron
@@ -769,6 +771,7 @@ class AbstractConv(torch.nn.Module):
 
         # delay
         if self.delay is not None:
+            self.delay.clamp()  # clamp the delay value
             handle.create_dataset('delay', data=delay(self.delay))
 
         # neuron
@@ -907,6 +910,7 @@ class AbstractPool(torch.nn.Module):
 
         # delay
         if self.delay is not None:
+            self.delay.clamp()  # clamp the delay value
             handle.create_dataset('delay', data=delay(self.delay))
 
         # neuron
@@ -1061,6 +1065,7 @@ class AbstractConvT(torch.nn.Module):
 
         # delay
         if self.delay is not None:
+            self.delay.clamp()  # clamp the delay value
             handle.create_dataset('delay', data=delay(self.delay))
 
         # neuron
@@ -1199,6 +1204,7 @@ class AbstractUnpool(torch.nn.Module):
 
         # delay
         if self.delay is not None:
+            self.delay.clamp()  # clamp the delay value
             handle.create_dataset('delay', data=delay(self.delay))
 
         # neuron
