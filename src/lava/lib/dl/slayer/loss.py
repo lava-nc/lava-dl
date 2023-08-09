@@ -210,3 +210,78 @@ class SpikeMax(torch.nn.Module):
                 label.flatten(),
                 reduction=self.reduction,
             )
+
+class SpikeMoid(torch.nn.Module):
+    """
+    SpikeMoid (BCE) loss.
+
+    .. math::
+
+        \\text{if sliding window:} \\quad
+        p(t) = \\sigma\\left(\\frac{r(t) - \\theta}{\\alpha}\\right) \\\\
+        \\text{otherwise:} \\quad
+        p = \\sigma\\left(\\frac{r - \\theta}{\\alpha}\\right)
+
+    r signifies a spike rate calculated over the time dimension
+
+    .. math::
+        \\mathcal{L} = \\begin{cases}
+            -\\int_T \\hat{y}(t) \\cdot \\log{p(t)}
+            + (1 - \\hat{y}(t)) \\cdot \\log{(1 - p(t))}\\,\\text{d}t
+            &\\text{if sliding window} \\\\
+            -\\left(\\hat{y} \\cdot \\log{p}
+            + (1 - \\hat{y}) \\cdot \\log{(1 - p)}\\right)
+            &\\text{otherwise}
+        \\end{cases}
+
+    Note: input is always collapsed in the spatial dimension.
+    r signifies the a spike rate calculated over the time dimension
+
+    Parameters
+    ----------
+    moving_window : int
+        size of moving window. If not None, assumes label to be specified
+        at every time step. Defaults to None.
+    reduction : str
+        loss reduction method. One of 'sum'|'mean'. Defaults to 'sum'.
+    alpha : int
+        Sigmoid temperature parameter. Defaults to 1.
+    theta : int
+        Bias term for logits. Defaults to 1.
+    """
+    def __init__(
+        self, moving_window=None, reduction='sum', alpha=1, theta=0
+    ):
+        super(SpikeMoid, self).__init__()
+        if moving_window is not None:
+            self.window = MovingWindow(moving_window)
+        else:
+            self.window = None
+        self.reduction = reduction
+        self.alpha = alpha
+        self.theta = theta
+
+    def forward(self, input, label):
+        """Forward computation of loss.
+        """
+        input = input.reshape(input.shape[0], -1, input.shape[-1])
+        if self.window is None:  # one label for each sample in a batch
+            scaled_input = (input - self.theta) / self.alpha
+            probs = Rate.confidence(scaled_input, mode='sigmoid').flatten(0, 1)
+            return F.binary_cross_entropy(
+                probs,
+                label.flatten(),
+                reduction=self.reduction
+            )
+        else:
+            # assume label is in (batch, num_classes, time) form
+            if len(label.shape) == 2:
+                label = replicate(label, input.shape[-1])
+                float_label = label[..., None]
+            rates = self.window.rate(input)
+            probs = torch.sigmoid((rates - self.theta) / self.alpha)
+            return F.binary_cross_entropy(
+                probs.flatten(),
+                label.flatten(),
+                reduction=self.reduction
+            )
