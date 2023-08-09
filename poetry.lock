@@ -1853,6 +1853,21 @@ files = [
 test = ["codecov (>=2.0.5)", "coverage (>=4.2)", "flake8 (>=3.0.4)", "pytest (>=4.5.0)", "pytest-cov (>=2.7.1)", "pytest-runner (>=5.1)", "pytest-virtualenv (>=1.7.0)", "virtualenv (>=15.0.3)"]
 
 [[package]]
+name = "nir"
+version = "0.1.0"
+description = "Neuromorphic Intermediate Representation"
+optional = false
+python-versions = "*"
+files = [
+    {file = "nir-0.1.0-py3-none-any.whl", hash = "sha256:2bb2d017e425fafae706e71cb18bcd7114e2b0b3fe0253e215de66268902cdc6"},
+    {file = "nir-0.1.0.tar.gz", hash = "sha256:34ef08b1e0ae9b8352c0b103cdd07e7f2ab6d736bd0425d52d72387c63061a97"},
+]
+
+[package.dependencies]
+h5py = "*"
+numpy = "*"
+
+[[package]]
 name = "numpy"
 version = "1.24.4"
 description = "Fundamental package for array computing in Python"
@@ -3329,4 +3344,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8, <3.11"
-content-hash = "de6bedd6252340cb340abd85000e0a81b064242636cb0904cae7dc250f253866"
+content-hash = "3b8720e44f57b91a09b59062e63ceced4e38a72ed16260eb72104c0e03222878"
