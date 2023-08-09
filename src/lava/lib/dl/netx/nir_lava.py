@@ -17,14 +17,14 @@ PATH_TYPE = typing.Union[str, pathlib.Path]
 def read_cuba_lif(layer: h5py.Group, shape: Tuple[int] = None) -> nir.NIRNode:
     """Reads a CUBA LIF layer from a h5py.Group.
 
-    TODOs: 
+    TODOs:
     - what if the layer is more than 1D?
     - handle scaleRho tauRho theta
     - support graded spikes
     - support refdelay
     - support other neuron types
 
-    If the neuron model is not supported, a warning is logged and None is returned.
+    If neuron model not supported, warning logged and return None.
     """
     logging.debug(f"read_cuba_lif {layer['neuron']['type'][()]}")
 
@@ -42,8 +42,8 @@ def read_cuba_lif(layer: h5py.Group, shape: Tuple[int] = None) -> nir.NIRNode:
 
         vdecay = layer['neuron']['vDecay'][()]
         idecay = layer['neuron']['iDecay'][()]
-        tau_mem = 1./float(vdecay) if vdecay != 0 else np.inf
-        tau_syn = 1./float(idecay) if idecay != 0 else np.inf
+        tau_mem = 1. / float(vdecay) if vdecay != 0 else np.inf
+        tau_syn = 1. / float(idecay) if idecay != 0 else np.inf
 
         return nir.CubaLIF(
             tau_syn=tau_syn,
@@ -61,7 +61,7 @@ def read_cuba_lif(layer: h5py.Group, shape: Tuple[int] = None) -> nir.NIRNode:
 
 def read_node(network: h5py.Group) -> nir.NIRNode:
     """Read a graph from a HDF/conn5 file.
-    
+
     TODOs:
     - support delay in convolutional layers
     """
@@ -81,14 +81,14 @@ def read_node(network: h5py.Group) -> nir.NIRNode:
             raise ValueError('first layer must be input or dense')
         current_shape = first_layer['weight'][:].shape[1:]
         nodes.append(nir.Input(shape=current_shape))
-        edges.append((len(nodes)-1, len(nodes)))
+        edges.append((len(nodes) - 1, len(nodes)))
 
     # iterate over layers
     for layer_idx_int in layer_keys:
-        layer_idx = str(layer_idx_int)
-        layer = network[layer_idx]
+        lidx = str(layer_idx_int)
+        layer = network[lidx]
 
-        logging.info(f"--- Layer #{layer_idx}: {layer['type'][0].decode().upper()}")
+        logging.info(f"--- Layer #{lidx}: {layer['type'][0].decode().upper()}")
         logging.debug(f'current shape: {current_shape}')
 
         if layer['type'][0] == b'dense':
@@ -97,21 +97,26 @@ def read_node(network: h5py.Group) -> nir.NIRNode:
 
             # make sure weight matrix matches shape of previous layer
             if current_shape is None:
-                assert len(layer['weight'][:].shape) == 2, 'shape mismatch in dense'
+                assert len(layer['weight'][:].shape) == 2, 'shape mismatch'
                 current_shape = layer['weight'][:].shape[1]
             elif isinstance(current_shape, int):
-                assert current_shape == layer['weight'][:].shape[-1], 'shape mismatch in dense'
+                expected_shape = layer['weight'][:].shape[-1]
+                assert current_shape == expected_shape, 'shape mismatch'
             else:
-                assert len(current_shape) == 1, 'shape mismatch in dense'
-                assert current_shape[0] == layer['weight'][:].shape[1], 'shape mismatch in dense'
+                assert len(current_shape) == 1, 'shape mismatch'
+                expected_shape = layer['weight'][:].shape[1]
+                assert current_shape[0] == expected_shape, 'shape mismatch'
 
             # infer shape of current layer
-            assert len(layer['weight'][:].shape) in [1, 2], 'invalid dimension for dense layer'
-            current_shape = 1 if len(layer['weight'][:].shape) == 1 else layer['weight'][:].shape[0]
+            assert len(layer['weight'][:].shape) in [1, 2], 'invalid dim'
+            is_1d = len(layer['weight'][:].shape) == 1
+            current_shape = 1 if is_1d else layer['weight'][:].shape[0]
 
             # store the weight matrix (np.array, carrying over type)
             if 'bias' in layer:
-                nodes.append(nir.Affine(weight=layer['weight'][:], bias=layer['bias'][:]))
+                w = layer['weight'][:]
+                b = layer['bias'][:]
+                nodes.append(nir.Affine(weight=w, bias=b))
             else:
                 nodes.append(nir.Linear(weight=layer['weight'][:]))
 
@@ -122,28 +127,34 @@ def read_node(network: h5py.Group) -> nir.NIRNode:
             nodes.append(neuron)
 
             # connect linear to neuron, neuron to next element
-            edges.append((len(nodes)-2, len(nodes)-1))
-            edges.append((len(nodes)-1, len(nodes)))
+            edges.append((len(nodes) - 2, len(nodes) - 1))
+            edges.append((len(nodes) - 1, len(nodes)))
 
         elif layer['type'][0] == b'input':
-            # iDecay, refDelay, scaleRho, tauRho, theta, type, vDecay, vThMant, wgtExp
+            # iDecay, refDelay, scaleRho, tauRho, theta
+            # type, vDecay, vThMant, wgtExp
             current_shape = layer['shape'][:]
             nodes.append(nir.Input(shape=layer['shape'][:]))
-            edges.append((len(nodes)-1, len(nodes)))
+            edges.append((len(nodes) - 1, len(nodes)))
             logging.debug(f'keys: {layer.keys()}')
-            logging.debug(f'shape: {layer["shape"][:]}, bias: {layer["bias"][()]}, weight: {layer["weight"][()]}')
-            logging.debug(f'neuron keys: {", ".join(list(layer["neuron"].keys()))}')
+            w = layer['weight'][()]
+            b = layer['bias'][()]
+            logging.debug(f'shape: {layer["shape"][:]}, bias: {b}, weight: {w}')
+            n_keys = list(layer['neuron'].keys())
+            logging.debug(f'neuron keys: {", ".join(n_keys)}')
 
         elif layer['type'][0] == b'flatten':
             # shape, type
             flattened_shape = layer['shape'][:]
             logging.debug(f"flattening -> {flattened_shape}")
 
-            assert len(nodes) > 0, 'flatten: must be preceded by a layer'
-            assert isinstance(current_shape, tuple), 'flatten: nothing to flatten'
-            assert len(current_shape) > 1, 'flatten: nothing to flatten'
-            assert len(current_shape) >= len(flattened_shape), 'flatten: shape mismatch'
-            assert np.prod(current_shape) == np.prod(flattened_shape), 'flatten: shape mismatch'
+            assert len(nodes) > 0, 'must be preceded by a layer'
+            assert isinstance(current_shape, tuple), 'nothing to flatten'
+            assert len(current_shape) > 1, 'nothing to flatten'
+            assert len(current_shape) >= len(flattened_shape), 'shape mismatch'
+            n_cur = np.prod(current_shape)
+            n_flat = np.prod(flattened_shape)
+            assert n_cur == n_flat, 'shape mismatch'
 
             if len(current_shape) == len(flattened_shape):
                 # (A, B, C) -> (1, 1, A*B*C)
@@ -152,8 +163,12 @@ def read_node(network: h5py.Group) -> nir.NIRNode:
                     if current_shape[i] != 1 and flattened_shape[i] == 1:
                         axes_to_flatten.append(i)
                 # check if dims to flatten are next to each other
-                assert np.alltrue(np.diff(axes_to_flatten) == 1), 'flatten: dims not contiguous'
-                nodes.append(nir.Flatten(start_dim=axes_to_flatten[0], end_dim=axes_to_flatten[1]))
+                is_contiguous = np.alltrue(np.diff(axes_to_flatten) == 1)
+                assert is_contiguous, 'flatten: dims not contiguous'
+                nodes.append(nir.Flatten(
+                    start_dim=axes_to_flatten[0],
+                    end_dim=axes_to_flatten[1]
+                ))
             else:
                 # (A, B, C) -> (A*B*C)
                 # assume dimensions to be flattened are next to each other
@@ -167,16 +182,20 @@ def read_node(network: h5py.Group) -> nir.NIRNode:
                     continue
                 end_flatten = -1
                 for i in range(start_flatten, len(current_shape)):
-                    if np.prod(current_shape[start_flatten:i+1]) == flattened_shape[start_flatten]:
-                        end_flatten = i-1
+                    exp_dim = np.prod(current_shape[start_flatten:i + 1])
+                    cur_dim = flattened_shape[start_flatten]
+                    if exp_dim == cur_dim:
+                        end_flatten = i - 1
                         break
-                nodes.append(nir.Flatten(start_dim=start_flatten, end_dim=end_flatten))
+                nodes.append(nir.Flatten(
+                    start_dim=start_flatten, end_dim=end_flatten
+                ))
 
             current_shape = int(np.prod(current_shape))
-            edges.append((len(nodes)-1, len(nodes)))
+            edges.append((len(nodes) - 1, len(nodes)))
 
         elif layer['type'][0] == b'conv':
-            # shape, type, neuron, inChannels, outChannels, kernelSize, stride, 
+            # shape, type, neuron, inChannels, outChannels, kernelSize, stride,
             # padding, dilation, groups, weight, delay?
             weight = layer['weight'][:]
             stride = layer['stride'][()]
@@ -185,21 +204,24 @@ def read_node(network: h5py.Group) -> nir.NIRNode:
             kernel_size = layer['kernelSize'][()]
             in_channels = layer['inChannels'][()]
             out_channels = layer['outChannels'][()]
-            logging.debug(f'stride {stride} padding {pad} dilation {dil} w {weight.shape}')
+            logging.debug(f'strd {stride} pad {pad} dil {dil} w {weight.shape}')
 
             # infer shape of current layer
-            assert in_channels == current_shape[0], 'in_channels must match previous layer'
+            assert in_channels == current_shape[0], 'in_channels mismatch'
             x_prev = current_shape[1]
             y_prev = current_shape[2]
-            x = (x_prev + 2*pad[0] - dil[0]*(kernel_size[0]-1) - 1) // stride[0] + 1
-            y = (y_prev + 2*pad[1] - dil[1]*(kernel_size[1]-1) - 1) // stride[1] + 1
+            nomin = (x_prev + 2 * pad[0] - dil[0] * (kernel_size[0] - 1) - 1)
+            x = nomin // stride[0] + 1
+            nomin = (y_prev + 2 * pad[1] - dil[1] * (kernel_size[1] - 1) - 1)
+            y = nomin // stride[1] + 1
             current_shape = (out_channels, x, y)
 
             # check for unsupported options
             if layer['groups'][()] != 1:
                 logging.warning('groups not supported, setting to 1')
             if 'delay' in layer:
-                logging.warning(f"delay=({layer['delay'][()]}) not supported, ignoring")
+                delay = layer['delay'][()]
+                logging.warning(f"delay={delay} unsupported, ignore")
 
             # store the conv matrix (np.array, carrying over type)
             nodes.append(nir.Conv2d(
@@ -218,8 +240,8 @@ def read_node(network: h5py.Group) -> nir.NIRNode:
             nodes.append(neuron)
 
             # connect conv to neuron group, neuron group to next element
-            edges.append((len(nodes)-2, len(nodes)-1))
-            edges.append((len(nodes)-1, len(nodes)))
+            edges.append((len(nodes) - 2, len(nodes) - 1))
+            edges.append((len(nodes) - 1, len(nodes)))
 
         elif layer['type'][0] == b'average':
             # shape, type
@@ -242,10 +264,14 @@ def read_node(network: h5py.Group) -> nir.NIRNode:
     # remove last edge (no next element)
     edges.pop(-1)
 
-    return nir.NIRGraph(nodes={str(i): nodes[i] for i in range(len(nodes))}, edges=edges)
+    return nir.NIRGraph(
+        nodes={str(i): nodes[i] for i in range(len(nodes))},
+        edges=edges
+    )
 
 
-def convert_to_nir(net_config: PATH_TYPE, output_path: PATH_TYPE) -> nir.NIRGraph:
+def convert_to_nir(net_config: PATH_TYPE,
+                   output_path: PATH_TYPE) -> nir.NIRGraph:
     """Load a NIR from a HDF/conn5 netx file."""
     with h5py.File(net_config, "r") as f:
         nir_graph = read_node(f["layer"])
@@ -253,7 +279,7 @@ def convert_to_nir(net_config: PATH_TYPE, output_path: PATH_TYPE) -> nir.NIRGrap
 
 
 ########################################################################
-####################        NIR -> LAVA        #########################
+# NIR -> LAVA
 ########################################################################
 
 
@@ -288,16 +314,16 @@ def nir_graph_to_lava_network(graph: nir.NIRGraph) -> NetworkNIR:
             raise ValueError("Lava does not support cyclic graphs")
 
     # get input node key
-    input_node_keys = [k for k in nodes.keys() if isinstance(nodes[k], nir.Input)]
+    input_node_keys = [k for k in nodes if isinstance(nodes[k], nir.Input)]
     logging.debug(f'input_node_keys: {input_node_keys}')
-    assert len(input_node_keys) <= 1, "NIR->Lava only supports one input node"
+    assert len(input_node_keys) <= 1, "only supports one input node"
     if len(input_node_keys) == 0:
         # get the first node - remove every node that has a predecessor
         input_node_keys = list(nodes.keys())
         for edge in edges:
             if str(edge[1]) in input_node_keys:
                 input_node_keys.remove(str(edge[1]))
-        assert len(input_node_keys) == 1, "NIR->Lava only supports one input node"
+        assert len(input_node_keys) == 1, "only supports one input node"
     node_key = input_node_keys[0]
     logging.debug(f'input node key: {node_key}')
 
@@ -326,9 +352,9 @@ def nir_graph_to_lava_network(graph: nir.NIRGraph) -> NetworkNIR:
     blocks = []
 
     def get_next_node(node_key):
-        """Returns the next node key in the graph, or None if there is no next node."""
+        """Returns next node key in graph, or None if there is no next node."""
         next_node_keys = [str(e[1]) for e in edges if str(e[0]) == node_key]
-        assert len(next_node_keys) <= 1, "NIR->Lava currently does not support branching"
+        assert len(next_node_keys) <= 1, "currently does not support branching"
         return None if len(next_node_keys) == 0 else next_node_keys[0]
 
     while node_key is not None:
@@ -344,18 +370,26 @@ def nir_graph_to_lava_network(graph: nir.NIRGraph) -> NetworkNIR:
                 'current_decay' : 1,
                 'voltage_decay' : 0.1,
             }))
-        
+
         elif isinstance(node, nir.Flatten):
-            # TODO: check what shape is expected by next node (start_dim, end_dim)
+            # TODO: check what shape is expected (start_dim, end_dim)
             blocks.append(slayer.block.cuba.Flatten())
 
         elif isinstance(node, nir.Conv2d):
             node_key = get_next_node(node_key)
             next_node = nodes[node_key]
-            assert isinstance(next_node, nir.CubaLIF), "NIR->Lava only supports Conv2D-CUBA"
+            assert isinstance(next_node, nir.CubaLIF), "only supports CUBA"
             # neuron parameters
-            i_decay = 0 if next_node.tau_syn == np.inf else (1. / next_node.tau_syn)
-            v_decay = 0 if next_node.tau_mem == np.inf else (1. / next_node.tau_mem)
+            if next_node.tau_syn == np.inf:
+                logging.warning('tau_syn is inf, setting to 0')
+                i_decay = 0
+            else:
+                i_decay = 1. / next_node.tau_syn
+            if next_node.tau_mem == np.inf:
+                logging.warning('tau_mem is inf, setting to 0')
+                v_decay = 0
+            else:
+                v_decay = 1. / next_node.tau_mem
             threshold = next_node.v_threshold
             neuron_params = {
                 'threshold'     : threshold,
@@ -364,7 +398,7 @@ def nir_graph_to_lava_network(graph: nir.NIRGraph) -> NetworkNIR:
             }
             # conv block parameters
             logging.debug(f'weights of shape: {node.weight.shape}')
-            assert len(node.weight.shape) == 4, "NIR->Lava only supports Conv2D"
+            assert len(node.weight.shape) == 4, "only supports Conv2D, not 3D"
             conv_block = slayer.block.cuba.Conv(
                 neuron_params=neuron_params,
                 in_features=node.weight.shape[1],
@@ -380,10 +414,18 @@ def nir_graph_to_lava_network(graph: nir.NIRGraph) -> NetworkNIR:
         elif isinstance(node, nir.Linear) or isinstance(node, nir.Affine):
             node_key = get_next_node(node_key)
             next_node = nodes[node_key]
-            assert isinstance(next_node, nir.CubaLIF), "NIR->Lava only supports Linear-CUBA"
+            assert isinstance(next_node, nir.CubaLIF), "only supports Lin-CUBA"
             # neuron parameters
-            i_decay = 0 if next_node.tau_syn == np.inf else (1. / next_node.tau_syn)
-            v_decay = 0 if next_node.tau_mem == np.inf else (1. / next_node.tau_mem)
+            if next_node.tau_syn == np.inf:
+                logging.warning('tau_syn is inf, setting to 0')
+                i_decay = 0
+            else:
+                i_decay = 1. / next_node.tau_syn
+            if next_node.tau_mem == np.inf:
+                logging.warning('tau_mem is inf, setting to 0')
+                v_decay = 0
+            else:
+                v_decay = 1. / next_node.tau_mem
             threshold = next_node.v_threshold
             neuron_params = {
                 'threshold'     : threshold,
@@ -392,17 +434,18 @@ def nir_graph_to_lava_network(graph: nir.NIRGraph) -> NetworkNIR:
             }
             # linear block parameters
             logging.debug(f'weights of shape: {node.weight.shape}')
-            assert len(node.weight.shape) <= 2, "NIR->Lava only supports 2D Linear"
+            assert len(node.weight.shape) <= 2, "only supports 2D Linear"
+            is_1d = len(node.weight.shape) == 1
             linear_block = slayer.block.cuba.Dense(
                 neuron_params=neuron_params,
-                in_neurons=1 if len(node.weight.shape) ==1 else node.weight.shape[1],
+                in_neurons=1 if is_1d else node.weight.shape[1],
                 out_neurons=node.weight.shape[0],
             )
             blocks.append(linear_block)
-        
+
         else:
             raise ValueError(f"Unsupported node type {type(node)}")
-    
+
         node_key = get_next_node(node_key)
 
     # create the network

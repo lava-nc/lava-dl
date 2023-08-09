@@ -172,8 +172,10 @@ pycodestyle = ["+*", "-W503", "-E203"]
 pyflakes = ["-*"]                           # Disable temporarily until lint fix is pushed
 pylint = ["-*"]                             # Disable temporarily until lint fix is pushed
 
+[tool.flakeheaven.exceptions."src/"]
+flake8-bandit = ["-S101"]                   # Ignore asserts
+
 [tool.flakeheaven.exceptions."tests/"]
 pycodestyle = ["-F401"]                     # Disable a check
 flake8-bandit = ["-S101"]                   # Ignore asserts for tests
 pyflakes = ["-*"]                           # Disable a plugin
-

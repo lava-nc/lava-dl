@@ -8,11 +8,16 @@ from lava.lib.dl import netx
 
 test_folder = os.path.dirname(os.path.abspath(__file__))
 root = os.getcwd()
-oxford_net_path = os.path.join(root, 'tutorials/lava/lib/dl/netx/oxford/Trained/network.net')
-pilotnet_net_path = os.path.join(root, 'tutorials/lava/lib/dl/netx/pilotnet_snn/network.net')
+oxford_net_path = os.path.join(
+    root, 'tutorials/lava/lib/dl/netx/oxford/Trained/network.net'
+)
+pilotnet_net_path = os.path.join(
+    root, 'tutorials/lava/lib/dl/netx/pilotnet_snn/network.net'
+)
 
 logging_level = logging.DEBUG
-logging.basicConfig(level=logging_level, format='[lava_nir]:[%(levelname)s] %(message)s')
+logging.basicConfig(level=logging_level,
+                    format='[lava_nir]:[%(levelname)s] %(message)s')
 
 
 class TestNetxNIR(unittest.TestCase):
