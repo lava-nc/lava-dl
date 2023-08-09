@@ -59,6 +59,7 @@ pillow = "^9.2.0"
 pytest = "^7.2.0"
 unittest2 = "^1.1.0"
 torch = "^1.13.1"
+nir = "^0.1.0"
 
 [tool.poetry.dev-dependencies]
 bandit = "1.7.4"
@@ -171,9 +172,6 @@ pep8-naming = ["-*"]
 pycodestyle = ["+*", "-W503", "-E203"]
 pyflakes = ["-*"]                           # Disable temporarily until lint fix is pushed
 pylint = ["-*"]                             # Disable temporarily until lint fix is pushed
-
-[tool.flakeheaven.exceptions."src/"]
-flake8-bandit = ["-S101"]                   # Ignore asserts
 
 [tool.flakeheaven.exceptions."tests/"]
 pycodestyle = ["-F401"]                     # Disable a check

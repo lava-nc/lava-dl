@@ -97,18 +97,21 @@ def read_node(network: h5py.Group) -> nir.NIRNode:
 
             # make sure weight matrix matches shape of previous layer
             if current_shape is None:
-                assert len(layer['weight'][:].shape) == 2, 'shape mismatch'
+                if len(layer['weight'][:].shape) != 2:
+                    raise AssertionError('shape mismatch')
                 current_shape = layer['weight'][:].shape[1]
             elif isinstance(current_shape, int):
-                expected_shape = layer['weight'][:].shape[-1]
-                assert current_shape == expected_shape, 'shape mismatch'
+                if current_shape != layer['weight'][:].shape[-1]:
+                    raise AssertionError('shape mismatch')
             else:
-                assert len(current_shape) == 1, 'shape mismatch'
-                expected_shape = layer['weight'][:].shape[1]
-                assert current_shape[0] == expected_shape, 'shape mismatch'
+                if len(current_shape) != 1:
+                    raise AssertionError('shape mismatch')
+                if current_shape[0] != layer['weight'][:].shape[1]:
+                    raise AssertionError('shape mismatch')
 
             # infer shape of current layer
-            assert len(layer['weight'][:].shape) in [1, 2], 'invalid dim'
+            if len(layer['weight'][:].shape) not in [1, 2]:
+                raise AssertionError('invalid dim')
             is_1d = len(layer['weight'][:].shape) == 1
             current_shape = 1 if is_1d else layer['weight'][:].shape[0]
 
@@ -148,13 +151,16 @@ def read_node(network: h5py.Group) -> nir.NIRNode:
             flattened_shape = layer['shape'][:]
             logging.debug(f"flattening -> {flattened_shape}")
 
-            assert len(nodes) > 0, 'must be preceded by a layer'
-            assert isinstance(current_shape, tuple), 'nothing to flatten'
-            assert len(current_shape) > 1, 'nothing to flatten'
-            assert len(current_shape) >= len(flattened_shape), 'shape mismatch'
-            n_cur = np.prod(current_shape)
-            n_flat = np.prod(flattened_shape)
-            assert n_cur == n_flat, 'shape mismatch'
+            if len(nodes) == 0:
+                raise AssertionError('must be preceded by a layer')
+            if not isinstance(current_shape, tuple):
+                raise AssertionError('nothing to flatten')
+            if len(current_shape) <= 1:
+                raise AssertionError('nothing to flatten')
+            if len(current_shape) < len(flattened_shape):
+                raise AssertionError('shape mismatch')
+            if np.prod(current_shape) != np.prod(flattened_shape):
+                raise AssertionError('shape mismatch')
 
             if len(current_shape) == len(flattened_shape):
                 # (A, B, C) -> (1, 1, A*B*C)
@@ -163,8 +169,8 @@ def read_node(network: h5py.Group) -> nir.NIRNode:
                     if current_shape[i] != 1 and flattened_shape[i] == 1:
                         axes_to_flatten.append(i)
                 # check if dims to flatten are next to each other
-                is_contiguous = np.alltrue(np.diff(axes_to_flatten) == 1)
-                assert is_contiguous, 'flatten: dims not contiguous'
+                if not np.alltrue(np.diff(axes_to_flatten) == 1):
+                    raise AssertionError('dims to flatten are not contiguous')
                 nodes.append(nir.Flatten(
                     start_dim=axes_to_flatten[0],
                     end_dim=axes_to_flatten[1]
@@ -207,7 +213,8 @@ def read_node(network: h5py.Group) -> nir.NIRNode:
             logging.debug(f'strd {stride} pad {pad} dil {dil} w {weight.shape}')
 
             # infer shape of current layer
-            assert in_channels == current_shape[0], 'in_channels mismatch'
+            if in_channels != current_shape[0]:
+                raise AssertionError('in_channels mismatch')
             x_prev = current_shape[1]
             y_prev = current_shape[2]
             nomin = (x_prev + 2 * pad[0] - dil[0] * (kernel_size[0] - 1) - 1)
@@ -316,14 +323,16 @@ def nir_graph_to_lava_network(graph: nir.NIRGraph) -> NetworkNIR:
     # get input node key
     input_node_keys = [k for k in nodes if isinstance(nodes[k], nir.Input)]
     logging.debug(f'input_node_keys: {input_node_keys}')
-    assert len(input_node_keys) <= 1, "only supports one input node"
+    if len(input_node_keys) > 1:
+        raise AssertionError("do not support multiple input nodes")
     if len(input_node_keys) == 0:
         # get the first node - remove every node that has a predecessor
         input_node_keys = list(nodes.keys())
         for edge in edges:
             if str(edge[1]) in input_node_keys:
                 input_node_keys.remove(str(edge[1]))
-        assert len(input_node_keys) == 1, "only supports one input node"
+        if len(input_node_keys) != 1:
+            raise AssertionError("could not find single input node")
     node_key = input_node_keys[0]
     logging.debug(f'input node key: {node_key}')
 
@@ -354,7 +363,8 @@ def nir_graph_to_lava_network(graph: nir.NIRGraph) -> NetworkNIR:
     def get_next_node(node_key):
         """Returns next node key in graph, or None if there is no next node."""
         next_node_keys = [str(e[1]) for e in edges if str(e[0]) == node_key]
-        assert len(next_node_keys) <= 1, "currently does not support branching"
+        if len(next_node_keys) > 1:
+            raise AssertionError("currently do not support branching")
         return None if len(next_node_keys) == 0 else next_node_keys[0]
 
     while node_key is not None:
@@ -378,7 +388,8 @@ def nir_graph_to_lava_network(graph: nir.NIRGraph) -> NetworkNIR:
         elif isinstance(node, nir.Conv2d):
             node_key = get_next_node(node_key)
             next_node = nodes[node_key]
-            assert isinstance(next_node, nir.CubaLIF), "only supports CUBA"
+            if not isinstance(next_node, nir.CubaLIF):
+                raise AssertionError("only supports CUBA")
             # neuron parameters
             if next_node.tau_syn == np.inf:
                 logging.warning('tau_syn is inf, setting to 0')
@@ -398,7 +409,8 @@ def nir_graph_to_lava_network(graph: nir.NIRGraph) -> NetworkNIR:
             }
             # conv block parameters
             logging.debug(f'weights of shape: {node.weight.shape}')
-            assert len(node.weight.shape) == 4, "only supports Conv2D, not 3D"
+            if len(node.weight.shape) != 4:
+                raise AssertionError("only support Conv2D")
             conv_block = slayer.block.cuba.Conv(
                 neuron_params=neuron_params,
                 in_features=node.weight.shape[1],
@@ -414,7 +426,8 @@ def nir_graph_to_lava_network(graph: nir.NIRGraph) -> NetworkNIR:
         elif isinstance(node, nir.Linear) or isinstance(node, nir.Affine):
             node_key = get_next_node(node_key)
             next_node = nodes[node_key]
-            assert isinstance(next_node, nir.CubaLIF), "only supports Lin-CUBA"
+            if not isinstance(next_node, nir.CubaLIF):
+                raise AssertionError("only support Linear-CUBA")
             # neuron parameters
             if next_node.tau_syn == np.inf:
                 logging.warning('tau_syn is inf, setting to 0')
@@ -434,7 +447,8 @@ def nir_graph_to_lava_network(graph: nir.NIRGraph) -> NetworkNIR:
             }
             # linear block parameters
             logging.debug(f'weights of shape: {node.weight.shape}')
-            assert len(node.weight.shape) <= 2, "only supports 2D Linear"
+            if len(node.weight.shape) > 2:
+                raise AssertionError("only support 2D Linear")
             is_1d = len(node.weight.shape) == 1
             linear_block = slayer.block.cuba.Dense(
                 neuron_params=neuron_params,
