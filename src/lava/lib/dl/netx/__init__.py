@@ -4,5 +4,6 @@
 from . import hdf5
 from . import blocks
 from . import utils
+from . import nir_lava
 
-__all__ = ['hdf5', 'blocks', 'utils']
+__all__ = ['hdf5', 'blocks', 'utils', 'nir_lava']
