@@ -53,7 +53,7 @@ class TestCUBA(unittest.TestCase):
         out_features = 5
 
         # create slayer network and evaluate output
-        net = slayer.block.cuba.Dense(neuron_param, in_features, out_features)
+        net = slayer.block.cuba.Affine(neuron_param, in_features, out_features)
 
         # export slayer network
         net.export_hdf5(
