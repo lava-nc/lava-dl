@@ -16,7 +16,7 @@ from lava.proc.conv import utils
 from lava.proc import io
 
 verbose = True if (("-v" in sys.argv) or ("--verbose" in sys.argv)) else False
-# Enabling torch sometimes causes multiprocessing error, 
+# Enabling torch sometimes causes multiprocessing error,
 # especially in unittests
 utils.TORCH_IS_AVAILABLE = False
 
@@ -46,6 +46,21 @@ neuron_param = {"threshold": 0.5, "current_decay": 0.5, "voltage_decay": 0.5}
 
 class TestCUBA(unittest.TestCase):
     """Test CUBA blocks"""
+
+    def test_affine_block_hdf5_export(self):
+        """Test affine block hdf5 export."""
+        in_features = 10
+        out_features = 5
+
+        # create slayer network and evaluate output
+        net = slayer.block.cuba.Dense(neuron_param, in_features, out_features)
+
+        # export slayer network
+        net.export_hdf5(
+            h5py.File(tempdir + "/cuba_affine.net", "w").create_group(
+                "layer/0"
+            )
+        )
 
     def test_dense_block(self):
         """Test dense block with lava process implementation."""
