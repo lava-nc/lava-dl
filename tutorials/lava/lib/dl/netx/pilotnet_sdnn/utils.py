@@ -1,12 +1,14 @@
 # Copyright (C) 2022 Intel Corporation
 # SPDX-License-Identifier:  BSD-3-Clause
 
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+
 from bz2 import compress
 from typing import Dict, Tuple
-import numpy as np
 from PIL import Image
 from IPython.display import display, clear_output
-import matplotlib.pyplot as plt
 
 from lava.magma.core.process.process import AbstractProcess
 from lava.magma.core.process.ports.ports import InPort, OutPort
@@ -25,8 +27,9 @@ from lava.proc import io
 from lava.proc.io.encoder import Compression
 from lava.lib.dl.netx.utils import NetDict
 
-from lava.utils.system import Loihi2
-if Loihi2.is_loihi2_available:
+from lava.utils import loihi
+
+if loihi.is_installed():
     from lava.proc import embedded_io as eio
 
 
@@ -219,7 +222,8 @@ class PilotNetMonitor(AbstractProcess):
     def __init__(self,
                  shape: Tuple[int, ...],
                  transform: Dict[str, float],
-                 output_offset=0) -> None:
+                 output_offset=0,
+                 image_path='images') -> None:
         """PilotNet monitor process.
 
         Parameters
@@ -231,11 +235,11 @@ class PilotNetMonitor(AbstractProcess):
         output_offset : int, optional
             Latency of output, by default 0.
         """
-        super().__init__(shape=shape, transform=transform)
+        super().__init__(shape=shape, transform=transform,
+                         image_path=image_path, output_offset=output_offset)
         self.frame_in = InPort(shape=shape)
         self.output_in = InPort(shape=(1,))
         self.gt_in = InPort(shape=(1,))
-        self.proc_params['output_offset'] = output_offset
 
 
 @implements(proc=PilotNetMonitor, protocol=LoihiProtocol)
@@ -246,7 +250,7 @@ class PilotNetMonitorModel(PyLoihiProcessModel):
     output_in = LavaPyType(PyInPort.VEC_DENSE, float)
     gt_in = LavaPyType(PyInPort.VEC_DENSE, float)
 
-    def __init__(self, proc_params=None) -> None:
+    def __init__(self, proc_params) -> None:
         super().__init__(proc_params=proc_params)
         self.fig = plt.figure(figsize=(15, 5))
         self.ax1 = self.fig.add_subplot(1, 3, 1)
@@ -258,7 +262,9 @@ class PilotNetMonitorModel(PyLoihiProcessModel):
         self.bias = transform['bias']
         self.output_offset = output_offset
         self.gt_history = [0] * output_offset
-        self.steering = Image.open('images/pilotnet_steering.png')
+        image_path = proc_params['image_path']
+        steering_image = os.path.join(image_path, 'pilotnet_steering.png')
+        self.steering = Image.open(steering_image)
         self.output_history = []
 
     def run_spk(self) -> None:

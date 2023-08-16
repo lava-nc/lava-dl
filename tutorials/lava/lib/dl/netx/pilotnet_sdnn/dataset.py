@@ -2,7 +2,7 @@
 # SPDX-License-Identifier:  BSD-3-Clause
 
 import os
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 import numpy as np
 from PIL import Image
 import glob
@@ -47,31 +47,15 @@ class PilotNetDataset():
         train: Union[bool, None] = True,
         visualize: Union[bool, None] = False,
         sample_offset: int = 0,
+        download: Optional[bool] = True,
     ) -> None:
         self.path = os.path.join(path, 'driving_dataset')
-
-        # check if dataset is available in path. If not download it
-        if len(glob.glob(self.path)) == 0:  # dataset does not exist
-            os.makedirs(path, exist_ok=True)
-
-            print('Dataset not available locally. Starting download ...')
-            id = '1Ue4XohCOV5YXy57S_5tDfCVqzLr101M7'
-            download_cmd = 'wget --load-cookies /tmp/cookies.txt '\
-                + '"https://docs.google.com/uc?export=download&confirm='\
-                + '$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate '\
-                + f"'https://docs.google.com/uc?export=download&id={id}' -O- | "\
-                + f"sed -rn \'s/.*confirm=([0-9A-Za-z_]+).*/\\1\\n/p\')&id={id}"\
-                + f'" -O {path}/driving_dataset.zip && rm -rf /tmp/cookies.txt'
-            print(download_cmd)
-            os.system(download_cmd + f' >> {path}/download.log')
-            print('Download complete.')
-            print('Extracting data (this may take a while) ...')
-            os.system(
-                f'unzip {path}/driving_dataset.zip -d {path} >> '
-                f'{path}/unzip.log'
-            )
-            print('Extraction complete.')
-
+        if not self.dataset_exists():
+            if download:
+                self.download_and_extract()
+            else:
+                raise RuntimeError('Dataset is not available and'
+                                   'download is False.')
         with open(os.path.join(self.path, 'data.txt'), 'r') as data:
             all_samples = [line.split() for line in data]
 
@@ -93,6 +77,31 @@ class PilotNetDataset():
         self.size = size
         self.transform = transform
         self.sample_offset = sample_offset
+
+    def dataset_exists(self) -> bool:
+        """Return whether the dataset exists at the path."""
+        return len(glob.glob(self.path)) > 0
+
+    def download_and_extract(self):
+        """Download and extract the dataset from a public mirror."""
+        os.makedirs(self.path, exist_ok=True)
+        print('Dataset not available locally. Starting download ...')
+        id = '1Ue4XohCOV5YXy57S_5tDfCVqzLr101M7'
+        download_cmd = 'wget --load-cookies /tmp/cookies.txt '\
+            + '"https://docs.google.com/uc?export=download&confirm='\
+            + '$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate '\
+            + f"'https://docs.google.com/uc?export=download&id={id}' -O- | "\
+            + f"sed -rn \'s/.*confirm=([0-9A-Za-z_]+).*/\\1\\n/p\')&id={id}"\
+            + f'" -O {self.path}/driving_dataset.zip && rm -rf /tmp/cookies.txt'
+        print(download_cmd)
+        os.system(download_cmd + f' >> {self.path}/download.log')
+        print('Download complete.')
+        print('Extracting data (this may take a while) ...')
+        os.system(
+            f'unzip {self.path}/driving_dataset.zip -d {self.path} >> '
+            f'{self.path}/unzip.log'
+        )
+        print('Extraction complete.')
 
     def __getitem__(self, index: int) -> Tuple[np.ndarray, float]:
         index = (index + self.sample_offset) % len(self.samples)
