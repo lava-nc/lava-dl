@@ -61,16 +61,16 @@ class TestCUBA(unittest.TestCase):
         )
 
         # export slayer network
-        h = h5py.File(tempdir + "/cuba_affine_dynamics_true.net", "w")
+        h = h5py.File(tempdir + "/cuba_affine_dynamics_false.net", "w")
         net.export_hdf5(h.create_group("layer/0"))
 
         # reload net from h5 and check if 'neuron' exists.
         lava_net = netx.hdf5.Network(
-            net_config=tempdir + "/cuba_affine_dynamics_true.net"
+            net_config=tempdir + "/cuba_affine_dynamics_false.net"
         )
         layer = lava_net.layers[0]
 
-        assert "neuron" not in layer.__dict__
+        assert 'neuron' not in layer.__dict__.keys()
 
     def test_affine_block_hdf5_export_dynamics_true(self):
         """Test affine block hdf5 export in dynamics=true mode."""
@@ -86,12 +86,12 @@ class TestCUBA(unittest.TestCase):
         )
 
         # export slayer network
-        h = h5py.File(tempdir + "/cuba_affine_dynamics_false.net", "w")
+        h = h5py.File(tempdir + "/cuba_affine_dynamics_true.net", "w")
         net.export_hdf5(h.create_group("layer/0"))
 
         # reload net from h5 and check if 'vThMant' is '(1 << 17)'.
         lava_net = netx.hdf5.Network(
-            net_config=tempdir + "/cuba_affine_dynamics_false.net"
+            net_config=tempdir + "/cuba_affine_dynamics_true.net"
         )
         layer = lava_net.layers[0]
         neuron = layer.__dict__["neuron"].__dict__
