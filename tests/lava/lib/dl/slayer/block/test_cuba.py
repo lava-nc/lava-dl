@@ -47,20 +47,56 @@ neuron_param = {"threshold": 0.5, "current_decay": 0.5, "voltage_decay": 0.5}
 class TestCUBA(unittest.TestCase):
     """Test CUBA blocks"""
 
-    def test_affine_block_hdf5_export(self):
-        """Test affine block hdf5 export."""
+    def test_affine_block_hdf5_export_dynamics_false(self):
+        """Test affine block hdf5 export in dynamics=false mode."""
         in_features = 10
         out_features = 5
 
-        # create slayer network and evaluate output
-        net = slayer.block.cuba.Affine(neuron_param, in_features, out_features)
+        net = slayer.block.cuba.Affine(
+            neuron_params=neuron_param,
+            in_neurons=in_features,
+            out_neurons=out_features,
+            dynamics=False,
+            count_log=False,
+        )
 
         # export slayer network
-        net.export_hdf5(
-            h5py.File(tempdir + "/cuba_affine.net", "w").create_group(
-                "layer/0"
-            )
+        h = h5py.File(tempdir + "/cuba_affine_dynamics_true.net", "w")
+        net.export_hdf5(h.create_group("layer/0"))
+
+        # reload net from h5 and check if 'neuron' exists.
+        lava_net = netx.hdf5.Network(
+            net_config=tempdir + "/cuba_affine_dynamics_true.net"
         )
+        layer = lava_net.layers[0]
+
+        assert "neuron" not in layer.__dict__
+
+    def test_affine_block_hdf5_export_dynamics_true(self):
+        """Test affine block hdf5 export in dynamics=true mode."""
+        in_features = 10
+        out_features = 5
+
+        net = slayer.block.cuba.Affine(
+            neuron_params=neuron_param,
+            in_neurons=in_features,
+            out_neurons=out_features,
+            dynamics=True,
+            count_log=False,
+        )
+
+        # export slayer network
+        h = h5py.File(tempdir + "/cuba_affine_dynamics_false.net", "w")
+        net.export_hdf5(h.create_group("layer/0"))
+
+        # reload net from h5 and check if 'vThMant' is '(1 << 17)'.
+        lava_net = netx.hdf5.Network(
+            net_config=tempdir + "/cuba_affine_dynamics_false.net"
+        )
+        layer = lava_net.layers[0]
+        neuron = layer.__dict__["neuron"].__dict__
+
+        assert neuron["vThMant"] == (1 << 18) - 1
 
     def test_dense_block(self):
         """Test dense block with lava process implementation."""
