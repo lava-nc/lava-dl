@@ -3,6 +3,7 @@
 
 """CUBA-LIF layer blocks"""
 
+import numpy as np
 import torch
 
 from . import base
@@ -70,7 +71,7 @@ class Affine(AbstractCuba, base.AbstractAffine):
             self.synapse.pre_hook_fx = self.neuron.quantize_8bit
         self.neuron._threshold = None
         # set the shape according to synapse output
-        self.neuron.shape = self.synapse.out_channels
+        self.neuron.shape = torch.Size([self.synapse.out_channels])
         # this disables spike and reset in dynamics
         del self.synapse_params
 
