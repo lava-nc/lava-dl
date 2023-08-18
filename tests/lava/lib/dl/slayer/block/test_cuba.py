@@ -69,7 +69,7 @@ class TestCUBA(unittest.TestCase):
             net_config=tempdir + "/cuba_affine_dynamics_false.net"
         )
 
-        self.assertTrue('neuron' in lava_net.net_config['layer'][0].keys())
+        self.assertTrue('neuron' not in lava_net.net_config['layer'][0].keys())
 
     def test_affine_block_hdf5_export_dynamics_true(self):
         """Test affine block hdf5 export in dynamics=true mode."""
