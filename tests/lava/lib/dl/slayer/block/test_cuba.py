@@ -68,9 +68,8 @@ class TestCUBA(unittest.TestCase):
         lava_net = netx.hdf5.Network(
             net_config=tempdir + "/cuba_affine_dynamics_false.net"
         )
-        layer = lava_net.layers[0]
 
-        assert 'neuron' not in layer.__dict__.keys()
+        self.assertTrue('neuron' in lava_net.net_config['layer'][0].keys())
 
     def test_affine_block_hdf5_export_dynamics_true(self):
         """Test affine block hdf5 export in dynamics=true mode."""
@@ -96,7 +95,7 @@ class TestCUBA(unittest.TestCase):
         layer = lava_net.layers[0]
         neuron = layer.__dict__["neuron"].__dict__
 
-        assert neuron["vThMant"] == (1 << 18) - 1
+        self.assertTrue(neuron["vThMant"] == (1 << 18) - 1)
 
     def test_dense_block(self):
         """Test dense block with lava process implementation."""
