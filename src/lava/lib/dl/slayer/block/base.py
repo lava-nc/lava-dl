@@ -391,8 +391,11 @@ class AbstractAffine(torch.nn.Module):
             self.delay.clamp()  # clamp the delay value
             handle.create_dataset('delay', data=delay(self.delay))
 
-        # for key, value in self.neuron.device_params.items():
-        #     handle.create_dataset(f'neuron/{key}', data=value)
+        if self.dynamics is True:
+            for key, value in self.neuron.device_params.items():
+                if key == 'vThMant':
+                    value = (1 << 17) - 1  # set the maximum possible threshold
+                handle.create_dataset(f'neuron/{key}', data=value)
 
 
 class AbstractTimeDecimation(torch.nn.Module):
