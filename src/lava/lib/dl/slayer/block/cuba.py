@@ -69,7 +69,11 @@ class Affine(AbstractCuba, base.AbstractAffine):
         self.synapse = synapse.Dense(**self.synapse_params)
         if 'pre_hook_fx' not in kwargs.keys():
             self.synapse.pre_hook_fx = self.neuron.quantize_8bit
-        self.neuron._threshold = None
+        # if 'dynamics=True', set threshold to not 'none' value
+        if self.dynamics:
+            self.neuron._threshold = -1
+        else:
+            self.neuron._threshold = None
         # set the shape according to synapse output
         self.neuron.shape = torch.Size([self.synapse.out_channels])
         # this disables spike and reset in dynamics
