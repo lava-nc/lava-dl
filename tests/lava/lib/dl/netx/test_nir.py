@@ -40,7 +40,7 @@ class TestNetxNIR(unittest.TestCase):
         netx.nir_lava.convert_to_nir(oxford_net_path, 'oxford.nir')
         oxford_nir = nir.read('oxford.nir')
         os.remove('oxford.nir')
-        oxford_network_nir = netx.nir_lava.nir_graph_to_lava_network(oxford_nir)
+        oxford_network_nir = netx.nir_lava.nir_to_lavadl_net(oxford_nir)
         self.assertIsNotNone(oxford_network_nir)
 
     def test_pilotnet_nir_to_lava(self) -> None:
@@ -48,7 +48,7 @@ class TestNetxNIR(unittest.TestCase):
         netx.nir_lava.convert_to_nir(pilotnet_net_path, 'pilotnet.nir')
         pilot_nir = nir.read('pilotnet.nir')
         os.remove('pilotnet.nir')
-        pilot_network_nir = netx.nir_lava.nir_graph_to_lava_network(pilot_nir)
+        pilot_network_nir = netx.nir_lava.nir_to_lavadl_net(pilot_nir)
         self.assertIsNotNone(pilot_network_nir)
 
 

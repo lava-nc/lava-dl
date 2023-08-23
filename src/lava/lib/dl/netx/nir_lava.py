@@ -14,7 +14,7 @@ from lava.lib.dl import slayer
 PATH_TYPE = typing.Union[str, pathlib.Path]
 
 
-def read_cuba_lif(layer: h5py.Group, shape: Tuple[int] = None) -> nir.NIRNode:
+def read_neuron(layer: h5py.Group, shape: Tuple[int] = None) -> nir.NIRNode:
     """Reads a CUBA LIF layer from a h5py.Group.
 
     TODOs:
@@ -26,7 +26,7 @@ def read_cuba_lif(layer: h5py.Group, shape: Tuple[int] = None) -> nir.NIRNode:
 
     If neuron model not supported, warning logged and return None.
     """
-    logging.debug(f"read_cuba_lif {layer['neuron']['type'][()]}")
+    logging.debug(f"read_neuron {layer['neuron']['type'][()]}")
 
     if 'gradedSpike' in layer['neuron']:
         if layer['neuron']['gradedSpike'][()]:
@@ -124,7 +124,7 @@ def read_node(network: h5py.Group) -> nir.NIRNode:
                 nodes.append(nir.Linear(weight=layer['weight'][:]))
 
             # store the neuron group
-            neuron = read_cuba_lif(layer)
+            neuron = read_neuron(layer)
             if neuron is None:
                 raise NotImplementedError('could not read neuron')
             nodes.append(neuron)
@@ -241,7 +241,7 @@ def read_node(network: h5py.Group) -> nir.NIRNode:
             ))
 
             # store the neuron group
-            neuron = read_cuba_lif(layer)
+            neuron = read_neuron(layer)
             if neuron is None:
                 raise NotImplementedError('could not read neuron')
             nodes.append(neuron)
@@ -308,8 +308,8 @@ class NetworkNIR(torch.nn.Module):
             b.export_hdf5(layer.create_group(f'{i}'))
 
 
-def nir_graph_to_lava_network(graph: nir.NIRGraph) -> NetworkNIR:
-    """Converts a NIRGraph to a Lava network."""
+def nir_to_lavadl_net(graph: nir.NIRGraph) -> NetworkNIR:
+    """Converts a NIRGraph to a Lava-dl network."""
     nodes = graph.nodes
     edges = graph.edges
 
@@ -350,6 +350,7 @@ def nir_graph_to_lava_network(graph: nir.NIRGraph) -> NetworkNIR:
         raise ValueError("Lava does not support disconnected graphs")
 
     # make sure the graph doesn't split or join
+    # TODO: we should support skip connections in lava-dl?
     for edge in edges:
         for edge_ in edges:
             if edge_[0] == edge[0] and edge_[1] != edge[1]:
@@ -359,6 +360,7 @@ def nir_graph_to_lava_network(graph: nir.NIRGraph) -> NetworkNIR:
 
     # create the network
     blocks = []
+    input_shape = None
 
     def get_next_node(node_key):
         """Returns next node key in graph, or None if there is no next node."""
@@ -380,6 +382,8 @@ def nir_graph_to_lava_network(graph: nir.NIRGraph) -> NetworkNIR:
                 'current_decay' : 1,
                 'voltage_decay' : 0.1,
             }))
+            # store input shape to later infer all shapes
+            input_shape = node.shape
 
         elif isinstance(node, nir.Flatten):
             # TODO: check what shape is expected (start_dim, end_dim)
@@ -450,10 +454,12 @@ def nir_graph_to_lava_network(graph: nir.NIRGraph) -> NetworkNIR:
             if len(node.weight.shape) > 2:
                 raise AssertionError("only support 2D Linear")
             is_1d = len(node.weight.shape) == 1
+            in_neurons = node.weight.shape[0] if is_1d else node.weight.shape[1]
+            out_neurons = 1 if is_1d else node.weight.shape[0]
             linear_block = slayer.block.cuba.Dense(
                 neuron_params=neuron_params,
-                in_neurons=1 if is_1d else node.weight.shape[1],
-                out_neurons=node.weight.shape[0],
+                in_neurons=in_neurons,
+                out_neurons=out_neurons,
             )
             blocks.append(linear_block)
 
@@ -464,4 +470,10 @@ def nir_graph_to_lava_network(graph: nir.NIRGraph) -> NetworkNIR:
 
     # create the network
     network = NetworkNIR(blocks=blocks)
+
+    # pass example data (B, *input_shape, T) through network to infer shapes
+    data_shape = (32, *input_shape, 16)
+    logging.debug(f'input_shape: {input_shape}, data_shape: {data_shape}')
+    network.forward(torch.zeros(data_shape))
+
     return network
