@@ -211,6 +211,7 @@ class SpikeMax(torch.nn.Module):
                 reduction=self.reduction,
             )
 
+
 class SpikeMoid(torch.nn.Module):
     """
     SpikeMoid (BCE) loss.
@@ -235,7 +236,7 @@ class SpikeMoid(torch.nn.Module):
         \\end{cases}
 
     Note: input is always collapsed in the spatial dimension.
-    r signifies the a spike rate calculated over the time dimension
+    r signifies a spike rate calculated over the time dimension
 
     Parameters
     ----------
@@ -267,7 +268,7 @@ class SpikeMoid(torch.nn.Module):
         input = input.reshape(input.shape[0], -1, input.shape[-1])
         if self.window is None:  # one label for each sample in a batch
             scaled_input = (input - self.theta) / self.alpha
-            probs = Rate.confidence(scaled_input, mode='sigmoid').flatten(0, 1)
+            probs = torch.sigmoid(scaled_input.mean(-1)).flatten(0, 1)
             return F.binary_cross_entropy(
                 probs,
                 label.flatten(),
