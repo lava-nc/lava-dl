@@ -61,16 +61,18 @@ The neuromorphic intermediate representation (NIR) is a standard for representin
 
 Converting your lava-dl stored using netx to NIR is simple:
 ```python
-from lava.lib.dl.netx import nir
+from lava.lib.dl.netx import nir_lava
 # convert the lava-dl netx model to nir and save to file
-nir.convert_to_nir(net_config='network.net', path='network.nir')
+nir_lava.convert_to_nir(net_config='network.net', path='network.nir')
 ```
 
 Importing a NIR network into lava-dl works similarly:
 ```python
-from lava.lib.dl.netx import nir, hdf5
+import nir
+from lava.lib.dl.netx import nir_lava, hdf5
 # import the NIR model
-net = nir.Network(path='network.nir')
+nir_graph = nir.read('network.nir')
+net = nir_lava.nir_to_lavadl_net(nir_graph)
 ```
 
 This enables you to train your network using other frameworks (e.g. snnTorch, Norse, and others - see the NIR project website) and easily import them into lava through lava-dl's netx. 
