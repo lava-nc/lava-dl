@@ -69,7 +69,7 @@ class Network(AbstractProcess):
                  input_shape: Optional[Tuple[int, ...]] = None,
                  reset_interval: Optional[int] = None,
                  reset_offset: int = 0,
-                 sparse_synapse: bool = 0) -> None:
+                 sparsity_map: bool = 0) -> None:
         super().__init__(net_config=net_config,
                          num_layers=num_layers,
                          input_message_bits=input_message_bits)
@@ -541,6 +541,7 @@ class Network(AbstractProcess):
 
         if isinstance(self.sparsity_map, bool):
             self.sparsity_map = np.full(num_layers, self.sparsity_map)
+
         reset_interval = self.reset_interval
         reset_offset = self.reset_offset + 1  # time starts from 1 in hardware
         for i in range(num_layers):
