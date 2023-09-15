@@ -9,8 +9,12 @@ import h5py
 from lava.magma.core.process.ports.ports import InPort, OutPort
 from lava.magma.core.process.process import AbstractProcess
 from lava.proc.dense.process import Dense as DenseSynapse
+from lava.proc.sparse.process import Sparse as SparseSynapse
+from lava.proc.sparse.process import DelaySparse as DelaySparseSynapse
+
 from lava.proc.dense.process import DelayDense as DelayDenseSynapse
 from lava.proc.conv.process import Conv as ConvSynapse
+from scipy.sparse import csr_matrix
 
 
 class AbstractBlock(AbstractProcess):
@@ -127,6 +131,8 @@ class Dense(AbstractBlock):
         number of weight bits. Defaults to 8.
     weight_exponent : int
         weight exponent value. Defaults to 0.
+    sparse_synapse : bool
+        connection is sparse
     input_message_bits : int, optional
         number of message bits in input spike. Defaults to 0 meaning unary
         spike.
@@ -139,16 +145,32 @@ class Dense(AbstractBlock):
         delay = kwargs.pop('delay', None)
         num_weight_bits = kwargs.pop('num_weight_bits', 8)
         weight_exponent = kwargs.pop('weight_exponent', 0)
+        sparse_synapse = kwargs.pop('sparse_synapse')
 
         if delay is None:
-            self.synapse = DenseSynapse(
+            if sparse_synapse:
+                Synapse = SparseSynapse
+                weight = csr_matrix(weight)
+            else:
+                Synapse = DenseSynapse
+
+            self.synapse = Synapse(
                 weights=weight,
                 weight_exp=weight_exponent,
                 num_weight_bits=num_weight_bits,
                 num_message_bits=self.input_message_bits,
             )
         else:
-            self.synapse = DelayDenseSynapse(
+            # TODO test this in greater detail
+            if sparse_synapse:
+                Synapse = DelaySparseSynapse
+                weight = csr_matrix(weight)
+                delay[weight == 0] = 0
+                delay = csr_matrix(delay)
+            else:
+                Synapse = DelayDenseSynapse
+
+            self.synapse = Synapse(
                 weights=weight,
                 delays=delay.astype(int),
                 max_delay=62,
@@ -199,6 +221,8 @@ class ComplexDense(AbstractBlock):
         real weight exponent value. Defaults to 0.
     weight_exponent_imag : int
         imag weight exponent value. Defaults to 0.
+    sparse_synapse : bool
+        connection is sparse
     input_message_bits : int, optional
         number of message bits in input spike. Defaults to 0 meaning unary
         spike.
@@ -214,15 +238,23 @@ class ComplexDense(AbstractBlock):
         weight_exponent_imag = kwargs.pop('weight_exponent_imag', 0)
         weight_real = kwargs.pop('weight_real')
         weight_imag = kwargs.pop('weight_imag')
+        sparse_synapse = kwargs.pop('sparse_synapse')
 
         self.neuron = self._neuron(None)
-        self.real_synapse = DenseSynapse(
+        if sparse_synapse:
+            Synapse = SparseSynapse
+            weight_real = csr_matrix(weight_real)
+            weight_imag = csr_matrix(weight_imag)
+        else:
+            Synapse = DenseSynapse
+
+        self.real_synapse = Synapse(
             weights=weight_real,
             weight_exp=weight_exponent_real,
             num_weight_bits=num_weight_bits_real,
             num_message_bits=self.input_message_bits,
         )
-        self.imag_synapse = DenseSynapse(
+        self.imag_synapse = Synapse(
             weights=weight_imag,
             weight_exp=weight_exponent_imag,
             num_weight_bits=num_weight_bits_imag,

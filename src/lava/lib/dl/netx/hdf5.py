@@ -53,6 +53,12 @@ class Network(AbstractProcess):
         neuron's reset parameter. None means no reset. Defaults to None.
     reset_offset: int
         determines the phase shift of network reset if enabled. Defaults to 0.
+    sparsity_map : boolean array, optional
+        Specifies whether the synapses should be treated as Sparse type. If
+        True, all synapses will be treated as sparse. If it's a boolean
+        numpy array, it specifies which layers should be sparse. If the layer
+        does not have a synapse (e.g., Input), the value in the array at that
+        index is ignored. Defaults to treating all synapses as non-sparse.
     """
 
     def __init__(self,
@@ -62,7 +68,8 @@ class Network(AbstractProcess):
                  input_message_bits: Optional[int] = 0,
                  input_shape: Optional[Tuple[int, ...]] = None,
                  reset_interval: Optional[int] = None,
-                 reset_offset: int = 0) -> None:
+                 reset_offset: int = 0,
+                 sparse_synapse: bool = 0) -> None:
         super().__init__(net_config=net_config,
                          num_layers=num_layers,
                          input_message_bits=input_message_bits)
@@ -75,6 +82,7 @@ class Network(AbstractProcess):
         self.input_shape = input_shape
         self.reset_interval = reset_interval
         self.reset_offset = reset_offset
+        self.sparsity_map = sparsity_map
 
         self.net_str = ''
         self.layers = self._create()
@@ -298,7 +306,8 @@ class Network(AbstractProcess):
     def create_dense(layer_config: h5py.Group,
                      input_message_bits: int = 0,
                      reset_interval: Optional[int] = None,
-                     reset_offset: int = 0) -> Tuple[Dense, str]:
+                     reset_offset: int = 0,
+                     sparse_synapse: bool = 0) -> Tuple[Dense, str]:
         """Creates dense layer from layer configuration
 
         Parameters
@@ -361,7 +370,8 @@ class Network(AbstractProcess):
                       'weight_exponent_imag': weight_exponent_imag,
                       'sign_mode_real': sign_mode_real,
                       'sign_mode_imag': sign_mode_imag,
-                      'input_message_bits': input_message_bits}
+                      'input_message_bits': input_message_bits,
+                      "sparse_synapse": sparse_synapse}
 
             proc = ComplexDense(**params)
 
@@ -380,7 +390,8 @@ class Network(AbstractProcess):
                       'num_weight_bits': num_weight_bits,
                       'weight_exponent': weight_exponent,
                       'sign_mode': sign_mode,
-                      'input_message_bits': input_message_bits}
+                      'input_message_bits': input_message_bits,
+                      "sparse_synapse": sparse_synapse}
 
             if 'delay' in layer_config.keys():
                 delay = layer_config['delay']
@@ -528,6 +539,8 @@ class Network(AbstractProcess):
         if self.num_layers is not None:
             num_layers = min(num_layers, self.num_layers)
 
+        if isinstance(self.sparsity_map, bool):
+            self.sparsity_map = np.full(num_layers, self.sparsity_map)
         reset_interval = self.reset_interval
         reset_offset = self.reset_offset + 1  # time starts from 1 in hardware
         for i in range(num_layers):
@@ -587,6 +600,7 @@ class Network(AbstractProcess):
                 table = None
 
             elif layer_type == 'dense':
+                sparse_synapse = self.sparsity_map[i]
                 layer, table = self.create_dense(
                     layer_config=layer_config[i],
                     input_message_bits=input_message_bits,
