@@ -164,8 +164,8 @@ class Dense(AbstractBlock):
             # TODO test this in greater detail
             if sparse_synapse:
                 Synapse = DelaySparseSynapse
-                weight = csr_matrix(weight)
                 delay[weight == 0] = 0
+                weight = csr_matrix(weight)
                 delay = csr_matrix(delay)
             else:
                 Synapse = DelayDenseSynapse
