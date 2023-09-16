@@ -69,7 +69,7 @@ class Network(AbstractProcess):
                  input_shape: Optional[Tuple[int, ...]] = None,
                  reset_interval: Optional[int] = None,
                  reset_offset: int = 0,
-                 sparsity_map: bool = 0) -> None:
+                 sparsity_map: bool = False) -> None:
         super().__init__(net_config=net_config,
                          num_layers=num_layers,
                          input_message_bits=input_message_bits)
