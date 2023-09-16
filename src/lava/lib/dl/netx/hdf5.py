@@ -606,7 +606,8 @@ class Network(AbstractProcess):
                     layer_config=layer_config[i],
                     input_message_bits=input_message_bits,
                     reset_interval=reset_interval,
-                    reset_offset=reset_offset)
+                    reset_offset=reset_offset,
+                    sparse_synapse=sparse_synapse)
                 if i >= self.skip_layers:
                     layers.append(layer)
                     reset_offset += 1
