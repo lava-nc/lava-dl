@@ -145,7 +145,7 @@ class Dense(AbstractBlock):
         delay = kwargs.pop('delay', None)
         num_weight_bits = kwargs.pop('num_weight_bits', 8)
         weight_exponent = kwargs.pop('weight_exponent', 0)
-        sparse_synapse = kwargs.pop('sparse_synapse')
+        sparse_synapse = kwargs.pop('sparse_synapse', False)
 
         if delay is None:
             if sparse_synapse:
@@ -238,7 +238,7 @@ class ComplexDense(AbstractBlock):
         weight_exponent_imag = kwargs.pop('weight_exponent_imag', 0)
         weight_real = kwargs.pop('weight_real')
         weight_imag = kwargs.pop('weight_imag')
-        sparse_synapse = kwargs.pop('sparse_synapse')
+        sparse_synapse = kwargs.pop('sparse_synapse', False)
 
         self.neuron = self._neuron(None)
         if sparse_synapse:
