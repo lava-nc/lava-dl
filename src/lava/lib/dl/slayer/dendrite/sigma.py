@@ -74,4 +74,4 @@ class Sigma(torch.nn.Module):
     @property
     def device_params(self):
         """Dictionary of device parameters."""
-        return {'type': 'sigma'}
+        return {'type': 'SDNN', 'sigma_output': True}
