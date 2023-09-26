@@ -11,6 +11,7 @@ packages = [
 ]
 include = ["tutorials"]
 version = "0.4.0.dev0"
+readme = "README.md"
 description = "A library of deep learning tools, which consists of lava.lib.dl.slayer and lava.lib.dl.netx for training and deployment of event-based deep neural networks on traditional as well as neuromorphic backends. Lava-DL is part of Lava Framework"
 homepage = "https://lava-nc.org/"
 repository = "https://github.com/lava-nc/lava-dl"
