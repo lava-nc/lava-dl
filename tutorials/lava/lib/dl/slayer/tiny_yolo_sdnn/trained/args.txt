@@ -1,0 +1,29 @@
+alpha_iou : 0.25
+aug_prob : 0.2
+b : 2
+clip : 10
+dataset : BDD100K
+epoch : 50
+exp : 
+gpu : [0]
+label_smoothing : 0.1
+lambda_cls : 1.0
+lambda_coord : 1.0
+lambda_iou : 1.0
+lambda_noobj : 10.0
+lambda_obj : 5.0
+lr : 0.001
+lrf : 0.001
+num_workers : 1
+output_dir : .
+path : /home/lecampos/data/bdd100k
+scale_grad : 0.2
+seed : None
+subset : False
+tau_grad : 0.1
+tgt_iou_thr : 0.5
+threshold : 0.1
+track_iter : 1000
+warmup : 10
+wd : 1e-05
+clamp_max: 5.0
