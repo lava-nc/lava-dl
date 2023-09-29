@@ -5,6 +5,13 @@
 
 import torch
 
+class dotdict(dict):
+    """Dot notation access to dictionary attributes. For e.g. ``my_dict["key"]``
+    is same as ``my_dict.key``"""
+    __getattr__ = dict.get
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
 
 class staticproperty(property):
     """wraps static member function of a class as a static property of that
