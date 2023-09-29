@@ -6,14 +6,14 @@ from PIL.Image import Image
 from PIL import Image as Img
 
 import numpy as np
+import cv2
+from typing import Tuple, List, Dict, Union, Iterable, Any, Optional
+
 import torch
 import torch.nn.functional as F
 from torchvision import transforms, ops
+
 from .metrics import bbox_iou
-
-from typing import Tuple, List, Dict, Union, Iterable, Any, Optional
-
-import cv2
 
 RGB = int
 Width = int
@@ -26,6 +26,36 @@ def non_maximum_suppression(predictions: List[torch.tensor],
                             merge_conf: bool = True,
                             max_detections: int = 300,
                             max_iterations: int = 100) -> List[torch.tensor]:
+    """Performs Non-Maximal suppression of the input predictions. First a basic
+    filtering of the bounding boxes based on a minimum confidence threshold are
+    eliminated. Subsequently a non-maximal suppression is performed. A
+    non-maximal threshold is used to determine if the two bounding boxes
+    represent the same object. It supports batch inputs.
+
+    Parameters
+    ----------
+    predictions : List[torch.tensor]
+        List of bounding box predictions per batch in
+        (x_center, y_center, width, height) format.
+    conf_threshold : float, optional
+        Confidence threshold, by default 0.5.
+    nms_threshold : float, optional
+        Non maximal overlap threshold, by default 0.4.
+    merge_conf : bool, optional
+        Flag indicating whether to merge objectness score with classification
+        confidence, by default True.
+    max_detections : int, optional
+        Maximum limit of detections to reduce computational load. If exceeded
+        only the top predictions are taken., by default 300.
+    max_iterations : int, optional
+        Maximum number of iterations in non-maximal suppression loop, by
+        default 100.
+
+    Returns
+    -------
+    List[torch.tensor]
+        Non-maximal filterered prediction outputs per batch.
+    """
     result = []
     for pred in predictions:
         filtered = pred[pred[:, 4] > conf_threshold]
@@ -75,16 +105,36 @@ def non_maximum_suppression(predictions: List[torch.tensor],
     return result
 
 
-def yolo_loss():
-    # move to yolo_base.py
-    pass
-
-
 def annotation_from_tensor(tensor: torch.tensor,
                            frame_size: Dict[str, int],
                            object_names: Iterable[str],
                            confidence_th: float = 0.01,
                            normalized: bool = True) -> Dict[str, Any]:
+    """Translate bounding box tensor to object annotation dictionary
+    description. This is not compatible with batches.
+
+    Parameters
+    ----------
+    tensor : torch.tensor
+        Bounding box tensor in (x_center, y_center, width, height) format.
+    frame_size : Dict[str, int]
+        Size of input frame in ``{'height':h, 'width':w}`` format.
+    object_names : Iterable[str]
+        Object names iterable that maps class label to object names.
+    confidence_th : float, optional
+        Minimum confidence threshold to consider conversion, by default 0.01.
+    normalized : bool, optional
+        Flag indicating use of normalized annotation format with coordinates
+        between 0 and 1 in the input, by default True.
+
+    Returns
+    -------
+    Dict[str, Any]
+        Annotations dictionary with objects in the format of
+        ``{'id':id, 'name':name, 
+        'confidence':conf,
+        'bndbox':{'xmin':xmin, 'xmax':xmax, 'ymin':ymin, 'ymax':ymax}}``.
+    """
     annotation = {'annotation': {'size': frame_size}}
     if normalized:
         height = frame_size['height']
@@ -114,7 +164,7 @@ def annotation_from_tensor(tensor: torch.tensor,
                 'name': object_names[class_idx],
                 'confidence': confidence,
                 'bndbox': {'xmin': xmin[i].item(), 'ymin': ymin[i].item(),
-                        'xmax': xmax[i].item(), 'ymax': ymax[i].item()}
+                           'xmax': xmax[i].item(), 'ymax': ymax[i].item()}
             }]
 
     annotation['annotation']['object'] = objects
@@ -126,6 +176,31 @@ def tensor_from_annotation(ann: Dict[str, Any],
                            device: torch.device = torch.device('cpu'),
                            num_objects: Optional[int] = None,
                            normalized: bool = True) -> torch.tensor:
+    """Translate annotation dictionary to bounding box. This is not compatible
+    with batch processing.
+
+    Parameters
+    ----------
+    ann : Dict[str, Any]
+        Object annotation dictionary with objects in the format of
+        ``{'id':id, 'name':name, 
+        'confidence':conf,
+        'bndbox':{'xmin':xmin, 'xmax':xmax, 'ymin':ymin, 'ymax':ymax}}``.
+    device : torch.device, optional
+        Target torch backend, by default torch.device('cpu').
+    num_objects : Optional[int], optional
+        Maximum number of objects to return. If None, all of them are
+        translated. By default None.
+    normalized : bool, optional
+        Flag indicating use of normalized annotation format with coordinates
+        between 0 and 1 in the tensor output, by default True.
+
+    Returns
+    -------
+    torch.tensor
+        Annotation tensor. Every column is an object. The rows are in the order
+        of x_center, y_cener, width, height, confidence(=1), label_id.
+    """
     if normalized:
         height = int(ann['annotation']['size']['height'])
         width = int(ann['annotation']['size']['width'])
@@ -169,6 +244,23 @@ def tensor_from_annotation(ann: Dict[str, Any],
 def onehot_to_labels(predictions: List[torch.tensor],
                      conf_threshold: float = 0.0,
                      merge_conf: bool = True) -> List[torch.tensor]:
+    """Convert one-hot encoded class predictions to class labels.
+
+    Parameters
+    ----------
+    predictions : List[torch.tensor]
+        Raw predictions in one-hot encoded format.
+    conf_threshold : float, optional
+        Confidence threshold, by default 0.0.
+    merge_conf : bool, optional
+        Flag to indicate whether to merge object confidence with class
+        confidence, by default True.
+
+    Returns
+    -------
+    List[torch.tensor]
+        Consilidated object prediction tensor.
+    """
     new_predictions = []
     for pred in predictions:
         conf, label = torch.max(pred[:, 5:], axis=1)
@@ -182,6 +274,19 @@ def onehot_to_labels(predictions: List[torch.tensor],
 
 
 def xxyy_to_xywh(predictions: List[torch.tensor]) -> List[torch.tensor]:
+    """Translate prediction tensor in (x_min, y_min, x_max, y_max) to
+    (x_center, y_center, width, height) format.
+
+    Parameters
+    ----------
+    predictions : List[torch.tensor]
+        Input prediction tensors.
+
+    Returns
+    -------
+    List[torch.tensor]
+        Output prediction tensors.
+    """
     translated = []
     for p in predictions:
         pred = p.clone()
@@ -198,6 +303,19 @@ def xxyy_to_xywh(predictions: List[torch.tensor]) -> List[torch.tensor]:
 
 
 def xywh_to_xxyy(predictions: List[torch.tensor]) -> List[torch.tensor]:
+    """Translate prediction tensor in (x_center, y_center, width, height) to
+    (x_min, y_min, x_max, y_max) format.
+
+    Parameters
+    ----------
+    predictions : List[torch.tensor]
+        Input prediction tensors.
+
+    Returns
+    -------
+    List[torch.tensor]
+        Output prediction tensors.
+    """
     translated = []
     for p in predictions:
         pred = p.clone()
@@ -213,6 +331,22 @@ def xywh_to_xxyy(predictions: List[torch.tensor]) -> List[torch.tensor]:
 
 def normalize_bboxes(predictions: List[torch.tensor],
                      height: Height, width: Width) -> List[torch.tensor]:
+    """Normalize bounding box coordinates between 0 and 1.
+
+    Parameters
+    ----------
+    predictions : List[torch.tensor]
+        Raw prediction tensors in (x_center, y_center, width, height)
+    height : Height
+        Height of the frame.
+    width : Width
+        Width of the frame.
+
+    Returns
+    -------
+    List[torch.tensor]
+        Normalized predictions.
+    """
     for idx in range(len(predictions)):
         predictions[idx][:, [0, 2]] /= width
         predictions[idx][:, [1, 3]] /= height
@@ -221,6 +355,22 @@ def normalize_bboxes(predictions: List[torch.tensor],
 
 def denormalize_bboxes(predictions: List[torch.tensor],
                        height: Height, width: Width) -> List[torch.tensor]:
+    """De-Normalize bounding box coordinates from 0 and 1 to pixels.
+
+    Parameters
+    ----------
+    predictions : List[torch.tensor]
+        Raw prediction tensors in (x_center, y_center, width, height)
+    height : Height
+        Height of the frame.
+    width : Width
+        Width of the frame.
+
+    Returns
+    -------
+    List[torch.tensor]
+        De-Normalized predictions.
+    """
     for idx in range(len(predictions)):
         predictions[idx][:, [0, 2]] *= width
         predictions[idx][:, [1, 3]] *= height
@@ -229,6 +379,20 @@ def denormalize_bboxes(predictions: List[torch.tensor],
 
 def merge_annotations(ann0: Dict[str, Any],
                       ann1: Dict[str, Any]) -> Dict[str, Any]:
+    """Merge two annoations
+
+    Parameters
+    ----------
+    ann0 : Dict[str, Any]
+        Annotations dictionary.
+    ann1 : Dict[str, Any]
+        Annotations dictionary.
+
+    Returns
+    -------
+    Dict[str, Any]
+        Combined annotations dictionary.
+    """
     if (
         ann0['annotation']['size']['height']
         != ann1['annotation']['size']['height']
@@ -258,6 +422,28 @@ def mark_bounding_boxes(
     text_color: Tuple[RGB, RGB, RGB] = (0, 0, 255),  # and text_color
     thickness: int = 5
 ) -> Image:
+    """Mark bounding boxes in the input image.
+
+    Parameters
+    ----------
+    image : Union[Image, torch.tensor]
+        Input image.
+    objects : Dict[str, Any]
+        Object annotations dictionary.
+    box_color_map : List[Tuple[RGB, RGB, RGB]], optional
+        Color map of box, by default []
+    box_color : Tuple[RGB, RGB, RGB]
+        Color of bounding box. It is overriddedn if box_color_map is set.
+    text_color : Tuple[RGB, RGB, RGB]
+        Color of text label.
+    thickness : float
+        Thickness scaling of bounding box confidence.
+
+    Returns
+    -------
+    Image
+        Image with annotated bounding boxes.
+    """
     if torch.is_tensor(image):
         image = transforms.ToPILImage()(image.squeeze())
     draw = ImageDraw.Draw(image)
@@ -286,6 +472,20 @@ def mark_bounding_boxes(
 
 def resize_bounding_boxes(annotation: Dict[str, Any],
                           size: Tuple[Height, Width]) -> Dict[str, Any]:
+    """Resize bounding box to a given pixel size.
+
+    Parameters
+    ----------
+    annotation : Dict[str, Any]
+        Input annotation dictionary.
+    size : Tuple[Height, Width]
+        Desired resize output.
+
+    Returns
+    -------
+    Dict[str, Any]
+        Reized annotations dictionary.
+    """
     ann = annotation
     height = int(ann['annotation']['size']['height'])
     width = int(ann['annotation']['size']['width'])
@@ -311,6 +511,18 @@ def resize_bounding_boxes(annotation: Dict[str, Any],
 
 
 def flipud_bounding_boxes(annotation: Dict[str, Any]) -> Dict[str, Any]:
+    """Flip bounding boxes up-down vertically.
+
+    Parameters
+    ----------
+    annotation : Dict[str, Any]
+        Input annotation dictionary.
+
+    Returns
+    -------
+    Dict[str, Any]
+        Output annotation dictionary.
+    """
     ann = annotation
     height = int(ann['annotation']['size']['height'])
 
@@ -327,6 +539,18 @@ def flipud_bounding_boxes(annotation: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def fliplr_bounding_boxes(annotation: Dict[str, Any]) -> Dict[str, Any]:
+    """Flip bounding boxes left-right horizontally.
+
+    Parameters
+    ----------
+    annotation : Dict[str, Any]
+        Input annotation dictionary.
+
+    Returns
+    -------
+    Dict[str, Any]
+        Output annotation dictionary.
+    """
     ann = annotation
     width = int(ann['annotation']['size']['width'])
 
@@ -341,7 +565,8 @@ def fliplr_bounding_boxes(annotation: Dict[str, Any]) -> Dict[str, Any]:
         ann['annotation']['object'][i]['bndbox']['xmax'] = width_fx(xmin)
     return annotation
 
-def create_video(inputs, targets, predictions, video_output_path, BOX_COLOR_MAP, classes ):
+
+def create_video(inputs, targets, predictions, video_output_path, BOX_COLOR_MAP, classes):
     b = 0
     video_dims = (2 * 448, 448)
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
@@ -368,4 +593,3 @@ def create_video(inputs, targets, predictions, video_output_path, BOX_COLOR_MAP,
         marked_images.paste(marked_gt, (marked_img.width, 0))
         video.write(cv2.cvtColor(np.array(marked_images), cv2.COLOR_RGB2BGR))
     video.release()
-
