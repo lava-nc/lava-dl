@@ -5,10 +5,28 @@ import numpy as np
 import torch
 from typing import List, Union, Tuple
 
+"""Object detection metrics."""
+
+# Infinitesimal for floating point relaxation
 EPS = 1e-10
 
 
 def bbox_iou(bbox1: torch.tensor, bbox2: torch.tensor) -> torch.tensor:
+    """Evaluates the intersection over union (IOU) over two sets of bounding
+    boxes tensors.
+
+    Parameters
+    ----------
+    bbox1 : torch.tensor
+        Bounding box tensor in format (x_center, y_center, width, height).
+    bbox2 : torch.tensor
+        Bounding box tensor in format (x_center, y_center, width, height).
+
+    Returns
+    -------
+    torch.tensor
+        IOU tensor.
+    """
     xmin1 = (bbox1[..., 0] - 0.5 * bbox1[..., 2]).reshape((1, -1))
     xmax1 = (bbox1[..., 0] + 0.5 * bbox1[..., 2]).reshape((1, -1))
     ymin1 = (bbox1[..., 1] - 0.5 * bbox1[..., 3]).reshape((1, -1))
@@ -34,6 +52,21 @@ def bbox_iou(bbox1: torch.tensor, bbox2: torch.tensor) -> torch.tensor:
 
 
 def wh_iou(bbox1: torch.tensor, bbox2: torch.tensor) -> torch.tensor:
+    """Evaluates the intersection over union (IOU) only based on widht and
+    height information assuming maximum overlap.
+
+    Parameters
+    ----------
+    bbox1 : torch.tensor
+        Bounding box tensor in format (width, height).
+    bbox2 : torch.tensor
+        Bounding box tensor in format (width, height).
+
+    Returns
+    -------
+    torch.tensor
+        Width-Height IOU tensor.
+    """
     w1 = bbox1[..., 0]
     h1 = bbox1[..., 1]
     w2 = bbox2[..., 0]
@@ -47,6 +80,22 @@ def wh_iou(bbox1: torch.tensor, bbox2: torch.tensor) -> torch.tensor:
 
 
 def bbox_ciou(bbox1: torch.tensor, bbox2: torch.tensor) -> torch.tensor:
+    """Evaluates differentiable form of intersection over union
+    (Complete IOU loss) based on distance between centers as described in
+    https://arxiv.org/abs/1911.08287v1
+
+    Parameters
+    ----------
+    bbox1 : torch.tensor
+        Bounding box tensor in format (x_center, y_center, width, height).
+    bbox2 : torch.tensor
+        Bounding box tensor in format (x_center, y_center, width, height).
+
+    Returns
+    -------
+    torch.tensor
+        C-IOU tensor.
+    """
     # https://arxiv.org/abs/1911.08287v1
     xmin1 = (bbox1[..., 0] - 0.5 * bbox1[..., 2]).flatten()
     xmax1 = (bbox1[..., 0] + 0.5 * bbox1[..., 2]).flatten()
@@ -68,7 +117,7 @@ def bbox_ciou(bbox1: torch.tensor, bbox2: torch.tensor) -> torch.tensor:
     unions = (area1 + area2) - intersections + EPS
     ious = intersections / unions
 
-    # smallext enclosing box between two regions
+    # smallest enclosing box between two regions
     cx = torch.max(xmax1, xmax2) - torch.min(xmin1, xmin2)
     cy = torch.max(ymax1, ymax2) - torch.min(ymin1, ymin2)
 
@@ -92,6 +141,22 @@ def bbox_ciou(bbox1: torch.tensor, bbox2: torch.tensor) -> torch.tensor:
 
 
 def compute_ap(precision: np.ndarray, recall: np.ndarray) -> float:
+    """Evaluates Average Precision metric (area under the precision recall
+    curve) based on precision and recall data points measured. This method
+    uses trapezoid method to integrate the area.
+
+    Parameters
+    ----------
+    precision : np.ndarray
+        Precision measurement points.
+    recall : np.ndarray
+        Recall measurement points.
+
+    Returns
+    -------
+    float
+        Average Precision value.
+    """
     recall = np.concatenate(([1.], recall, [recall[-1] + 0.01]))
     precision = np.concatenate(([1.], precision, [0.]))
     precision = np.flip(np.maximum.accumulate(np.flip(precision)))
@@ -110,8 +175,36 @@ def average_precision_metrics(
            List[np.ndarray],  # recall
            List[np.ndarray],  # AP
            List[np.ndarray],  # f1
-           List[np.ndarray]   # unique classes
+           List[np.ndarray],  # unique classes
            ]:
+    """Evaluates average precision metrics from the output and target
+    bounding boxes for each of the IOU threshold points. In addition,
+    it also returns the precision, recall, F1 scores and the unique
+    classes in target labels. It expectes list of bonunding boxes in
+    a batch.
+
+    Parameters
+    ----------
+    outputs : list of torch.tensor
+        List of output bounding box prediction tensor for every batch.
+    targets : list of torch.tensor
+        List of output bounding box prediction tensor for every batch.
+    iou_threshold : float or np.ndarray or list of floats
+        IOU threshold(s) for a prediction to be considered true positive.
+
+    Returns
+    -------
+    list of np.ndarray
+        Precision score for each batch.
+    list of np.ndarray
+        Recall score for each batch.
+    list of np.ndarray
+        Average precision score for each batch.
+    list of np.ndarray
+        F1 score for each batch.
+    list of np.ndarray
+        Unique classes for each batch.
+    """
     num_iou = 1 if np.isscalar(iou_threshold) else len(iou_threshold)
     precision_list = []
     recall_list = []
@@ -206,6 +299,15 @@ def average_precision_metrics(
 
 
 class APstats:
+    """Average Prcision stats manager. It helps collecting mean average
+    precision for each batch predictions and targets and summarize
+    the result.
+
+    Parameters
+    ----------
+    iou_threshold : Union[float, np.ndarray, List[float]]
+        IOU threshold(s) for a prediction to be considered true positive.
+    """
     def __init__(self,
                  iou_threshold: Union[float,
                                       np.ndarray,
@@ -215,12 +317,23 @@ class APstats:
         self.reset()
 
     def reset(self) -> None:
+        """Reset mAP statistics.
+        """
         self.ap_sum = np.zeros(self.num_iou)
         self.count = 0
 
     def update(self,
                predictions: List[torch.tensor],
                targets: List[torch.tensor]) -> None:
+        """Update the mAP statistics.
+
+        Parameters
+        ----------
+        predictions : List[torch.tensor]
+            List of prediction tensors for every batch.
+        targets : List[torch.tensor]
+            List of target tensors for every batch.
+        """
         ap_metrics = average_precision_metrics(predictions,
                                                targets,
                                                self.iou_threshold)[2]
@@ -230,11 +343,35 @@ class APstats:
             self.count += ap.shape[0]
 
     def ap_scores(self) -> np.ndarray:
+        """Evaluate mAP scores for all of the IOU thresholds.
+
+        Returns
+        -------
+        np.ndarray
+            mAP score(s)
+        """
         if self.count == 0:
             return self.ap_sum
         return self.ap_sum / self.count
 
     def __getitem__(self, iou: Union[float, int, slice]) -> float:
+        """Returns selected mAP score. The mAP scores can be addressed baed on
+        IOU threshold indices, IOU threshold values or a slice. Slice will
+        evaluate the aggregate IOU scores suitable for scores like
+        ```AP[:] = mAP@{all_iou_thresholds}```.
+
+        Parameters
+        ----------
+        iou : Union[float, int, slice]
+            If float, it is the IOU value to index; if int, it is the AP
+            corresponding to the IOU index; if slice, it is the aggregrate sum
+            of all IOU threshold values.
+
+        Returns
+        -------
+        float
+            mAP values.
+        """
         if iou == slice(None, None, None):
             return np.mean(self.ap_scores()).item()
         elif type(iou) == float:
