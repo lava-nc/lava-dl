@@ -15,6 +15,8 @@ from lava.magma.core.run_configs import RunConfig
 from lava.magma.core.run_conditions import RunSteps
 from lava.proc import io
 from lava.proc.conv import utils
+from lava.proc.sparse.process import Sparse
+from lava.proc.dense.process import Dense
 
 from lava.lib.dl import netx
 
@@ -172,6 +174,18 @@ class TestHdf5Netx(unittest.TestCase):
             f'Output spike and ground truth do not match for PilotNet SDNN. '
             f'Found {output[output != gt] = } and {gt[output != gt] = }. '
             f'Error was {error}.'
+        )
+
+    def test_sparse_pilotnet_sdnn(self) -> None:
+        """Tests sparse_fc_layer Network arg"""
+        net_config = root + '/gts/pilotnet_sdnn/network.net'
+        net = netx.hdf5.Network(net_config=net_config, sparse_fc_layer=True)
+        dense_layers = [layer for layer in net.layers
+                        if isinstance(layer, Dense)]
+        self.assertTrue(
+            np.all([
+                isinstance(layer.synapse, Sparse) for layer in dense_layers
+            ])
         )
 
     def test_axonal_delay_ntidigits(self) -> None:

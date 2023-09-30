@@ -53,12 +53,9 @@ class Network(AbstractProcess):
         neuron's reset parameter. None means no reset. Defaults to None.
     reset_offset: int
         determines the phase shift of network reset if enabled. Defaults to 0.
-    sparsity_map : boolean array, optional
-        Specifies whether the synapses should be treated as Sparse type. If
-        True, all synapses will be treated as sparse. If it's a boolean
-        numpy array, it specifies which layers should be sparse. If the layer
-        does not have a synapse (e.g., Input), the value in the array at that
-        index is ignored. Defaults to treating all synapses as non-sparse.
+    sparse_fc_layer : boolean, optional
+        If True, all fully connected layer synapses will be converted to
+        Sparse types in lava.
     """
 
     def __init__(self,
@@ -69,7 +66,7 @@ class Network(AbstractProcess):
                  input_shape: Optional[Tuple[int, ...]] = None,
                  reset_interval: Optional[int] = None,
                  reset_offset: int = 0,
-                 sparsity_map: bool = False) -> None:
+                 sparse_fc_layer: bool = False) -> None:
         super().__init__(net_config=net_config,
                          num_layers=num_layers,
                          input_message_bits=input_message_bits)
@@ -82,7 +79,7 @@ class Network(AbstractProcess):
         self.input_shape = input_shape
         self.reset_interval = reset_interval
         self.reset_offset = reset_offset
-        self.sparsity_map = sparsity_map
+        self.sparse_fc_layer = sparse_fc_layer
 
         self.net_str = ''
         self.layers = self._create()
@@ -539,9 +536,6 @@ class Network(AbstractProcess):
         if self.num_layers is not None:
             num_layers = min(num_layers, self.num_layers)
 
-        if isinstance(self.sparsity_map, bool):
-            self.sparsity_map = np.full(num_layers, self.sparsity_map)
-
         reset_interval = self.reset_interval
         reset_offset = self.reset_offset + 1  # time starts from 1 in hardware
         for i in range(num_layers):
@@ -601,13 +595,12 @@ class Network(AbstractProcess):
                 table = None
 
             elif layer_type == 'dense':
-                sparse_synapse = self.sparsity_map[i]
                 layer, table = self.create_dense(
                     layer_config=layer_config[i],
                     input_message_bits=input_message_bits,
                     reset_interval=reset_interval,
                     reset_offset=reset_offset,
-                    sparse_synapse=sparse_synapse)
+                    sparse_synapse=self.sparse_fc_layer)
                 if i >= self.skip_layers:
                     layers.append(layer)
                     reset_offset += 1
