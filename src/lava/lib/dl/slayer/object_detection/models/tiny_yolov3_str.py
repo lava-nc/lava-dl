@@ -12,6 +12,25 @@ of Tiny YOLOv3 architecture with modifications to best mapping to Loihi 2."""
 
 
 class Network(slayer.obd.YOLOBase):
+    """Sigma-Delta Tiny YOLOv3 strided network definition.
+
+    Parameters
+    ----------
+    num_classes : int, optional
+        Number of object classes to predict, by default 80.
+    anchors : List[List[Tuple[float, float]]], optional
+        Prediction anchor points.
+    threshold : float, optional
+        Sigma-delta neuron threshold, by default 0.1.
+    tau_grad : float, optional
+        Surrogate gradient relaxation parameter, by default 0.1.
+    scale_grad : float, optional
+        Surrogate gradient scale parameter, by default 0.1.
+    clamp_max : float, optional
+        Maximum clamp value for converting raw prediction to bounding box
+        prediciton. This is useful for improving stability of the training.
+        By default 5.0.
+    """
     def __init__(self,
                  num_classes: int = 80,
                  anchors: List[List[Tuple[float, float]]] = [
@@ -22,25 +41,6 @@ class Network(slayer.obd.YOLOBase):
                  tau_grad: float = 0.1,
                  scale_grad: float = 0.1,
                  clamp_max: float = 5.0) -> None:
-        """Sigma-Delta Tiny YOLOv3 strided network definition
-
-        Parameters
-        ----------
-        num_classes : int, optional
-            Number of object classes to predict, by default 80.
-        anchors : List[List[Tuple[float, float]]], optional
-            Prediction anchor points.
-        threshold : float, optional
-            Sigma-delta neuron threshold, by default 0.1.
-        tau_grad : float, optional
-            Surrogate gradient relaxation parameter, by default 0.1.
-        scale_grad : float, optional
-            Surrogate gradient scale parameter, by default 0.1.
-        clamp_max : float, optional
-            Maximum clamp value for converting raw prediction to bounding box
-            prediciton. This is useful for improving stability of the training.
-            By default 5.0.
-        """
         super().__init__(num_classes=num_classes,
                          anchors=anchors,
                          clamp_max=clamp_max)
