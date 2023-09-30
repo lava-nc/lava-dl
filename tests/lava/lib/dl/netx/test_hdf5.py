@@ -15,8 +15,8 @@ from lava.magma.core.run_configs import RunConfig
 from lava.magma.core.run_conditions import RunSteps
 from lava.proc import io
 from lava.proc.conv import utils
-from lava.proc.sparse.process import Sparse
-from lava.proc.dense.process import Dense
+from lava.proc.sparse.process import Sparse, DelaySparse
+from lava.proc.dense.process import Dense, DelayDense
 
 from lava.lib.dl import netx
 
@@ -177,11 +177,12 @@ class TestHdf5Netx(unittest.TestCase):
         )
 
     def test_sparse_pilotnet_sdnn(self) -> None:
-        """Tests sparse_fc_layer Network arg"""
+        """Tests sparse_fc_layer Network arg on Dense blocks"""
         net_config = root + '/gts/pilotnet_sdnn/network.net'
         net = netx.hdf5.Network(net_config=net_config, sparse_fc_layer=True)
         dense_layers = [layer for layer in net.layers
-                        if isinstance(layer, Dense)]
+                        if isinstance(layer, netx.blocks.process.Dense)]
+
         self.assertTrue(
             np.all([
                 isinstance(layer.synapse, Sparse) for layer in dense_layers
@@ -234,6 +235,22 @@ class TestHdf5Netx(unittest.TestCase):
             f'Output spike and ground truth do not match for NTIDIGITS network.'
             f'Found {output[output != gt] = } and {gt[output != gt] = }. '
             f'Error was {error}.'
+        )
+
+    def test_sparse_axonal_delay_ntidigits(self) -> None:
+        """Tests that sparse axonal delays work on Dense Blocks."""
+        net_config = root + '/gts/ntidigits/ntidigits.net'
+        # skipping the last average layer which is not suppprted
+        net = netx.hdf5.Network(net_config=net_config, num_layers=5,
+                                sparse_fc_layer=True)
+        dense_layers = [layer for layer in net.layers
+                        if isinstance(layer, netx.blocks.process.Dense)]
+
+        self.assertTrue(
+            np.all([
+                isinstance(layer.synapse, (Sparse, DelaySparse))
+                for layer in dense_layers
+            ])
         )
 
 
