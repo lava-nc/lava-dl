@@ -1,17 +1,16 @@
 # Copyright (C) 2023 Intel Corporation
 # SPDX-License-Identifier:  BSD-3-Clause
 
-from PIL import ImageDraw
-from PIL.Image import Image
-from PIL import Image as Img
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
-import numpy as np
 import cv2
-from typing import Tuple, List, Dict, Union, Iterable, Any, Optional
-
+import numpy as np
 import torch
 import torch.nn.functional as F
-from torchvision import transforms, ops
+from PIL import Image as Img
+from PIL import ImageDraw
+from PIL.Image import Image
+from torchvision import ops, transforms
 
 from .metrics import bbox_iou
 

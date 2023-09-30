@@ -4,53 +4,46 @@
 import torch
 import torch.nn.functional as F
 from lava.lib.dl import slayer
-from ..yolo_base import YOLOBase
 import matplotlib.pyplot as plt
+from typing import List, Tuple, Union
+
+"""Tiny YOLOv3 strided SDNN network module. It is a slightly modified version
+of Tiny YOLOv3 architecture with modifications to best mapping to Loihi 2."""
 
 
-def quantize_8bit(x, scale = (1 << 6), descale=False):
-    if descale is False:
-        return slayer.utils.quantize(x, step=2 / scale).clamp(-256 / scale, 254 / scale)
-    else:
-        return slayer.utils.quantize(x, step=2 / scale).clamp(-256 / scale, 254 / scale) * scale
-    
-def event_rate(x):
-    if x.shape[-1] == 1:
-        return torch.mean(torch.abs((x) > 0).to(x.dtype)).item()
-    else:
-        return torch.mean(torch.abs((x[..., 1:]) > 0).to(x.dtype)).item()
-    
-
-class SparsityMonitor:
-    def __init__(self, max_rate=0.01, lam=1):
-        self.max_rate = max_rate
-        self.lam = lam
-        self.loss_list = []
-
-    def clear(self):
-        self.loss_list = []
-
-    @property
-    def loss(self):
-        return self.lam * sum(self.loss_list)
-
-    def append(self, x):
-        mean_event_rate = torch.mean(torch.abs(x))
-        self.loss_list.append(F.mse_loss(F.relu(mean_event_rate - self.max_rate),
-                                         torch.zeros_like(mean_event_rate)))
-
-class Network(YOLOBase):
+class Network(slayer.obd.YOLOBase):
     def __init__(self,
-                 num_classes=80,
-                 anchors=[
+                 num_classes: int = 80,
+                 anchors: List[List[Tuple[float, float]]] = [
                      [(0.28, 0.22), (0.38, 0.48), (0.90, 0.78)],
                      [(0.07, 0.15), (0.15, 0.11), (0.14, 0.29)],
                  ],
-                 threshold=0.1,
-                 tau_grad=0.1,
-                 scale_grad=0.1,
-                 clamp_max=5.0):
-        super().__init__(num_classes=num_classes, anchors=anchors, clamp_max=clamp_max)
+                 threshold: float = 0.1,
+                 tau_grad: float = 0.1,
+                 scale_grad: float = 0.1,
+                 clamp_max: float = 5.0) -> None:
+        """Sigma-Delta Tiny YOLOv3 strided network definition
+
+        Parameters
+        ----------
+        num_classes : int, optional
+            Number of object classes to predict, by default 80.
+        anchors : List[List[Tuple[float, float]]], optional
+            Prediction anchor points.
+        threshold : float, optional
+            Sigma-delta neuron threshold, by default 0.1.
+        tau_grad : float, optional
+            Surrogate gradient relaxation parameter, by default 0.1.
+        scale_grad : float, optional
+            Surrogate gradient scale parameter, by default 0.1.
+        clamp_max : float, optional
+            Maximum clamp value for converting raw prediction to bounding box
+            prediciton. This is useful for improving stability of the training.
+            By default 5.0.
+        """
+        super().__init__(num_classes=num_classes,
+                         anchors=anchors,
+                         clamp_max=clamp_max)
 
         sigma_params = { # sigma-delta neuron parameters
             'threshold'     : threshold,   # delta unit threshold
@@ -68,8 +61,13 @@ class Network(YOLOBase):
         self.normalize_mean = torch.tensor([0.485, 0.456, 0.406]).reshape([1, 3, 1, 1, 1])
         self.normalize_std  = torch.tensor([0.229, 0.224, 0.225]).reshape([1, 3, 1, 1, 1])
 
-        # quantizer = lambda x: x
-        quantizer = quantize_8bit
+        def _quantize_8bit(x: torch.tensor,
+                           scale: int = (1 << 6),
+                           descale: bool = False) -> torch.tensor:
+            return slayer.utils.quantize_hook_fx(x, scale=scale,
+                                                 num_bits=8, descale=descale)
+        
+        quantizer = _quantize_8bit
 
         self.input_blocks = torch.nn.ModuleList([
             slayer.block.sigma_delta.Input(sdnn_params),
@@ -110,27 +108,36 @@ class Network(YOLOBase):
             slayer.dendrite.Sigma(),
         ])
 
-        # for blk, bias in zip(self.backend_blocks, [0, 0, 0.01, 0.01, 0.01]):
-        #     blk.synapse.weight.data += bias
-        # for blk, scale in zip(self.backend_blocks, [1, 1, 1, 2, 3]):
-        #     blk.synapse.weight.data *= scale
-        # for blk, bias in zip(self.head1_backend, [0, 0, 0.01, 0.01]):
-        #     blk.synapse.weight.data += bias
-        # for blk, scale in zip(self.head1_backend, [1, 0.1, 0.1, 1]):
-        #     blk.synapse.weight.data *= scale
-        # for blk, bias in zip(self.head2_backend, [0.01]):
-        #     blk.synapse.weight.data += bias
-        # for blk, scale in zip(self.head2_backend, [0.1]):
-        #     blk.synapse.weight.data *= scale
-        # self.head2_backend[0].synapse.weight.data += 0.01
-        # self.head1_blocks[0].synapse.weight.data *= 3
-        # self.head1_blocks[1].weight.data *= 3
-        # self.head1_blocks[0].synapse.weight.data += 0.01
-        # self.head1_blocks[1].weight.data += 0.01
-        # self.head2_blocks[0].synapse.weight.data += 0.005
-        # self.head2_blocks[1].weight.data += 0.005
+    def forward(
+            self,
+            input: torch.tensor,
+            sparsity_monitor: slayer.loss.SparsityEnforcer=None
+        )-> Tuple[Union[torch.tensor, List[torch.tensor]], torch.tensor]:
+        """Forward computation step of the network module.
 
-    def forward(self, input, sparsity_monitor: SparsityMonitor=None):
+        Parameters
+        ----------
+        input : torch.tensor
+            Input frames tensor.
+        sparsity_monitor : slayer.loss.SparsityEnforcer, optional
+            Sparsity monitor module. If None, sparisty is not enforced.
+            By default None.
+
+        Returns
+        -------
+        Union[torch.tensor, List[torch.tensor]]
+            Output of the network. 
+            
+            * If the network is in training mode, the output is a list of
+            raw output tensors of the different heads of the network.
+            * If the network is in testing mode, the output is the consolidated
+            prediction bounding boxes tensor.
+            
+            Note: the difference in the output behavior is done to apply
+            loss to the raw tensor for better training stability.
+        torch.tensor
+            Event rate statistics.
+        """
         has_sparisty_loss = sparsity_monitor is not None
         if self.normalize_mean.device != input.device:
             self.normalize_mean = self.normalize_mean.to(input.device)
@@ -140,12 +147,12 @@ class Network(YOLOBase):
         count = []
         for block in self.input_blocks:
             input = block(input)
-            count.append(event_rate(input))
+            count.append(slayer.utils.event_rate(input))
         
         backend = input
         for block in self.backend_blocks:
             backend = block(backend)
-            count.append(event_rate(backend))
+            count.append(slayer.utils.event_rate(backend))
             if has_sparisty_loss:
                 sparsity_monitor.append(backend)
 
@@ -153,29 +160,31 @@ class Network(YOLOBase):
         h1_backend = backend        
         for block in self.head1_backend:
             h1_backend = block(h1_backend)
-            count.append(event_rate(h1_backend))
+            count.append(slayer.utils.event_rate(h1_backend))
             if has_sparisty_loss:
                 sparsity_monitor.append(h1_backend)
 
         head1 = h1_backend        
         for block in self.head1_blocks:
             head1 = block(head1)
-            count.append(event_rate(head1))
-            if has_sparisty_loss and isinstance(block, slayer.block.sigma_delta.Conv):
+            count.append(slayer.utils.event_rate(head1))
+            if has_sparisty_loss and isinstance(block,
+                                                slayer.block.sigma_delta.Conv):
                 sparsity_monitor.append(head1)
 
         h2_backend = h1_backend
         for block in self.head2_backend:
             h2_backend = block(h2_backend)
-            count.append(event_rate(h2_backend))
+            count.append(slayer.utils.event_rate(h2_backend))
             if has_sparisty_loss:
                 sparsity_monitor.append(h2_backend)
 
         head2 = torch.concat([h2_backend, backend], dim=1)
         for block in self.head2_blocks:
             head2 = block(head2)
-            count.append(event_rate(head2))
-            if has_sparisty_loss and isinstance(block, slayer.block.sigma_delta.Conv):
+            count.append(slayer.utils.event_rate(head2))
+            if has_sparisty_loss and isinstance(block,
+                                                slayer.block.sigma_delta.Conv):
                 sparsity_monitor.append(head2)
 
         head1 = self.yolo_raw(head1)
@@ -187,9 +196,17 @@ class Network(YOLOBase):
         else:
             output = [head1, head2]
         
-        return output, torch.FloatTensor(count).reshape((1, -1)).to(input.device)
+        return (output,
+                torch.FloatTensor(count).reshape((1, -1)).to(input.device))
 
-    def grad_flow(self, path):
+    def grad_flow(self, path: str) -> None:
+        """Montiors gradient flow along the layers.
+
+        Parameters
+        ----------
+        path : str
+            Path for output plot export.
+        """
         # helps monitor the gradient flow
         def block_grad_norm(blocks):
             return [b.synapse.grad_norm
@@ -209,7 +226,17 @@ class Network(YOLOBase):
 
         return grad
 
-    def load_model(self, model_file: str):
+    def load_model(self, model_file: str) -> None:
+        """Selectively loads the model from save pytorch state dictionary.
+        If the number of output layer does not match, it will ignore the last
+        layer in the head. Other states should match, if not, there might be
+        some mismatch with the model file.
+
+        Parameters
+        ----------
+        model_file : str
+            Path to pytorch model file.
+        """
         saved_model = torch.load(model_file)
         model_keys = {k:False for k in saved_model.keys()}
         device = self.anchors.device

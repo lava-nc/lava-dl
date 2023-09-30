@@ -50,3 +50,24 @@ def diagonal_mask(dim, num_diagonals):
             + torch.diag(torch.ones(dim - d), diagonal=-d)
 
     return mask
+
+
+def event_rate(x: torch.tensor) -> float:
+    """Calculate the rate of event (non-zero value) in a torch tensor. If
+    the tensor has more than one time dimesion, first dimension is ignored
+    as it represents initialization events.
+
+    Parameters
+    ----------
+    x : torch.tensor
+        Input torch tensor.
+
+    Returns
+    -------
+    float
+        Average event rate.
+    """
+    if x.shape[-1] == 1:
+        return torch.mean(torch.abs((x) > 0).to(x.dtype)).item()
+    else:
+        return torch.mean(torch.abs((x[..., 1:]) > 0).to(x.dtype)).item()

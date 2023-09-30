@@ -1,15 +1,22 @@
 # Copyright (C) 2023 Intel Corporation
 # SPDX-License-Identifier:  BSD-3-Clause
 
+from typing import Callable, List, Tuple, Any, Dict
+
 import numpy as np
 import torch
 import torch.nn.functional as F
-from .boundingbox.metrics import bbox_iou, wh_iou, bbox_ciou
+
+from .boundingbox.metrics import bbox_ciou, bbox_iou, wh_iou
 from .boundingbox.utils import tensor_from_annotation
-from typing import List, Tuple, Callable
+
+"""Base YOLO methods and classes definiton."""
 
 
-def _yolo(x: torch.tensor, anchors: torch.tensor, clamp_max: float = 5.0) -> torch.tensor:
+def _yolo(x: torch.tensor,
+          anchors: torch.tensor,
+          clamp_max: float = 5.0) -> torch.tensor:
+    # converts raw predictions to bounding box predictions.
     _, _, H, W, _, _ = x.shape
     range_y, range_x = torch.meshgrid(
         torch.arange(H, dtype=x.dtype, device=x.device),
@@ -22,15 +29,10 @@ def _yolo(x: torch.tensor, anchors: torch.tensor, clamp_max: float = 5.0) -> tor
                 + range_x[None, None, :, :, None, None]) / W
     y_center = (torch.sigmoid(x[:, :, :, :, 1:2, :])
                 + range_y[None, None, :, :, None, None]) / H
-    # print(f'{clamp_max=}')
     width = (torch.exp(x[:, :, :, :, 2:3, :].clamp(max=clamp_max))
                 * anchor_x[None, :, None, None, None, None]) / W
     height = (torch.exp(x[:, :, :, :, 3:4, :].clamp(max=clamp_max))
                 * anchor_y[None, :, None, None, None, None]) / H
-    # width = (torch.exp(F.relu6(x[:, :, :, :, 2:3, :]).clone())
-    #             * anchor_x[None, :, None, None, None, None]) / W
-    # height = (torch.exp(F.relu6(x[:, :, :, :, 3:4, :]).clone())
-    #             * anchor_y[None, :, None, None, None, None]) / H
     confidence = torch.sigmoid(x[:, :, :, :, 4:5, :])
     classes = torch.softmax(x[:, :, :, :, 5:, :], dim=-2)
 
@@ -52,6 +54,7 @@ def _yolo(x: torch.tensor, anchors: torch.tensor, clamp_max: float = 5.0) -> tor
 
 
 def _yolo_target(x: torch.tensor, anchors: torch.tensor) -> torch.tensor:
+    # Generates target tesnsor for a given anchor resolution.
     _, _, H, W, _ = x.shape
     range_y, range_x = torch.meshgrid(
         torch.arange(H, dtype=x.dtype, device=x.device),
@@ -80,6 +83,19 @@ def _yolo_target(x: torch.tensor, anchors: torch.tensor) -> torch.tensor:
 
 
 class YOLOtarget:
+    """YOLO target generation module.
+
+    Parameters
+    ----------
+    anchors : Tuple[Tuple]
+        Anchor points.
+    scales : Tuple[Tuple[int]]
+        Prediction scales.
+    num_classes : int
+        Number of object classes.
+    ignore_iou_thres : float, optional
+        IOU overlap threshold to ignore target, by default 0.5.
+    """
     def __init__(self,
                  anchors: Tuple[Tuple],
                  scales: Tuple[Tuple[int]],  # x, y format
@@ -100,7 +116,19 @@ class YOLOtarget:
         self.ignore_iou_thres = ignore_iou_thres
         self.num_scales, self.num_anchors, *_ = anchors.shape
 
-    def forward(self, targets):
+    def forward(self, targets: torch.tensor) -> torch.tensor:
+        """Translates bounding box tensor to YOLO target tensor.
+
+        Parameters
+        ----------
+        targets : torch.tensor
+            Bounding box targets.
+
+        Returns
+        -------
+        torch.tensor
+            Expanded YOLO targets.
+        """
         tgts = []
         for (W, H) in self.scales:
             tgts.append(torch.zeros(self.num_anchors, H, W, 6))
@@ -125,17 +153,37 @@ class YOLOtarget:
                     x_cell = scale_x * x - j
                     width_cell = width * scale_x
                     height_cell = height * scale_y
-                    box_coordinates = torch.tensor([x_cell, y_cell, width_cell, height_cell])
+                    box_coordinates = torch.tensor([x_cell,
+                                                    y_cell,
+                                                    width_cell,
+                                                    height_cell])
                     tgts[scale_idx][anchor_on_scale, i, j, :4] = box_coordinates
                     tgts[scale_idx][anchor_on_scale, i, j, 5] = int(label)
                     has_anchor[scale_idx] = True
-                elif not anchor_taken and iou_anchors[anchor_idx] > self.ignore_iou_thres:
+                elif not (anchor_taken
+                          and iou_anchors[anchor_idx] > self.ignore_iou_thres):
                     tgts[scale_idx][anchor_on_scale, i, j, 4] = -1
 
         return tgts
 
-    def collate_fn(self, batch):
-        device = self.anchors.device
+    def collate_fn(
+            self,
+            batch: List [Tuple[torch.tensor, Dict[Any, Any]]]
+        ) -> Tuple[torch.tensor, List[torch.tensor], List[List[torch.tensor]]]:
+        """Frames and annottation collate strategy for object detection.
+
+        Parameters
+        ----------
+        batch : List[Tuple[torch.tensor, Dict[Any, Any]]]
+            Raw batch collection of list of output from the dataset to be
+            included in a batch.
+
+        Returns
+        -------
+        Tuple[torch.tensor, List[torch.tensor]]
+            Stacked frames, target tensor, and annotation tensors for
+            YOLO object detection.
+        """
         images, targets, bboxes = [], [], []
 
         for image, annotation in batch:
@@ -158,6 +206,29 @@ class YOLOtarget:
 
 
 class YOLOLoss(torch.nn.Module):
+    """YOLO Loss module.
+
+    Parameters
+    ----------
+    anchors : Tuple[Tuple]
+        Prediction achor coordinates.
+    lambda_coord : float, optional
+        Coordinate loss factor, by default 1.
+    lambda_noobj : float, optional
+        No object loss factor, by default 10.0.
+    lambda_obj : float, optional
+        Object loss factor, by default 5.0.
+    lambda_cls : float, optional
+        Class loss factor, by default 1.0.
+    lambda_iou : float, optional
+        IoU loss factor, by default 1.0.
+    alpha_iou : float, optional
+        IoU mixture ratio, by default 0.25.
+    startup_samples : int, optional
+        Number of iterations to consider as startup, by default 10000.
+    label_smoothing : float, optional
+        Label smoothing factor, by default 0.1.
+    """
     def __init__(self,
                  anchors: Tuple[Tuple],
                  lambda_coord: float = 1,
@@ -192,7 +263,23 @@ class YOLOLoss(torch.nn.Module):
         self.startup_samples = startup_samples
         self.samples = 0
 
-    def forward(self, predictions, targets):
+    def forward(self,
+                predictions: List[torch.tensor],
+                targets: List[torch.tensor]) -> torch.tensor:
+        """Loss evaluation method.
+
+        Parameters
+        ----------
+        predictions : List[torch.tensor]
+            Prediction tensor at different scales for each head.
+        targets : List[torch.tensor]
+            Target tensor at different sclaes for each head.
+
+        Returns
+        -------
+        torch.tensor
+            Loss value.
+        """
         loss = 0
         loss_distr = []
         # for time in range(len(targets)):
@@ -208,41 +295,51 @@ class YOLOLoss(torch.nn.Module):
         self.samples += predictions[0].shape[0]
         return loss, torch.tensor(loss_distr).sum(dim=0)
 
-    def forward_scale(self, predictions, targets, anchors):
+    def forward_scale(self,
+                      predictions: torch.tensor,
+                      targets: torch.tensor,
+                      anchors: torch.tensor) -> torch.tensor:
+        """Loss evaluation for a prediction head of YOLO.
+
+        Parameters
+        ----------
+        predictions : torch.tensor
+            Prediction at a selected scale.
+        targets : torch.tensor
+            Target at a selected scale.
+        anchors : torch.tensor
+            Anchors at a selected scale.
+
+        Returns
+        -------
+        torch.tensor
+            Loss for a prediction scale.
+        """
         obj = targets[..., 4] == 1
         noobj = targets[..., 4] == 0
 
         # No object loss
-        # bce seems to converge better
+        # bce converges better
         no_object_loss = self.bce(predictions[..., 4:5][noobj],
                                   targets[..., 4:5][noobj])
-        # no_object_loss = self.mse(torch.sigmoid(predictions[..., 4:5][noobj]),
-        #                           targets[..., 4:5][noobj])
 
         # Object loss
         anchors = anchors.reshape(1, -1, 1, 1, 2)
         box_preds = torch.cat([torch.sigmoid(predictions[..., 0:2]),
                                torch.exp(predictions[..., 2:4]) * anchors],
                               dim=-1)
-        # ious = bbox_iou(box_preds[..., :4][obj],
-        #                 targets[..., :4][obj]).diag()
         ious = bbox_ciou(box_preds[..., :4][obj],
                          targets[..., :4][obj])
-        # if self.samples < self.startup_samples:
-        #     alpha = 0
-        # else:
-        #     alpha = self.alpha_iou
+
         alpha = self.alpha_iou
         scale = (1 - alpha) + alpha * ious.detach().clamp(0)
-        # bce seems to converge better
+        
+        # bce converges better
         object_loss = self.bce(predictions[..., 4:5][obj].flatten(),
                                scale * targets[..., 4:5][obj].flatten())
-        # object_loss = self.mse(torch.sigmoid(predictions[..., 4:5][obj]).flatten(),
-        #                        scale * targets[..., 4:5][obj].flatten())
 
         # IOU loss
-        # iou_loss = torch.mean(1 - ious)
-        # mean squared error seems to converge better
+        # mean squared error converges better
         iou_loss = torch.mean((1 - ious)**2)
 
         # Coordinate loss
@@ -264,6 +361,19 @@ class YOLOLoss(torch.nn.Module):
 
 
 class YOLOBase(torch.nn.Module):
+    """Base YOLO network class for temporal processing.
+
+    Parameters
+    ----------
+    num_classes : int, optional
+        Number of object classes to predict, by default 20.
+    anchors : List[List[Tuple[float, float]]], optional
+        Prediction anchor points.
+    clamp_max : float, optional
+        Maximum clamp value for converting raw prediction to bounding box
+        prediciton. This is useful for improving stability of the training.
+        By default 5.0.
+    """
     def __init__(self,
                  num_classes: int = 20,
                  anchors: List[List[Tuple]] = [
@@ -281,16 +391,50 @@ class YOLOBase(torch.nn.Module):
         self.scale = None
 
     def yolo(self, x: torch.tensor, anchors: torch.tensor) -> torch.tensor:
+        """Evaluates YOLO bounding box prediction from raw network output.
+
+        Parameters
+        ----------
+        x : torch.tensor
+            Raw prediciton tensor.
+        anchors : torch.tensor
+            Anchors associated with the prediction head.
+
+        Returns
+        -------
+        torch.tensor
+            Output bounding boxes.
+        """
         N, _, _, _, P, T = x.shape
         return _yolo(x, anchors, self.clamp_max).reshape([N, -1, P, T])
 
     def yolo_raw(self, x: torch.tensor) -> torch.tensor:
+        """Transforms raw YOLO prediction to eventual output order i.e.
+        NCHWT order to (batch, num_anchors, num_outputs, height, width, time).
+
+        Parameters
+        ----------
+        x : torch.tensor
+            Raw prediction output of the network.
+
+        Returns
+        -------
+        torch.tensor
+            Transformed raw prediction output for a head.
+        """
         N, _, H, W, T = x.shape
         return x.reshape(N,
                          self.num_anchors,
                          -1, H, W, T).permute(0, 1, 3, 4, 2, 5)
 
     def init_model(self, input_dim: Tuple[int, int] = (448, 448)) -> None:
+        """Initialize the network for a given input dimension.
+
+        Parameters
+        ----------
+        input_dim : Tuple[int, int], optional
+            Desired input dimension, by default (448, 448)
+        """
         H, W = input_dim
         N, C, T = 1, 3, 1
         input = torch.rand(N, C, H, W, T).to(self.anchors.device)
@@ -298,6 +442,8 @@ class YOLOBase(torch.nn.Module):
         self.scale = [o.shape[2:4][::-1] for o in outputs]
 
     def validate_gradients(self) -> None:
+        """Validate gradients of the network and circumvent if any.
+        """
         valid_gradients = True
         for name, param in self.named_parameters():
             if param.grad is not None:

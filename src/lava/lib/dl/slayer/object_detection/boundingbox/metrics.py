@@ -1,9 +1,10 @@
 # Copyright (C) 2023 Intel Corporation
 # SPDX-License-Identifier:  BSD-3-Clause
 
+from typing import List, Tuple, Union
+
 import numpy as np
 import torch
-from typing import List, Union, Tuple
 
 """Object detection metrics."""
 
