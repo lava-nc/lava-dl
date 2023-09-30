@@ -197,14 +197,12 @@ class Event():
                     t_event[valid_ind]
                 ] = payload[valid_ind] if self.graded is True else \
                     1 / sampling_time
-            elif binning_mode.upper() == 'SUM':
-                empty_tensor[
-                    c_event[valid_ind],
-                    0,
-                    x_event[valid_ind],
-                    t_event[valid_ind]
-                ] += payload[valid_ind] if self.graded is True else \
-                    1 / sampling_time
+            elif binning_mode.upper() == 'SUM':  
+                if isinstance(empty_tensor, torch.Tensor):
+                    empty_tensor = empty_tensor.numpy()
+                values =   payload[valid_ind] if self.graded else 1 / sampling_time  
+                np.add.at(empty_tensor,  c_event[valid_ind], 0,  x_event[valid_ind], t_event[valid_ind], values)
+                empty_tensor = torch.tensor(empty_tensor) 
             else:
                 raise Exception(
                     f'Unsupported binning_mode. It was {binning_mode}'
@@ -231,14 +229,13 @@ class Event():
                     t_event[valid_ind]
                 ] = payload[valid_ind] if self.graded is True else \
                     1 / sampling_time
-            elif binning_mode.upper() == 'SUM':
-                empty_tensor[
-                    c_event[valid_ind],
-                    y_event[valid_ind],
-                    x_event[valid_ind],
-                    t_event[valid_ind]
-                ] += payload[valid_ind] if self.graded is True else \
-                    1 / sampling_time
+            elif binning_mode.upper() == 'SUM':  
+                if isinstance(empty_tensor, torch.Tensor):
+                    empty_tensor = empty_tensor.numpy() 
+                indices = (c_event[valid_ind], y_event[valid_ind],  x_event[valid_ind], t_event[valid_ind] )
+                values =   payload[valid_ind] if self.graded else 1 / sampling_time  
+                np.add.at(empty_tensor,  indices, values)
+                empty_tensor = torch.tensor(empty_tensor) 
             else:
                 raise Exception(
                     'Unsupported binning_mode. It was {binning_mode}'
