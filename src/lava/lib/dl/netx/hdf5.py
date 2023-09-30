@@ -54,8 +54,8 @@ class Network(AbstractProcess):
     reset_offset: int
         determines the phase shift of network reset if enabled. Defaults to 0.
     sparse_fc_layer : boolean, optional
-        If True, all fully connected layer synapses will be converted to
-        Sparse types in lava.
+        If True, all fully-connected layer synapses will be interpreted as
+        Sparse types in Lava.
     """
 
     def __init__(self,
