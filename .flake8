@@ -1,0 +1,4 @@
+[flake8]
+per-file-ignores =
+    # line too long
+    src/lava/lib/dl/slayer/object_detection/models/tiny_yolov3_str.py: E501,
