@@ -6,12 +6,13 @@ import torch.nn.functional as F
 from lava.lib.dl import slayer
 import matplotlib.pyplot as plt
 from typing import List, Tuple, Union
+from ..yolo_base import YOLOBase
 
 """Tiny YOLOv3 strided SDNN network module. It is a slightly modified version
 of Tiny YOLOv3 architecture with modifications to best mapping to Loihi 2."""
 
 
-class Network(slayer.obd.YOLOBase):
+class Network(YOLOBase):
     """Sigma-Delta Tiny YOLOv3 strided network definition.
 
     Parameters
