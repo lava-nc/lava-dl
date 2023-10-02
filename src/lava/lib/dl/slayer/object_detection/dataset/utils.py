@@ -4,7 +4,7 @@
 from typing import List, Tuple
 
 import torch
-from PIL.Image import Image, Transpose, Dict, Any
+from PIL.Image import Image, Transpose
 
 from ..boundingbox.utils import tensor_from_annotation
 
@@ -41,32 +41,3 @@ def flip_ud(image: Image) -> Image:
         Flipped image.
     """
     return Image.transpose(image, Transpose.FLIP_TOP_BOTTOM)
-
-
-# TODO: This seems redundant: See if it breaks anything, otherwise remove.
-# def collate_fn(
-#         batch: List [Tuple[torch.tensor, Dict[Any, Any]]]
-#     ) -> Tuple[torch.tensor, List[torch.tensor]]:
-#     """Frames and annottation collate strategy for object detection.
-
-#     Parameters
-#     ----------
-#     batch : List[Tuple[torch.tensor, Dict[Any, Any]]]
-#         Raw batch collection of list of output from the dataset to be included
-#         in a batch.
-
-#     Returns
-#     -------
-#     Tuple[torch.tensor, List[torch.tensor]]
-#         Stacked frames and annotation tensors ready to be used for object
-#         detection.
-#     """
-#     images, targets = [], []
-
-#     for image, annotation in batch:
-#         images += [image]
-#         targets += [[tensor_from_annotation(ann) for ann in annotation]]
-
-#     T = len(targets[0])
-#     targets = [[tgt[t] for tgt in targets] for t in range(T)]
-#     return torch.stack(images), targets
