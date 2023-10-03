@@ -2,3 +2,5 @@
 per-file-ignores =
     # line too long
     src/lava/lib/dl/slayer/object_detection/models/tiny_yolov3_str.py: E501,
+    src/lava/lib/dl/slayer/object_detection/models/yolo_kp.py: E501,
+    tutorials/lava/lib/dl/slayer/tiny_yolo_sdnn/train_sdnn.py: E501,

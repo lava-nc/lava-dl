@@ -18,82 +18,48 @@ from lava.lib.dl.slayer import obd
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-gpu', type=int, default=[0],
-                        help='which gpu(s) to use', nargs='+')
-    parser.add_argument('-b', type=int, default=32,
-                        help='batch size for dataloader')
+    parser.add_argument('-gpu', type=int, default=[0], help='which gpu(s) to use', nargs='+')
+    parser.add_argument('-b', type=int, default=32, help='batch size for dataloader')
     # Sparsity
-    parser.add_argument('-sparsity', default=False, action='store_true',
-                        help='enable sparsity loss')
-    parser.add_argument('-sp_lam', type=float, default=0.01,
-                        help='sparsity loss mixture ratio')
-    parser.add_argument('-sp_rate', type=float, default=0.01,
-                        help='sparsity penalization rate')
+    parser.add_argument('-sparsity', default=False, action='store_true', help='enable sparsity loss')
+    parser.add_argument('-sp_lam', type=float, default=0.01, help='sparsity loss mixture ratio')
+    parser.add_argument('-sp_rate', type=float, default=0.01, help='sparsity penalization rate')
     # Optimizer
-    parser.add_argument('-lr', type=float, default=0.001,
-                        help='initial learning rate')
-    parser.add_argument('-wd', type=float, default=1e-5,
-                        help='optimizer weight decay')
-    parser.add_argument('-lrf', type=float, default=0.001,
-                        help='learning rate factor for lr scheduler')
+    parser.add_argument('-lr', type=float, default=0.001, help='initial learning rate')
+    parser.add_argument('-wd', type=float, default=1e-5, help='optimizer weight decay')
+    parser.add_argument('-lrf', type=float, default=0.001, help='learning rate factor for lr scheduler')
     # Network/SDNN
-    parser.add_argument('-threshold', type=float, default=0.1,
-                        help='neuron threshold')
-    parser.add_argument('-tau_grad', type=float, default=0.1,
-                        help='surrogate gradient time constant')
-    parser.add_argument('-scale_grad', type=float, default=0.2,
-                        help='surrogate gradient scale')
-    parser.add_argument('-clip', type=float, default=10,
-                        help='gradient clipping limit')
+    parser.add_argument('-threshold', type=float, default=0.1, help='neuron threshold')
+    parser.add_argument('-tau_grad', type=float, default=0.1, help='surrogate gradient time constant')
+    parser.add_argument('-scale_grad', type=float, default=0.2, help='surrogate gradient scale')
+    parser.add_argument('-clip', type=float, default=10, help='gradient clipping limit')
     # Pretrained model
-    parser.add_argument('-load', type=str, default='',
-                        help='pretrained model')
+    parser.add_argument('-load', type=str, default='', help='pretrained model')
     # Target generation
-    parser.add_argument('-tgt_iou_thr', type=float, default=0.5,
-                        help='ignore iou threshold in target generation')
+    parser.add_argument('-tgt_iou_thr', type=float, default=0.5, help='ignore iou threshold in target generation')
     # YOLO loss
-    parser.add_argument('-lambda_coord', type=float, default=1.0,
-                        help='YOLO coordinate loss lambda')
-    parser.add_argument('-lambda_noobj', type=float,
-                        default=10.0, help='YOLO no-object loss lambda')
-    parser.add_argument('-lambda_obj', type=float,
-                        default=5.0, help='YOLO object loss lambda')
-    parser.add_argument('-lambda_cls', type=float,
-                        default=1.0, help='YOLO class loss lambda')
-    parser.add_argument('-lambda_iou', type=float,
-                        default=1.0, help='YOLO iou loss lambda')
-    parser.add_argument('-alpha_iou', type=float, default=0.25,
-                        help='YOLO loss object target iou mixture factor')
-    parser.add_argument('-label_smoothing', type=float, default=0.10,
-                        help='YOLO class cross entropy label smoothing')
-    parser.add_argument('-track_iter', type=int,
-                        default=1000, help='YOLO loss tracking interval')
+    parser.add_argument('-lambda_coord', type=float, default=1.0, help='YOLO coordinate loss lambda')
+    parser.add_argument('-lambda_noobj', type=float, default=10.0, help='YOLO no-object loss lambda')
+    parser.add_argument('-lambda_obj', type=float, default=5.0, help='YOLO object loss lambda')
+    parser.add_argument('-lambda_cls', type=float, default=1.0, help='YOLO class loss lambda')
+    parser.add_argument('-lambda_iou', type=float, default=1.0, help='YOLO iou loss lambda')
+    parser.add_argument('-alpha_iou', type=float, default=0.25, help='YOLO loss object target iou mixture factor')
+    parser.add_argument('-label_smoothing', type=float, default=0.10, help='YOLO class cross entropy label smoothing')
+    parser.add_argument('-track_iter', type=int, default=1000, help='YOLO loss tracking interval')
     # Experiment
-    parser.add_argument('-exp', type=str, default='',
-                        help='experiment differentiater string')
-    parser.add_argument('-seed', type=int, default=None,
-                        help='random seed of the experiment')
+    parser.add_argument('-exp', type=str, default='', help='experiment differentiater string')
+    parser.add_argument('-seed', type=int, default=None, help='random seed of the experiment')
     # Training
-    parser.add_argument('-epoch', type=int, default=50,
-                        help='number of epochs to run')
-    parser.add_argument('-warmup', type=int, default=10,
-                        help='number of epochs to warmup')
+    parser.add_argument('-epoch', type=int, default=50, help='number of epochs to run')
+    parser.add_argument('-warmup', type=int, default=10, help='number of epochs to warmup')
     # dataset
-    parser.add_argument('-dataset', type=str, default='BDD100K',
-                        help='dataset to use [BDD100K]')
-    parser.add_argument(
-        '-path', type=str, default='/home/lecampos/data/bdd100k',
-        help='dataset path')
-    parser.add_argument('-aug_prob', type=float, default=0.2,
-                        help='training augmentation probability')
-    parser.add_argument('-output_dir', type=str,   default=".",
-                        help="directory in which to put log folders")
-    parser.add_argument('-num_workers', type=int,   default=12,
-                        help="number of dataloader workers")
-    parser.add_argument('-clamp_max', type=float,   default=5.0,
-                        help="exponential clamp in height/width calculation")
-    parser.add_argument('-verbose', default=False,
-                        action='store_true', help='lots of debug printouts')
+    parser.add_argument('-dataset', type=str, default='BDD100K', help='dataset to use [BDD100K]')
+    parser.add_argument('-path', type=str, default='/home/lecampos/data/bdd100k', help='dataset path')
+    parser.add_argument('-aug_prob', type=float, default=0.2, help='training augmentation probability')
+    parser.add_argument('-output_dir', type=str, default=".", help="directory in which to put log folders")
+    parser.add_argument('-num_workers', type=int, default=12, help="number of dataloader workers")
+    parser.add_argument('-clamp_max', type=float, default=5.0, help="exponential clamp in height/width calculation")
+    parser.add_argument('-verbose', default=False, action='store_true', help='lots of debug printouts')
 
     args = parser.parse_args()
 
@@ -249,6 +215,7 @@ if __name__ == '__main__':
             # MAP calculations
             T = inputs.shape[-1]
             try:
+                # TODO: remove after testing with yolo_kp
                 # predictions = torch.concat([net.yolo(predictions[0], net.anchors[0]),
                 #                             net.yolo(predictions[1], net.anchors[1])], dim=1)
                 predictions = torch.concat([net.yolo(p, a) for (p, a)
@@ -258,8 +225,7 @@ if __name__ == '__main__':
                 print(
                     "assertion error on MAP predictions calculation train set. continuing")
                 continue
-            predictions = [obd.bbox.utils.non_maximum_suppression(
-                predictions[..., t]) for t in range(T)]
+            predictions = [obd.bbox.utils.nms(predictions[..., t]) for t in range(T)]
 
             for t in range(T):
                 ap_stats.update(predictions[t], bboxes[t])
@@ -310,8 +276,7 @@ if __name__ == '__main__':
                 predictions, counts = net(inputs)
 
                 T = inputs.shape[-1]
-                predictions = [obd.bbox.utils.non_maximum_suppression(
-                    predictions[..., t]) for t in range(T)]
+                predictions = [obd.bbox.utils.nms(predictions[..., t]) for t in range(T)]
                 for t in range(T):
                     ap_stats.update(predictions[t], bboxes[t])
 
@@ -372,8 +337,8 @@ if __name__ == '__main__':
             box_color_map=box_color_map, thickness=5
         )
 
-        marked_images = Image.new(
-            'RGB', (marked_img.width + marked_gt.width, marked_img.height))
+        marked_images = Image.new('RGB', (marked_img.width + marked_gt.width,
+                                          marked_img.height))
         marked_images.paste(marked_img, (0, 0))
         marked_images.paste(marked_gt, (marked_img.width, 0))
         if not args.subset:
@@ -386,8 +351,9 @@ if __name__ == '__main__':
                 marked_images.save(
                     f'{trained_folder}/prediction_{epoch}_{b}.jpg')
             else:
-                obd.bbox.utils.create_video(
-                    inputs, bboxes, predictions, f'{trained_folder}/prediction_{epoch}_{b}', test_set.classes, box_color_map=box_color_map)
+                obd.bbox.utils.create_video(inputs, bboxes, predictions,
+                                            f'{trained_folder}/prediction_{epoch}_{b}',
+                                            test_set.classes, box_color_map=box_color_map)
         stats.save(trained_folder + '/')
 
     if hasattr(module, 'export_hdf5'):
