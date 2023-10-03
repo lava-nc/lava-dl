@@ -60,6 +60,7 @@ pillow = "^9.2.0"
 pytest = "^7.2.0"
 unittest2 = "^1.1.0"
 torch = "^1.13.1"
+nir = "^0.1.0"
 
 [tool.poetry.dev-dependencies]
 bandit = "1.7.4"
@@ -177,4 +178,3 @@ pylint = ["-*"]                             # Disable temporarily until lint fix
 pycodestyle = ["-F401"]                     # Disable a check
 flake8-bandit = ["-S101"]                   # Ignore asserts for tests
 pyflakes = ["-*"]                           # Disable a plugin
-
