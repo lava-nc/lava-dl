@@ -54,7 +54,7 @@ if __name__ == '__main__':
     parser.add_argument('-warmup', type=int, default=10, help='number of epochs to warmup')
     # dataset
     parser.add_argument('-dataset', type=str, default='BDD100K', help='dataset to use [BDD100K]')
-    parser.add_argument('-path', type=str, default='/home/lecampos/data/bdd100k', help='dataset path')
+    parser.add_argument('-path', type=str, default='data/bdd100k', help='dataset path')
     parser.add_argument('-aug_prob', type=float, default=0.2, help='training augmentation probability')
     parser.add_argument('-output_dir', type=str, default=".", help="directory in which to put log folders")
     parser.add_argument('-num_workers', type=int, default=12, help="number of dataloader workers")
@@ -88,7 +88,7 @@ if __name__ == '__main__':
 
     classes_output = {'BDD100K': 11}
 
-    print('making net')
+    print('Creating Network')
     if len(args.gpu) == 1:
         net = obd.models.tiny_yolov3_str.Network(threshold=args.threshold,
                                                  tau_grad=args.tau_grad,
@@ -111,16 +111,15 @@ if __name__ == '__main__':
     else:
         sparsity_montior = None
 
-    print('loading net')
+    print('Loading Network')
     if args.load != '':
         print(f'Initializing model from {args.load}')
         module.load_model(args.load)
 
-    print('module.init_model')
     module.init_model((448, 448))
 
     # Define optimizer module.
-    print("optimizer")
+    print('Creating Optimizer')
     optimizer = torch.optim.Adam(net.parameters(),
                                  lr=args.lr,
                                  weight_decay=args.wd)
@@ -134,7 +133,7 @@ if __name__ == '__main__':
                                  num_classes=net.num_classes,
                                  ignore_iou_thres=args.tgt_iou_thr)
 
-    print('dataset')
+    print('Creating Dataset')
 
     if args.dataset == 'BDD100K':
         train_set = obd.dataset.BDD(root=args.path, dataset='track', train=True,
@@ -159,7 +158,7 @@ if __name__ == '__main__':
                           np.random.randint(256))
                          for i in range(11)]
 
-    print('yolo_loss')
+    print('Creating YOLO Loss')
     yolo_loss = obd.YOLOLoss(anchors=net.anchors,
                              lambda_coord=args.lambda_coord,
                              lambda_noobj=args.lambda_noobj,
@@ -169,15 +168,13 @@ if __name__ == '__main__':
                              alpha_iou=args.alpha_iou,
                              label_smoothing=args.label_smoothing).to(device)
 
-    print('stats')
+    print('Creating Stats Module')
     stats = slayer.utils.LearningStats(accuracy_str='AP@0.5')
 
-    print('loss_tracker')
     loss_tracker = dict(coord=[], obj=[], noobj=[], cls=[], iou=[])
     loss_order = ['coord', 'obj', 'noobj', 'cls', 'iou']
 
-    print('train loop')
-
+    print('Training/Testing Loop')
     for epoch in range(args.epoch):
         t_st = datetime.now()
         ap_stats = obd.bbox.metrics.APstats(iou_threshold=0.5)
