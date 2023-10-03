@@ -563,6 +563,92 @@ def fliplr_bounding_boxes(annotation: Dict[str, Any]) -> Dict[str, Any]:
     return annotation
 
 
+def create_frames(
+        inputs: torch.tensor,
+        targets: torch.tensor,
+        predictions: torch.tensor,
+        classes: List[str],
+        batch: Optional[int] = 0,
+        box_color_map: Optional[List[Tuple[RGB,
+                                        RGB,
+                                        RGB]]] = None
+    ) -> List[Image]:
+    """Create video frames of object detection prediction.
+    Note: the prediction is on the left side and the ground truth is on the
+    right side.
+
+    Parameters
+    ----------
+    inputs : torch.tensor
+        Input image frame tensor in NCHWT format.
+    targets : torch.tensor
+        Target bounding box tensor of shape (num_bbox, 6). The column values
+        represent x_center, y_center, width, height, confidence, label.
+    predictions : torch.tensor
+        Prediction bounding box tensor of shape (num_bbox, 6). The column values
+        represent x_center, y_center, width, height, confidence, label.
+    classes : List[str]
+        List of the classes name string.
+    batch : Optional[int], optional
+        The batch idx which needs to be converted to video, by default 0.
+    box_color_map : Optional[List[Tuple[RGB, RGB, RGB]]], optional
+        Color map associated to the classes. If None, it  will be randomly
+        generated. By default None.
+    """
+    if box_color_map is None:
+        box_color_map = [(np.random.randint(256),
+                          np.random.randint(256),
+                          np.random.randint(256)) for _ in range(len(classes))]
+
+    frames = []
+    b = batch
+    
+    for t in range(inputs.shape[-1]):
+        image = Img.fromarray(
+            np.uint8(
+                inputs[b, :, :, :, t].cpu().data.numpy().transpose([1, 2, 0])
+                * 255
+            )
+        )
+        annotation = annotation_from_tensor(predictions[t][b],
+                                            {'height': image.height,
+                                             'width': image.width},
+                                            classes,
+                                            confidence_th=0)
+        marked_img = mark_bounding_boxes(image,
+                                         annotation['annotation']['object'],
+                                         box_color_map=box_color_map,
+                                         thickness=5)
+        draw = ImageDraw.Draw(marked_img)
+        draw.text([5, 5], 'Prediction',
+                  fill=(255, 255, 255), anchor='lt')
+        image = Img.fromarray(
+            np.uint8(
+                inputs[b, :, :, :, t].cpu().data.numpy().transpose([1, 2, 0])
+                * 255
+            )
+        )
+        annotation = annotation_from_tensor(targets[t][b],
+                                            {'height': image.height,
+                                             'width': image.width},
+                                            classes,
+                                            confidence_th=0)
+        marked_gt = mark_bounding_boxes(image,
+                                        annotation['annotation']['object'],
+                                        box_color_map=box_color_map,
+                                        thickness=5)
+        draw = ImageDraw.Draw(marked_gt)
+        draw.text([5, 5], 'Ground Truth',
+                  fill=(255, 255, 255), anchor='rt')
+        marked_images = Img.new('RGB',
+                                (marked_img.width + marked_gt.width,
+                                 marked_img.height))
+        marked_images.paste(marked_img, (0, 0))
+        marked_images.paste(marked_gt, (marked_img.width, 0))
+        frames.append(marked_images)
+    return frames
+
+
 def create_video(inputs: torch.tensor,
                  targets: torch.tensor,
                  predictions: torch.tensor,
@@ -596,50 +682,15 @@ def create_video(inputs: torch.tensor,
         Color map associated to the classes. If None, it  will be randomly
         generated. By default None.
     """
-    if box_color_map is None:
-        box_color_map = [(np.random.randint(256),
-                          np.random.randint(256),
-                          np.random.randint(256)) for _ in range(len(classes))]
-
-    b = batch
-    video_dims = (2 * 448, 448)
+    frames = create_frames(inputs, targets, predictions, classes,
+                           batch, box_color_map)
+    _, _, H, W, _ = inputs.shape
+    video_dims = (2 * W, H)
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     video = cv2.VideoWriter(output_path + '.mp4', fourcc, 10, video_dims)
-    for t in range(inputs.shape[-1]):
-        image = Img.fromarray(
-            np.uint8(
-                inputs[b, :, :, :, t].cpu().data.numpy().transpose([1, 2, 0])
-                * 255
-            )
-        )
-        annotation = annotation_from_tensor(predictions[t][b],
-                                            {'height': image.height,
-                                             'width': image.width},
-                                            classes,
-                                            confidence_th=0)
-        marked_img = mark_bounding_boxes(image,
-                                         annotation['annotation']['object'],
-                                         box_color_map=box_color_map,
-                                         thickness=5)
-        image = Img.fromarray(
-            np.uint8(
-                inputs[b, :, :, :, t].cpu().data.numpy().transpose([1, 2, 0])
-                * 255
-            )
-        )
-        annotation = annotation_from_tensor(targets[t][b],
-                                            {'height': image.height,
-                                             'width': image.width},
-                                            classes,
-                                            confidence_th=0)
-        marked_gt = mark_bounding_boxes(image,
-                                        annotation['annotation']['object'],
-                                        box_color_map=box_color_map,
-                                        thickness=5)
-        marked_images = Img.new('RGB',
-                                (marked_img.width + marked_gt.width,
-                                 marked_img.height))
-        marked_images.paste(marked_img, (0, 0))
-        marked_images.paste(marked_gt, (marked_img.width, 0))
-        video.write(cv2.cvtColor(np.array(marked_images), cv2.COLOR_RGB2BGR))
+    
+    for frame in frames:
+        video.write(cv2.cvtColor(np.array(frame), cv2.COLOR_RGB2BGR))
     video.release()
+
+nms = non_maximum_suppression
