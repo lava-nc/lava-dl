@@ -48,7 +48,7 @@ def _yolo(x: torch.tensor,
         print(f'{torch.isinf(width).any()=}')
         print(f'{torch.isnan(height).any()=}')
         print(f'{torch.isinf(height).any()=}')
-        assert False
+        raise RuntimeError('Ecountered NaN and Inf!')
 
     return x  # batch, anchor, height, width, predictions, time
 

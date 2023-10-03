@@ -3,7 +3,6 @@
 
 import json
 import os
-import random
 from typing import Any, Dict, Tuple
 
 import numpy as np
@@ -178,22 +177,22 @@ class BDD(Dataset):
         images, annotations = self.datasets[dataset_idx][index]
 
         # flip left right
-        if random.random() < self.augment_prob:
+        if np.random.random() < self.augment_prob:
             for idx in range(len(images)):
                 images[idx] = Image.Image.transpose(
                     images[idx], Transpose.FLIP_LEFT_RIGHT)
                 annotations[idx] = bbutils.fliplr_bounding_boxes(
                     annotations[idx])
         # blur
-        if random.random() < self.augment_prob:
+        if np.random.random() < self.augment_prob:
             for idx in range(len(images)):
                 images[idx] = self.blur(images[idx])
         # color jitter
-        if random.random() < self.augment_prob:
+        if np.random.random() < self.augment_prob:
             for idx in range(len(images)):
                 images[idx] = self.color_jitter(images[idx])
         # grayscale
-        if random.random() < self.augment_prob:
+        if np.random.random() < self.augment_prob:
             for idx in range(len(images)):
                 images[idx] = self.grayscale(images[idx])
 
