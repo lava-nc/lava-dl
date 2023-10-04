@@ -20,6 +20,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-gpu', type=int, default=[0], help='which gpu(s) to use', nargs='+')
     parser.add_argument('-b', type=int, default=32, help='batch size for dataloader')
+    # Model
+    parser.add_argument('-model', type=str, default='tiny_yolov3_str', help='network model')
     # Sparsity
     parser.add_argument('-sparsity', default=False, action='store_true', help='enable sparsity loss')
     parser.add_argument('-sp_lam', type=float, default=0.01, help='sparsity loss mixture ratio')
@@ -89,19 +91,26 @@ if __name__ == '__main__':
     classes_output = {'BDD100K': 11}
 
     print('Creating Network')
+    if args.model == 'tiny_yolov3_str':
+        Network = obd.models.tiny_yolov3_str.Network
+    elif args.model == 'yolo_kp':
+        Network = obd.models.yolo_kp.Network
+    else:
+        raise RuntimeError(f'Model type {args.model=} not supported!')
+    
     if len(args.gpu) == 1:
-        net = obd.models.tiny_yolov3_str.Network(threshold=args.threshold,
-                                                 tau_grad=args.tau_grad,
-                                                 scale_grad=args.scale_grad,
-                                                 num_classes=classes_output[args.dataset],
-                                                 clamp_max=args.clamp_max).to(device)
+        net = Network(threshold=args.threshold,
+                      tau_grad=args.tau_grad,
+                      scale_grad=args.scale_grad,
+                      num_classes=classes_output[args.dataset],
+                      clamp_max=args.clamp_max).to(device)
         module = net
     else:
-        net = torch.nn.DataParallel(obd.models.tiny_yolov3_str.Network(threshold=args.threshold,
-                                                                       tau_grad=args.tau_grad,
-                                                                       scale_grad=args.scale_grad,
-                                                                       num_classes=classes_output[args.dataset],
-                                                                       clamp_max=args.clamp_max).to(device),
+        net = torch.nn.DataParallel(Network(threshold=args.threshold,
+                                            tau_grad=args.tau_grad,
+                                            scale_grad=args.scale_grad,
+                                            num_classes=classes_output[args.dataset],
+                                            clamp_max=args.clamp_max).to(device),
                                     device_ids=args.gpu)
         module = net.module
 
@@ -136,8 +145,9 @@ if __name__ == '__main__':
     print('Creating Dataset')
 
     if args.dataset == 'BDD100K':
-        train_set = obd.dataset.BDD(root=args.path, dataset='track', train=True,
-                                    augment_prob=args.aug_prob, randomize_seq=True)
+        train_set = obd.dataset.BDD(root=args.path, dataset='track',
+                                    train=True, augment_prob=args.aug_prob,
+                                    randomize_seq=True)
         test_set = obd.dataset.BDD(root=args.path, dataset='track',
                                    train=False, randomize_seq=True)
         train_loader = DataLoader(train_set,
@@ -219,10 +229,11 @@ if __name__ == '__main__':
                                             in zip(predictions, net.anchors)],
                                            dim=1)
             except RuntimeError:
-                print(
-                    "assertion error on MAP predictions calculation train set. continuing")
+                print('Runtime error on MAP predictions calculation.'
+                      'continuing')
                 continue
-            predictions = [obd.bbox.utils.nms(predictions[..., t]) for t in range(T)]
+            predictions = [obd.bbox.utils.nms(predictions[..., t])
+                           for t in range(T)]
 
             for t in range(T):
                 ap_stats.update(predictions[t], bboxes[t])
@@ -273,7 +284,8 @@ if __name__ == '__main__':
                 predictions, counts = net(inputs)
 
                 T = inputs.shape[-1]
-                predictions = [obd.bbox.utils.nms(predictions[..., t]) for t in range(T)]
+                predictions = [obd.bbox.utils.nms(predictions[..., t])
+                               for t in range(T)]
                 for t in range(T):
                     ap_stats.update(predictions[t], bboxes[t])
 
@@ -339,8 +351,9 @@ if __name__ == '__main__':
         marked_images.paste(marked_img, (0, 0))
         marked_images.paste(marked_gt, (marked_img.width, 0))
         if not args.subset:
-            writer.add_image(
-                'Prediction', transforms.PILToTensor()(marked_images), epoch)
+            writer.add_image('Prediction',
+                             transforms.PILToTensor()(marked_images),
+                             epoch)
 
         if stats.testing.best_accuracy is True:
             torch.save(module.state_dict(), trained_folder + '/network.pt')
@@ -348,9 +361,10 @@ if __name__ == '__main__':
                 marked_images.save(
                     f'{trained_folder}/prediction_{epoch}_{b}.jpg')
             else:
+                filename = f'{trained_folder}/prediction_{epoch}_{b}'
                 obd.bbox.utils.create_video(inputs, bboxes, predictions,
-                                            f'{trained_folder}/prediction_{epoch}_{b}',
-                                            test_set.classes, box_color_map=box_color_map)
+                                            filename, test_set.classes,
+                                            box_color_map=box_color_map)
         stats.save(trained_folder + '/')
 
     if hasattr(module, 'export_hdf5'):
