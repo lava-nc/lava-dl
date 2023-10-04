@@ -51,7 +51,7 @@ class Network(YOLOBase):
                          anchors=anchors,
                          clamp_max=clamp_max)
 
-        sigma_params = { # sigma-delta neuron parameters
+        sigma_params = {  # sigma-delta neuron parameters
             'threshold'     : threshold,   # delta unit threshold
             'tau_grad'      : tau_grad,    # delta unit surrogate gradient relaxation parameter
             'scale_grad'    : scale_grad,  # delta unit surrogate gradient scale parameter
@@ -76,7 +76,7 @@ class Network(YOLOBase):
                           descale: bool = False) -> torch.tensor:
             return slayer.utils.quantize_hook_fx(x, scale=scale,
                                                  num_bits=8, descale=descale)
-        
+
         def quantize_5bit(x: torch.tensor,
                           scale: int = (1 << 6),
                           descale: bool = False) -> torch.tensor:
@@ -109,10 +109,11 @@ class Network(YOLOBase):
             slayer.dendrite.Sigma(),
         ])
 
-    def forward(self,
-            input: torch.tensor,
-            sparsity_monitor: slayer.loss.SparsityEnforcer = None
-        )-> Tuple[Union[torch.tensor, List[torch.tensor]], torch.tensor]:
+    def forward(
+        self,
+        input: torch.tensor,
+        sparsity_monitor: slayer.loss.SparsityEnforcer = None
+    ) -> Tuple[Union[torch.tensor, List[torch.tensor]], torch.tensor]:
         """Forward computation step of the network module.
 
         Parameters
@@ -126,13 +127,13 @@ class Network(YOLOBase):
         Returns
         -------
         Union[torch.tensor, List[torch.tensor]]
-            Output of the network. 
-            
+            Output of the network.
+
             * If the network is in training mode, the output is a list of
             raw output tensors of the different heads of the network.
             * If the network is in testing mode, the output is the consolidated
             prediction bounding boxes tensor.
-            
+
             Note: the difference in the output behavior is done to apply
             loss to the raw tensor for better training stability.
         torch.tensor
@@ -159,7 +160,7 @@ class Network(YOLOBase):
         for head in self.heads:
             x = head(x)
             count.append(torch.mean(torch.abs((x) > 0).to(x.dtype)).item())
-        
+
         head1 = self.yolo_raw(x)
 
         if not self.training:
@@ -225,7 +226,7 @@ class Network(YOLOBase):
             b.export_hdf5(layer.create_group(f'{i + offset}'))
         offset += len(self.blocks)
         self.export_hdf5_head(layer.create_group(f'{offset}'))
-            
+
     def grad_flow(self, path: str) -> List[torch.tensor]:
         """Montiors gradient flow along the layers.
 
@@ -244,7 +245,7 @@ class Network(YOLOBase):
             return [b.synapse.grad_norm
                     for b in blocks if hasattr(b, 'synapse')
                     and b.synapse.weight.requires_grad]
-        
+
         grad = block_grad_norm(self.blocks)
 
         plt.figure()

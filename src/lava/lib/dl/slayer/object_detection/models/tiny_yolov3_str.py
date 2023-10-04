@@ -49,7 +49,7 @@ class Network(YOLOBase):
                          anchors=anchors,
                          clamp_max=clamp_max)
 
-        sigma_params = { # sigma-delta neuron parameters
+        sigma_params = {  # sigma-delta neuron parameters
             'threshold'     : threshold,   # delta unit threshold
             'tau_grad'      : tau_grad,    # delta unit surrogate gradient relaxation parameter
             'scale_grad'    : scale_grad,  # delta unit surrogate gradient scale parameter
@@ -70,7 +70,7 @@ class Network(YOLOBase):
                            descale: bool = False) -> torch.tensor:
             return slayer.utils.quantize_hook_fx(x, scale=scale,
                                                  num_bits=8, descale=descale)
-        
+
         quantizer = _quantize_8bit
 
         self.input_blocks = torch.nn.ModuleList([
@@ -113,10 +113,10 @@ class Network(YOLOBase):
         ])
 
     def forward(
-            self,
-            input: torch.tensor,
-            sparsity_monitor: slayer.loss.SparsityEnforcer = None
-        )-> Tuple[Union[torch.tensor, List[torch.tensor]], torch.tensor]:
+        self,
+        input: torch.tensor,
+        sparsity_monitor: slayer.loss.SparsityEnforcer = None
+    ) -> Tuple[Union[torch.tensor, List[torch.tensor]], torch.tensor]:
         """Forward computation step of the network module.
 
         Parameters
@@ -130,13 +130,13 @@ class Network(YOLOBase):
         Returns
         -------
         Union[torch.tensor, List[torch.tensor]]
-            Output of the network. 
-            
+            Output of the network.
+
             * If the network is in training mode, the output is a list of
             raw output tensors of the different heads of the network.
             * If the network is in testing mode, the output is the consolidated
             prediction bounding boxes tensor.
-            
+
             Note: the difference in the output behavior is done to apply
             loss to the raw tensor for better training stability.
         torch.tensor
@@ -152,7 +152,7 @@ class Network(YOLOBase):
         for block in self.input_blocks:
             input = block(input)
             count.append(slayer.utils.event_rate(input))
-        
+
         backend = input
         for block in self.backend_blocks:
             backend = block(backend)
@@ -161,14 +161,14 @@ class Network(YOLOBase):
                 sparsity_monitor.append(backend)
 
 
-        h1_backend = backend        
+        h1_backend = backend
         for block in self.head1_backend:
             h1_backend = block(h1_backend)
             count.append(slayer.utils.event_rate(h1_backend))
             if has_sparisty_loss:
                 sparsity_monitor.append(h1_backend)
 
-        head1 = h1_backend        
+        head1 = h1_backend
         for block in self.head1_blocks:
             head1 = block(head1)
             count.append(slayer.utils.event_rate(head1))
@@ -199,7 +199,7 @@ class Network(YOLOBase):
                                    self.yolo(head2, self.anchors[1])], dim=1)
         else:
             output = [head1, head2]
-        
+
         return (output,
                 torch.FloatTensor(count).reshape((1, -1)).to(input.device))
 
@@ -221,7 +221,7 @@ class Network(YOLOBase):
             return [b.synapse.grad_norm
                     for b in blocks if hasattr(b, 'synapse')
                     and b.synapse.weight.requires_grad]
-        
+
         grad = block_grad_norm(self.backend_blocks)
         grad += block_grad_norm(self.head1_backend)
         grad += block_grad_norm(self.head2_backend)
@@ -247,7 +247,7 @@ class Network(YOLOBase):
             Path to pytorch model file.
         """
         saved_model = torch.load(model_file)
-        model_keys = {k:False for k in saved_model.keys()}
+        model_keys = {k : False for k in saved_model.keys()}
         device = self.anchors.device
         self.anchors.data = saved_model['anchors'].data.to(device)
         self.input_blocks[0].neuron.bias.data = saved_model[f'input_blocks.0.neuron.bias'].data.to(device)
@@ -279,7 +279,7 @@ class Network(YOLOBase):
             model_keys[f'head1_backend.{i}.neuron.delta.threshold'] = True
             model_keys[f'head1_backend.{i}.synapse.weight_g'] = True
             model_keys[f'head1_backend.{i}.synapse.weight_v'] = True
-        
+
         for i in range(len(self.head2_backend)):
             self.head2_backend[i].neuron.bias.data = saved_model[f'head2_backend.{i}.neuron.bias'].data
             self.head2_backend[i].neuron.delta.threshold.data = saved_model[f'head2_backend.{i}.neuron.delta.threshold'].data
@@ -294,7 +294,7 @@ class Network(YOLOBase):
                 print('Detected different num_outputs.')
                 self.head2_backend[i].neuron.norm.running_mean.data = saved_model[f'head2_backend.{i}.neuron.norm.running_mean'].data
                 model_keys[f'head2_backend.{i}.neuron.norm.running_mean'] = True
-        
+
         i = 0
         self.head1_blocks[i].neuron.bias.data = saved_model[f'head1_blocks.{i}.neuron.bias'].data
         self.head1_blocks[i].neuron.norm.running_mean.data = saved_model[f'head1_blocks.{i}.neuron.norm.running_mean'].data
@@ -306,7 +306,7 @@ class Network(YOLOBase):
         model_keys[f'head1_blocks.{i}.neuron.delta.threshold'] = True
         model_keys[f'head1_blocks.{i}.synapse.weight_g'] = True
         model_keys[f'head1_blocks.{i}.synapse.weight_v'] = True
-        
+
         self.head2_blocks[i].neuron.bias.data = saved_model[f'head2_blocks.{i}.neuron.bias'].data
         self.head2_blocks[i].neuron.norm.running_mean.data = saved_model[f'head2_blocks.{i}.neuron.norm.running_mean'].data
         self.head2_blocks[i].neuron.delta.threshold.data = saved_model[f'head2_blocks.{i}.neuron.delta.threshold'].data

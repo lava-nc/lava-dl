@@ -18,7 +18,7 @@ from ..boundingbox.utils import Height, Width
 """BDD100K object detection dataset module."""
 
 
-def removesuffix(input_string: str, suffix:str) -> str: 
+def removesuffix(input_string: str, suffix: str) -> str:
     """Removes suffix string from input string.
 
     Parameters
