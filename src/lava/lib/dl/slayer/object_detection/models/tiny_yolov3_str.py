@@ -1,11 +1,14 @@
 # Copyright (C) 2023 Intel Corporation
 # SPDX-License-Identifier:  BSD-3-Clause
 
+from typing import List, Tuple, Union
+
+import matplotlib.pyplot as plt
 import torch
 import torch.nn.functional as F
+
 from lava.lib.dl import slayer
-import matplotlib.pyplot as plt
-from typing import List, Tuple, Union
+
 from ..yolo_base import YOLOBase
 
 """Tiny YOLOv3 strided SDNN network module. It is a slightly modified version
@@ -112,7 +115,7 @@ class Network(YOLOBase):
     def forward(
             self,
             input: torch.tensor,
-            sparsity_monitor: slayer.loss.SparsityEnforcer=None
+            sparsity_monitor: slayer.loss.SparsityEnforcer = None
         )-> Tuple[Union[torch.tensor, List[torch.tensor]], torch.tensor]:
         """Forward computation step of the network module.
 
@@ -200,13 +203,18 @@ class Network(YOLOBase):
         return (output,
                 torch.FloatTensor(count).reshape((1, -1)).to(input.device))
 
-    def grad_flow(self, path: str) -> None:
+    def grad_flow(self, path: str) -> List[torch.tensor]:
         """Montiors gradient flow along the layers.
 
         Parameters
         ----------
         path : str
             Path for output plot export.
+
+        Returns
+        -------
+        List[torch.tensor]
+            List of gradient norm per layer.
         """
         # helps monitor the gradient flow
         def block_grad_norm(blocks):

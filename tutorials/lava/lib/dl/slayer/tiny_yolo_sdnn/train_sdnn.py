@@ -218,7 +218,7 @@ if __name__ == '__main__':
                 predictions = torch.concat([net.yolo(p, a) for (p, a)
                                             in zip(predictions, net.anchors)],
                                            dim=1)
-            except AssertionError:
+            except RuntimeError:
                 print(
                     "assertion error on MAP predictions calculation train set. continuing")
                 continue
