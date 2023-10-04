@@ -31,10 +31,10 @@ def _yolo(x: torch.tensor,
                 + range_y[None, None, :, :, None, None]) / H
     width = (torch.exp(
         x[:, :, :, :, 2:3, :].clamp(max=clamp_max))
-                * anchor_x[None, :, None, None, None, None]) / W
+             * anchor_x[None, :, None, None, None, None]) / W
     height = (torch.exp(
         x[:, :, :, :, 3:4, :].clamp(max=clamp_max))
-                * anchor_y[None, :, None, None, None, None]) / H
+              * anchor_y[None, :, None, None, None, None]) / H
     confidence = torch.sigmoid(x[:, :, :, :, 4:5, :])
     classes = torch.softmax(x[:, :, :, :, 5:, :], dim=-2)
 
@@ -198,11 +198,10 @@ class YOLOtarget:
         T = len(bboxes[0])
         bboxes = [[bbox[t] for bbox in bboxes] for t in range(T)]
 
-        return (torch.stack(images),
-                [torch.stack([targets[batch][scale]
-                              for batch in range(len(targets))])
-                 for scale in range(self.num_scales)],
-                 bboxes)
+        return (torch.stack(images), 
+                [torch.stack([targets[batch][scale] 
+                              for batch in range(len(targets))]) 
+                 for scale in range(self.num_scales)], bboxes)
 
 
 class YOLOLoss(torch.nn.Module):
