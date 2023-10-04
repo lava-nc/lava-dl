@@ -169,8 +169,8 @@ class YOLOtarget:
     def collate_fn(
             self,
             batch: List [Tuple[torch.tensor, Dict[Any, Any]]]
-        ) -> Tuple[torch.tensor, 
-                   List[torch.tensor], List[List[torch.tensor]]]:
+            ) -> Tuple[torch.tensor, 
+                       List[torch.tensor], List[List[torch.tensor]]]:
         """Frames and annottation collate strategy for object detection.
 
         Parameters
