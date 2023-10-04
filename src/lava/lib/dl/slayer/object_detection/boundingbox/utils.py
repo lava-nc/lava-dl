@@ -563,11 +563,11 @@ def fliplr_bounding_boxes(annotation: Dict[str, Any]) -> Dict[str, Any]:
     return annotation
 
 
-def create_frames(inputs: torch.tensor, 
-                  targets: torch.tensor, 
-                  predictions: torch.tensor, 
-                  classes: List[str], 
-                  batch: Optional[int] = 0, 
+def create_frames(inputs: torch.tensor,
+                  targets: torch.tensor,
+                  predictions: torch.tensor,
+                  classes: List[str],
+                  batch: Optional[int] = 0,
                   box_color_map: Optional[
                       List[Tuple[RGB, RGB, RGB]]] = None) -> List[Image]:
     """Create video frames of object detection prediction.

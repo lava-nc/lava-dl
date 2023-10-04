@@ -17,7 +17,8 @@ from ..boundingbox.utils import Height, Width
 
 """BDD100K object detection dataset module."""
 
-def removesuffix(input_string: str, suffix:str) -> str:
+
+def removesuffix(input_string: str, suffix:str) -> str: 
     """Removes suffix string from input string.
 
     Parameters
@@ -84,8 +85,8 @@ class _BDD(Dataset):
         with open(self.label_path + os.sep + id + '.json') as file:
             data = json.load(file)
             for img in data:
-                image = Image.open(img_path + os.sep +
-                                   img['name']).convert('RGB')
+                image = Image.open(
+                    img_path + os.sep + img['name']).convert('RGB')
                 width, height = image.size
                 size = {'height': height, 'width': width}
                 objects = []
@@ -138,7 +139,7 @@ class BDD(Dataset):
             Randomize the start of frame sequence. If false, the first seq_len
             of the sample is returned, by default False.
         augment_prob : float, optional
-            Augmentation probability of the frames and bounding boxes, 
+            Augmentation probability of the frames and bounding boxes,
             by default 0.0.
         """
         super().__init__()
