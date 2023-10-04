@@ -122,8 +122,12 @@ if __name__ == '__main__':
 
     print('Loading Network')
     if args.load != '':
-        print(f'Initializing model from {args.load}')
-        module.load_model(args.load)
+        saved_model = args.load
+        if saved_model in ['slayer', 'lava-dl']:
+            saved_model = slayer.obd.models.__path__[0] + '/Trained_' \
+                + args.model + '/network.pt'
+        print(f'Initializing model from {saved_model}')
+        module.load_model(saved_model)
 
     module.init_model((448, 448))
 
