@@ -29,10 +29,12 @@ def _yolo(x: torch.tensor,
                 + range_x[None, None, :, :, None, None]) / W
     y_center = (torch.sigmoid(x[:, :, :, :, 1:2, :])
                 + range_y[None, None, :, :, None, None]) / H
-    width = (torch.exp(x[:, :, :, :, 2:3, :].clamp(max=clamp_max))
-                * anchor_x[None, :, None, None, None, None]) / W
-    height = (torch.exp(x[:, :, :, :, 3:4, :].clamp(max=clamp_max))
-                * anchor_y[None, :, None, None, None, None]) / H
+    width = (torch.exp(
+        x[:, :, :, :, 2:3, :].clamp(max=clamp_max))
+             * anchor_x[None, :, None, None, None, None]) / W
+    height = (torch.exp(
+        x[:, :, :, :, 3:4, :].clamp(max=clamp_max))
+             * anchor_y[None, :, None, None, None, None]) / H
     confidence = torch.sigmoid(x[:, :, :, :, 4:5, :])
     classes = torch.softmax(x[:, :, :, :, 5:, :], dim=-2)
 
