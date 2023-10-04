@@ -11,7 +11,7 @@ from .assistant import Assistant
 __all__ = [
     'filter', 'time',
     'staticproperty', 'diagonal_mask',
-    'dotdict', 'LearningStat', 
-    'LearningStats', 'quantize', 
+    'dotdict', 'LearningStat',
+    'LearningStats', 'quantize',
     'QUANTIZE_MODE', 'Assistant'
 ]

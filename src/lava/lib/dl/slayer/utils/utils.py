@@ -5,6 +5,7 @@
 
 import torch
 
+
 class dotdict(dict):
     """Dot notation access to dictionary attributes. For e.g. ``my_dict["key"]``
     is same as ``my_dict.key``"""
