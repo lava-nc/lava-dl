@@ -132,7 +132,7 @@ def annotation_from_tensor(tensor: torch.tensor,
     -------
     Dict[str, Any]
         Annotations dictionary with objects in the format of
-        ``{'id':id, 'name':name, 
+        ``{'id':id, 'name':name,
         'confidence':conf,
         'bndbox':{'xmin':xmin, 'xmax':xmax, 'ymin':ymin, 'ymax':ymax}}``.
     """
@@ -184,7 +184,7 @@ def tensor_from_annotation(ann: Dict[str, Any],
     ----------
     ann : Dict[str, Any]
         Object annotation dictionary with objects in the format of
-        ``{'id':id, 'name':name, 
+        ``{'id':id, 'name':name,
         'confidence':conf,
         'bndbox':{'xmin':xmin, 'xmax':xmax, 'ymin':ymin, 'ymax':ymax}}``.
     device : torch.device, optional
@@ -599,7 +599,7 @@ def create_frames(inputs: torch.tensor,
 
     frames = []
     b = batch
-    
+
     for t in range(inputs.shape[-1]):
         image = Img.fromarray(
             np.uint8(
@@ -685,9 +685,10 @@ def create_video(inputs: torch.tensor,
     video_dims = (2 * W, H)
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     video = cv2.VideoWriter(output_path + '.mp4', fourcc, 10, video_dims)
-    
+
     for frame in frames:
         video.write(cv2.cvtColor(np.array(frame), cv2.COLOR_RGB2BGR))
     video.release()
+
 
 nms = non_maximum_suppression
