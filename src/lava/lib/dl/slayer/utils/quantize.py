@@ -79,3 +79,22 @@ def quantize(input, step=1, mode=MODE.ROUND):
         return _floor.apply(input, step)
     else:
         raise ValueError(f'{mode=} is not recognized.')
+
+def dequantize(input):
+    """Implements dequantization of parameters.
+
+    Parameters
+    ----------
+    input : torch tensor
+        input tensor
+
+    Returns
+    -------
+    torch tensor
+        dequantized tensor
+
+    Examples
+    --------
+    >>> tensor = dequantize(x)
+    """
+    return torch.dequantize(input)
