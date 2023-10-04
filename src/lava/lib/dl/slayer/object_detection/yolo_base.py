@@ -31,10 +31,10 @@ def _yolo(x: torch.tensor,
                 + range_y[None, None, :, :, None, None]) / H
     width = (torch.exp(
         x[:, :, :, :, 2:3, :].clamp(max=clamp_max))
-             * anchor_x[None, :, None, None, None, None]) / W
+                * anchor_x[None, :, None, None, None, None]) / W
     height = (torch.exp(
         x[:, :, :, :, 3:4, :].clamp(max=clamp_max))
-             * anchor_y[None, :, None, None, None, None]) / H
+                * anchor_y[None, :, None, None, None, None]) / H
     confidence = torch.sigmoid(x[:, :, :, :, 4:5, :])
     classes = torch.softmax(x[:, :, :, :, 5:, :], dim=-2)
 
@@ -70,10 +70,8 @@ def _yolo_target(x: torch.tensor, anchors: torch.tensor) -> torch.tensor:
                 + range_x[None, None, :, :, None]) / W
     y_center = ((x[:, :, :, :, 1:2])
                 + range_y[None, None, :, :, None]) / H
-    width = ((x[:, :, :, :, 2:3])
-                * anchor_x[None, :, None, None, None]) / W
-    height = ((x[:, :, :, :, 3:4])
-                * anchor_y[None, :, None, None, None]) / H
+    width = ((x[:, :, :, :, 2:3]) * anchor_x[None, :, None, None, None]) / W
+    height = ((x[:, :, :, :, 3:4]) * anchor_y[None, :, None, None, None]) / H
     confidence = (x[:, :, :, :, 4:5])
     labels = x[:, :, :, :, 5]
     classes = F.one_hot(labels.long(), num_classes=x.shape[-1] - 5)
