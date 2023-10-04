@@ -30,11 +30,11 @@ def _yolo(x: torch.tensor,
     y_center = (torch.sigmoid(x[:, :, :, :, 1:2, :])
                 + range_y[None, None, :, :, None, None]) / H
     width = (torch.exp(
-        x[:, :, :, :, 2:3, :].clamp(max=clamp_max))
-             * anchor_x[None, :, None, None, None, None]) / W
+        x[:, :, :, :, 2:3, :].clamp(
+            max=clamp_max)) * anchor_x[None, :, None, None, None, None]) / W
     height = (torch.exp(
-        x[:, :, :, :, 3:4, :].clamp(max=clamp_max))
-              * anchor_y[None, :, None, None, None, None]) / H
+        x[:, :, :, :, 3:4, :].clamp(
+            max=clamp_max)) * anchor_y[None, :, None, None, None, None]) / H
     confidence = torch.sigmoid(x[:, :, :, :, 4:5, :])
     classes = torch.softmax(x[:, :, :, :, 5:, :], dim=-2)
 
@@ -166,9 +166,9 @@ class YOLOtarget:
 
         return tgts
 
-    def collate_fn(self, 
-                   batch: List [Tuple[torch.tensor, Dict[Any, Any]]]
-                   ) -> Tuple[torch.tensor, 
+    def collate_fn(self,
+                   batch: List[Tuple[torch.tensor, Dict[Any, Any]]]
+                   ) -> Tuple[torch.tensor,
                               List[torch.tensor], List[List[torch.tensor]]]:
         """Frames and annottation collate strategy for object detection.
 
@@ -198,9 +198,9 @@ class YOLOtarget:
         T = len(bboxes[0])
         bboxes = [[bbox[t] for bbox in bboxes] for t in range(T)]
 
-        return (torch.stack(images), 
-                [torch.stack([targets[batch][scale] 
-                              for batch in range(len(targets))]) 
+        return (torch.stack(images),
+                [torch.stack([targets[batch][scale]
+                              for batch in range(len(targets))])
                  for scale in range(self.num_scales)], bboxes)
 
 
@@ -332,7 +332,7 @@ class YOLOLoss(torch.nn.Module):
 
         alpha = self.alpha_iou
         scale = (1 - alpha) + alpha * ious.detach().clamp(0)
-        
+
         # bce converges better
         object_loss = self.bce(predictions[..., 4:5][obj].flatten(),
                                scale * targets[..., 4:5][obj].flatten())
@@ -349,13 +349,13 @@ class YOLOLoss(torch.nn.Module):
         # Class loss
         cls_loss = self.cel(predictions[..., 5:][obj],
                             targets[..., 5][obj].long())
-        
+
         loss_distr = [self.lambda_coord * coord_loss,
                       self.lambda_obj * object_loss,
                       self.lambda_noobj * no_object_loss,
                       self.lambda_cls * cls_loss,
                       self.lambda_iou * iou_loss]
-        
+
         return sum(loss_distr), loss_distr
 
 
