@@ -1,0 +1,27 @@
+alpha_iou : 0.8
+aug_prob : 0.4
+b : 64
+clip : 1.0
+epoch : 200
+exp :
+gpu : [0]
+label_smoothing : 0.03
+lambda_cls : 1.0
+lambda_coord : 2.0
+lambda_iou : 2.25
+lambda_noobj : 4.0
+lambda_obj : 1.8
+lr : 0.0001
+lrf : 0.01
+num_workers : 4
+output_dir : .
+path :
+scale_grad : 0.2
+seed : None
+subset : False
+tau_grad : 0.1
+tgt_iou_thr : 0.25
+threshold : 0.1
+track_iter : 100
+warmup : 40
+wd : 1e-05
