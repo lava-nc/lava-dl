@@ -26,11 +26,11 @@ if __name__ == '__main__':
     # Sparsity
     parser.add_argument('-sparsity', action='store_true', default=False, help='enable sparsity loss')
     parser.add_argument('-sp_lam',   type=float, default=0.01, help='sparsity loss mixture ratio')
-    parser.add_argument('-sp_rate',  type=float, default=0.01, help='sparsity penalization rate')
+    parser.add_argument('-sp_rate',  type=float, default=0.01, help='minimum rate for sparsity penalization')
     # Optimizer
     parser.add_argument('-lr',  type=float, default=0.0001, help='initial learning rate')
     parser.add_argument('-wd',  type=float, default=1e-5,   help='optimizer weight decay')
-    parser.add_argument('-lrf', type=float, default=0.01,   help='learning rate factor for lr scheduler')
+    parser.add_argument('-lrf', type=float, default=0.01,   help='learning rate reduction factor for lr scheduler')
     # Network/SDNN
     parser.add_argument('-threshold',  type=float, default=0.1, help='neuron threshold')
     parser.add_argument('-tau_grad',   type=float, default=0.1, help='surrogate gradient time constant')
@@ -59,10 +59,10 @@ if __name__ == '__main__':
     parser.add_argument('-dataset',     type=str,   default='BDD100K',      help='dataset to use [BDD100K]')
     parser.add_argument('-path',        type=str,   default='data/bdd100k', help='dataset path')
     parser.add_argument('-aug_prob',    type=float, default=0.2,            help='training augmentation probability')
-    parser.add_argument('-output_dir',  type=str,   default=".",            help="directory in which to put log folders")
-    parser.add_argument('-num_workers', type=int,   default=12,             help="number of dataloader workers")
-    parser.add_argument('-clamp_max',   type=float, default=5.0,            help="exponential clamp in height/width calculation")
-    parser.add_argument('-verbose', action='store_true', default=False,     help='lots of debug printouts')
+    parser.add_argument('-output_dir',  type=str,   default='.',            help='directory in which to put log folders')
+    parser.add_argument('-num_workers', type=int,   default=12,             help='number of dataloader workers')
+    parser.add_argument('-clamp_max',   type=float, default=5.0,            help='exponential clamp in height/width calculation')
+    parser.add_argument('-verbose', action='store_true', default=False,     help='enables lots of debug printouts')
 
     args = parser.parse_args()
 
