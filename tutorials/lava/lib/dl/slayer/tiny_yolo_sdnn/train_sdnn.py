@@ -1,3 +1,4 @@
+# nosec # noqa
 import os
 import argparse
 from typing import Any, Dict, Tuple
@@ -27,9 +28,9 @@ if __name__ == '__main__':
     parser.add_argument('-sp_lam', type=float, default=0.01, help='sparsity loss mixture ratio')
     parser.add_argument('-sp_rate', type=float, default=0.01, help='sparsity penalization rate')
     # Optimizer
-    parser.add_argument('-lr', type=float, default=0.001, help='initial learning rate')
+    parser.add_argument('-lr', type=float, default=0.0001, help='initial learning rate')
     parser.add_argument('-wd', type=float, default=1e-5, help='optimizer weight decay')
-    parser.add_argument('-lrf', type=float, default=0.001, help='learning rate factor for lr scheduler')
+    parser.add_argument('-lrf', type=float, default=0.01, help='learning rate factor for lr scheduler')
     # Network/SDNN
     parser.add_argument('-threshold', type=float, default=0.1, help='neuron threshold')
     parser.add_argument('-tau_grad', type=float, default=0.1, help='surrogate gradient time constant')
@@ -41,18 +42,18 @@ if __name__ == '__main__':
     parser.add_argument('-tgt_iou_thr', type=float, default=0.5, help='ignore iou threshold in target generation')
     # YOLO loss
     parser.add_argument('-lambda_coord', type=float, default=1.0, help='YOLO coordinate loss lambda')
-    parser.add_argument('-lambda_noobj', type=float, default=10.0, help='YOLO no-object loss lambda')
-    parser.add_argument('-lambda_obj', type=float, default=5.0, help='YOLO object loss lambda')
-    parser.add_argument('-lambda_cls', type=float, default=1.0, help='YOLO class loss lambda')
-    parser.add_argument('-lambda_iou', type=float, default=1.0, help='YOLO iou loss lambda')
-    parser.add_argument('-alpha_iou', type=float, default=0.25, help='YOLO loss object target iou mixture factor')
+    parser.add_argument('-lambda_noobj', type=float, default=2.0, help='YOLO no-object loss lambda')
+    parser.add_argument('-lambda_obj', type=float, default=2.0, help='YOLO object loss lambda')
+    parser.add_argument('-lambda_cls', type=float, default=4.0, help='YOLO class loss lambda')
+    parser.add_argument('-lambda_iou', type=float, default=2.0, help='YOLO iou loss lambda')
+    parser.add_argument('-alpha_iou', type=float, default=0.8, help='YOLO loss object target iou mixture factor')
     parser.add_argument('-label_smoothing', type=float, default=0.10, help='YOLO class cross entropy label smoothing')
     parser.add_argument('-track_iter', type=int, default=1000, help='YOLO loss tracking interval')
     # Experiment
     parser.add_argument('-exp', type=str, default='', help='experiment differentiater string')
     parser.add_argument('-seed', type=int, default=None, help='random seed of the experiment')
     # Training
-    parser.add_argument('-epoch', type=int, default=50, help='number of epochs to run')
+    parser.add_argument('-epoch', type=int, default=200, help='number of epochs to run')
     parser.add_argument('-warmup', type=int, default=10, help='number of epochs to warmup')
     # dataset
     parser.add_argument('-dataset', type=str, default='BDD100K', help='dataset to use [BDD100K]')
@@ -65,7 +66,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    identifier = 'SDNN_' + args.exp if len(args.exp) > 0 else 'SDNN'
+    identifier = f'{args.model}_' + args.exp if len(args.exp) > 0 else args.model
     if args.seed is not None:
         torch.manual_seed(args.seed)
         identifier += '_{}'.format(args.seed)

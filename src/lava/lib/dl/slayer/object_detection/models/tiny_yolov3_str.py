@@ -53,12 +53,12 @@ class Network(YOLOBase):
             'threshold'     : threshold,   # delta unit threshold
             'tau_grad'      : tau_grad,    # delta unit surrogate gradient relaxation parameter
             'scale_grad'    : scale_grad,  # delta unit surrogate gradient scale parameter
-            'requires_grad' : False,  # trainable threshold
-            'shared_param'  : True,   # layer wise threshold
+            'requires_grad' : False,       # trainable threshold
+            'shared_param'  : True,        # layer wise threshold
         }
         sdnn_params = {
             **sigma_params,
-            'activation'    : F.relu, # activation function
+            'activation'    : F.relu,      # activation function
         }
 
         # standard imagenet normalization of RGB images
@@ -159,7 +159,6 @@ class Network(YOLOBase):
             count.append(slayer.utils.event_rate(backend))
             if has_sparisty_loss:
                 sparsity_monitor.append(backend)
-
 
         h1_backend = backend
         for block in self.head1_backend:
