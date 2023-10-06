@@ -57,11 +57,12 @@ if __name__ == '__main__':
     # dataset
     parser.add_argument('-dataset', type=str, default='BDD100K', help='dataset to use [BDD100K]')
     parser.add_argument('-path', type=str, default='data/bdd100k', help='dataset path')
+    parser.add_argument('-subset', default=False, help='True if dataset contains a subset')
     parser.add_argument('-aug_prob', type=float, default=0.2, help='training augmentation probability')
     parser.add_argument('-output_dir', type=str, default=".", help="directory in which to put log folders")
-    parser.add_argument('-num_workers', type=int, default=12, help="number of dataloader workers")
+    parser.add_argument('-num_workers', type=int, default=16, help="number of dataloader workers")
     parser.add_argument('-clamp_max', type=float, default=5.0, help="exponential clamp in height/width calculation")
-    parser.add_argument('-verbose', default=False, action='store_true', help='lots of debug printouts')
+    parser.add_argument('-verbose', default=True, action='store_true', help='lots of debug printouts')
 
     args = parser.parse_args()
 
