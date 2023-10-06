@@ -55,12 +55,12 @@ class Network(YOLOBase):
             'threshold'     : threshold,   # delta unit threshold
             'tau_grad'      : tau_grad,    # delta unit surrogate gradient relaxation parameter
             'scale_grad'    : scale_grad,  # delta unit surrogate gradient scale parameter
-            'requires_grad' : False,  # trainable threshold
-            'shared_param'  : True,   # layer wise threshold
+            'requires_grad' : False,       # trainable threshold
+            'shared_param'  : True,        # layer wise threshold
         }
         sdnn_params = {
             **sigma_params,
-            'activation'    : F.relu, # activation function
+            'activation'    : F.relu,      # activation function
         }
 
         # standard imagenet normalization of RGB images
@@ -171,7 +171,6 @@ class Network(YOLOBase):
         return (output,
                 torch.FloatTensor(count).reshape((1, -1)).to(input.device))
 
-
     def export_hdf5_head(self, handle: h5py.Dataset) -> None:
         """Exports the hdf5 description of the head of the network. This is
         done because the head does not follow the slayer.block construct.
@@ -205,7 +204,6 @@ class Network(YOLOBase):
         device_params['sigma_output'] = True
         for key, value in device_params.items():
             handle.create_dataset(f'neuron/{key}', data=value)
-
 
     def export_hdf5(self, filename: str) -> None:
         """Export the YOLO-KP network as hdf5 description.
@@ -267,7 +265,7 @@ class Network(YOLOBase):
             Path to pytorch model file.
         """
         saved_model = torch.load(model_file)
-        model_keys = {k:False for k in saved_model.keys()}
+        model_keys = {k : False for k in saved_model.keys()}
         device = self.anchors.device
         self.anchors.data = saved_model['anchors'].data.to(device)
         self.input_blocks[0].neuron.bias.data = saved_model[f'input_blocks.0.neuron.bias'].data.to(device)

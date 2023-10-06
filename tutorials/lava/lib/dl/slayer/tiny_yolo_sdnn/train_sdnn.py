@@ -1,3 +1,4 @@
+# nosec # noqa
 import os
 import argparse
 from typing import Any, Dict, Tuple
@@ -19,41 +20,41 @@ from lava.lib.dl.slayer import obd
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-gpu', type=int, default=[0], help='which gpu(s) to use', nargs='+')
-    parser.add_argument('-b', type=int, default=32, help='batch size for dataloader')
+    parser.add_argument('-b',   type=int, default=32,  help='batch size for dataloader')
     # Model
     parser.add_argument('-model', type=str, default='tiny_yolov3_str', help='network model')
     # Sparsity
-    parser.add_argument('-sparsity', default=False, action='store_true', help='enable sparsity loss')
-    parser.add_argument('-sp_lam', type=float, default=0.01, help='sparsity loss mixture ratio')
-    parser.add_argument('-sp_rate', type=float, default=0.01, help='sparsity penalization rate')
+    parser.add_argument('-sparsity', action='store_true', default=False, help='enable sparsity loss')
+    parser.add_argument('-sp_lam',   type=float, default=0.01, help='sparsity loss mixture ratio')
+    parser.add_argument('-sp_rate',  type=float, default=0.01, help='minimum rate for sparsity penalization')
     # Optimizer
-    parser.add_argument('-lr', type=float, default=0.001, help='initial learning rate')
-    parser.add_argument('-wd', type=float, default=1e-5, help='optimizer weight decay')
-    parser.add_argument('-lrf', type=float, default=0.001, help='learning rate factor for lr scheduler')
+    parser.add_argument('-lr',  type=float, default=0.0001, help='initial learning rate')
+    parser.add_argument('-wd',  type=float, default=1e-5,   help='optimizer weight decay')
+    parser.add_argument('-lrf', type=float, default=0.01,   help='learning rate reduction factor for lr scheduler')
     # Network/SDNN
-    parser.add_argument('-threshold', type=float, default=0.1, help='neuron threshold')
-    parser.add_argument('-tau_grad', type=float, default=0.1, help='surrogate gradient time constant')
+    parser.add_argument('-threshold',  type=float, default=0.1, help='neuron threshold')
+    parser.add_argument('-tau_grad',   type=float, default=0.1, help='surrogate gradient time constant')
     parser.add_argument('-scale_grad', type=float, default=0.2, help='surrogate gradient scale')
-    parser.add_argument('-clip', type=float, default=10, help='gradient clipping limit')
+    parser.add_argument('-clip',       type=float, default=10, help='gradient clipping limit')
     # Pretrained model
     parser.add_argument('-load', type=str, default='', help='pretrained model')
     # Target generation
     parser.add_argument('-tgt_iou_thr', type=float, default=0.5, help='ignore iou threshold in target generation')
     # YOLO loss
-    parser.add_argument('-lambda_coord', type=float, default=1.0, help='YOLO coordinate loss lambda')
-    parser.add_argument('-lambda_noobj', type=float, default=10.0, help='YOLO no-object loss lambda')
-    parser.add_argument('-lambda_obj', type=float, default=5.0, help='YOLO object loss lambda')
-    parser.add_argument('-lambda_cls', type=float, default=1.0, help='YOLO class loss lambda')
-    parser.add_argument('-lambda_iou', type=float, default=1.0, help='YOLO iou loss lambda')
-    parser.add_argument('-alpha_iou', type=float, default=0.25, help='YOLO loss object target iou mixture factor')
-    parser.add_argument('-label_smoothing', type=float, default=0.10, help='YOLO class cross entropy label smoothing')
-    parser.add_argument('-track_iter', type=int, default=1000, help='YOLO loss tracking interval')
+    parser.add_argument('-lambda_coord',    type=float, default=1.0, help='YOLO coordinate loss lambda')
+    parser.add_argument('-lambda_noobj',    type=float, default=2.0, help='YOLO no-object loss lambda')
+    parser.add_argument('-lambda_obj',      type=float, default=2.0, help='YOLO object loss lambda')
+    parser.add_argument('-lambda_cls',      type=float, default=4.0, help='YOLO class loss lambda')
+    parser.add_argument('-lambda_iou',      type=float, default=2.0, help='YOLO iou loss lambda')
+    parser.add_argument('-alpha_iou',       type=float, default=0.8, help='YOLO loss object target iou mixture factor')
+    parser.add_argument('-label_smoothing', type=float, default=0.1, help='YOLO class cross entropy label smoothing')
+    parser.add_argument('-track_iter',      type=int,  default=1000, help='YOLO loss tracking interval')
     # Experiment
-    parser.add_argument('-exp', type=str, default='', help='experiment differentiater string')
+    parser.add_argument('-exp',  type=str, default='',   help='experiment differentiater string')
     parser.add_argument('-seed', type=int, default=None, help='random seed of the experiment')
     # Training
-    parser.add_argument('-epoch', type=int, default=50, help='number of epochs to run')
-    parser.add_argument('-warmup', type=int, default=10, help='number of epochs to warmup')
+    parser.add_argument('-epoch',  type=int, default=200, help='number of epochs to run')
+    parser.add_argument('-warmup', type=int, default=10,  help='number of epochs to warmup')
     # dataset
     parser.add_argument('-dataset', type=str, default='BDD100K', help='dataset to use [BDD100K]')
     parser.add_argument('-path', type=str, default='data/bdd100k', help='dataset path')
@@ -62,11 +63,11 @@ if __name__ == '__main__':
     parser.add_argument('-output_dir', type=str, default=".", help="directory in which to put log folders")
     parser.add_argument('-num_workers', type=int, default=16, help="number of dataloader workers")
     parser.add_argument('-clamp_max', type=float, default=5.0, help="exponential clamp in height/width calculation")
-    parser.add_argument('-verbose', default=True, action='store_true', help='lots of debug printouts')
+    parser.add_argument('-verbose', default=False, action='store_true', help='lots of debug printouts')
 
     args = parser.parse_args()
 
-    identifier = 'SDNN_' + args.exp if len(args.exp) > 0 else 'SDNN'
+    identifier = f'{args.model}_' + args.exp if len(args.exp) > 0 else args.model
     if args.seed is not None:
         torch.manual_seed(args.seed)
         identifier += '_{}'.format(args.seed)
@@ -125,8 +126,7 @@ if __name__ == '__main__':
     if args.load != '':
         saved_model = args.load
         if saved_model in ['slayer', 'lava-dl']:
-            saved_model = slayer.obd.models.__path__[0] + '/Trained_' \
-                + args.model + '/network.pt'
+            saved_model = slayer.obd.models.__path__[0] + '/Trained_' + args.model + '/network.pt'
         print(f'Initializing model from {saved_model}')
         module.load_model(saved_model)
 
@@ -139,8 +139,12 @@ if __name__ == '__main__':
                                  weight_decay=args.wd)
 
     # Define learning rate scheduler
-    def lf(x): return min(x / args.warmup, 1) * \
-        ((1 + np.cos(x * np.pi / args.epoch)) / 2) * (1 - args.lrf) + args.lrf
+    def lf(x):
+        return (min(x / args.warmup, 1)
+                * ((1 + np.cos(x * np.pi / args.epoch)) / 2)
+                * (1 - args.lrf)
+                + args.lrf)
+
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)
     yolo_target = obd.YOLOtarget(anchors=net.anchors,
                                  scales=net.scale,
