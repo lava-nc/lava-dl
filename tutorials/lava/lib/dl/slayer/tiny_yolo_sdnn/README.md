@@ -61,28 +61,37 @@ The detailed inference example of trained sigma-delta network on GPU is describe
 ## Hyperparameters
 | Arg name | Description |
 |----------|-------------|
-|`gpu` | Which gpu(s) to use |
-|`b`   | Batch size for dataloader |
-| Model ||
+|||
+|`gpu`    | Which gpu(s) to use |
+|`b`      | Batch size for dataloader |
+|`verbose`| Enables lots of debug printouts |
+|||
+| __Model__ ||
 |`model` | Network model. It can be `tiny_yolov3_str` or  `yolo_kp`|
-| Sparsity ||
+|||
+| __Sparsity__ ||
 |`sparsity` | Enable sparsity loss |
 |`sp_lam`   | Sparsity loss mixture ratio |
 |`sp_rate`  | Minimum rate for sparsity penalization |
-| Optimizer ||
+|||
+| __Optimizer__ ||
 |`lr`  | Initial learning rate |
 |`wd`  | Optimizer weight decay |
 |`lrf` | Learning rate reduction factor for lr scheduler |
-| Network/SDNN ||
+|||
+| __Network/SDNN__ ||
 |`threshold`  | Neuron threshold |
 |`tau_grad`   | Surrogate gradient time constant |
 |`scale_grad` | Surrogate gradient scale |
 |`clip`       | Gradient clipping limit |
-| Pretrained model ||
+|||
+| __Pretrained model__ ||
 |`load` | Model file path or `slayer` or `lava-dl` to warmstart the network. In the latter two cases, pretrained model in `lava.lib.dl.slayer.obd` will be loaded. |
-| Target generation ||
+|||
+| __Target generation__ ||
 |`tgt_iou_thr` | IoU threshold to ignore overlapping bounding box in YOLO target generation |
-| YOLO loss ||
+|||
+| __YOLO loss__ ||
 |`lambda_coord`    | YOLO coordinate loss lambda |
 |`lambda_noobj`    | YOLO no-object loss lambda |
 |`lambda_obj`      | YOLO object loss lambda |
@@ -91,17 +100,19 @@ The detailed inference example of trained sigma-delta network on GPU is describe
 |`alpha_iou`       | YOLO loss object target iou mixture factor |
 |`label_smoothing` | YOLO class cross entropy label smoothing |
 |`track_iter`      | YOLO loss tracking interval. It helps track the progression of each individual loss. |
-| Experiment ||
+|||
+| __Experiment tracking__ ||
 |`exp`   | Experiment differentiater string |
 |`seed`  | Random seed of the experiment |
-| Training ||
+|||
+| __Training__ ||
 |`epoch` | Number of epochs to run |
 |`warmup` | Number of epochs to warmup the learning rate |
-| dataset ||
-|`dataset`     | Dataset to use [BDD100K] |
+|||
+| __Dataset__ ||
+|`dataset`     | Dataset to use. Currently supported: [BDD100K](https://bdd-data.berkeley.edu/) |
 |`path`        | Dataset path |
 |`aug_prob`    | Training augmentation probability |
 |`output_dir`  | Directory in which to put log folders |
 |`num_workers` | Number of dataloader workers |
 |`clamp_max`   | Exponential clamp in height/width calculation |
-|`verbose`     | Enables lots of debug printouts |

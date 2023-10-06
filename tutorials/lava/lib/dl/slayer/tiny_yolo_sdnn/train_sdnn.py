@@ -21,6 +21,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-gpu', type=int, default=[0], help='which gpu(s) to use', nargs='+')
     parser.add_argument('-b',   type=int, default=32,  help='batch size for dataloader')
+    parser.add_argument('-verbose', default=False, action='store_true', help='lots of debug printouts')
     # Model
     parser.add_argument('-model', type=str, default='tiny_yolov3_str', help='network model')
     # Sparsity
@@ -56,13 +57,12 @@ if __name__ == '__main__':
     parser.add_argument('-epoch',  type=int, default=200, help='number of epochs to run')
     parser.add_argument('-warmup', type=int, default=10,  help='number of epochs to warmup')
     # dataset
-    parser.add_argument('-dataset', type=str, default='BDD100K', help='dataset to use [BDD100K]')
-    parser.add_argument('-path', type=str, default='data/bdd100k', help='dataset path')
-    parser.add_argument('-aug_prob', type=float, default=0.2, help='training augmentation probability')
-    parser.add_argument('-output_dir', type=str, default=".", help="directory in which to put log folders")
-    parser.add_argument('-num_workers', type=int, default=16, help="number of dataloader workers")
-    parser.add_argument('-clamp_max', type=float, default=5.0, help="exponential clamp in height/width calculation")
-    parser.add_argument('-verbose', default=True, action='store_true', help='lots of debug printouts')
+    parser.add_argument('-dataset',     type=str,   default='BDD100K', help='dataset to use [BDD100K]')
+    parser.add_argument('-path',        type=str,   default='data/bdd100k', help='dataset path')
+    parser.add_argument('-output_dir',  type=str,   default='.', help='directory in which to put log folders')
+    parser.add_argument('-num_workers', type=int,   default=16, help='number of dataloader workers')
+    parser.add_argument('-aug_prob',    type=float, default=0.2, help='training augmentation probability')
+    parser.add_argument('-clamp_max',   type=float, default=5.0, help='exponential clamp in height/width calculation')
 
     args = parser.parse_args()
 
@@ -175,6 +175,8 @@ if __name__ == '__main__':
                           np.random.randint(256),
                           np.random.randint(256))
                          for i in range(11)]
+    else:
+        raise RuntimeError(f'Dataset {args.dataset} is not supported.')
 
     print('Creating YOLO Loss')
     yolo_loss = obd.YOLOLoss(anchors=net.anchors,
