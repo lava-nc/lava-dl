@@ -58,12 +58,11 @@ if __name__ == '__main__':
     # dataset
     parser.add_argument('-dataset', type=str, default='BDD100K', help='dataset to use [BDD100K]')
     parser.add_argument('-path', type=str, default='data/bdd100k', help='dataset path')
-    parser.add_argument('-subset', default=False, help='True if dataset contains a subset')
     parser.add_argument('-aug_prob', type=float, default=0.2, help='training augmentation probability')
     parser.add_argument('-output_dir', type=str, default=".", help="directory in which to put log folders")
     parser.add_argument('-num_workers', type=int, default=16, help="number of dataloader workers")
     parser.add_argument('-clamp_max', type=float, default=5.0, help="exponential clamp in height/width calculation")
-    parser.add_argument('-verbose', default=False, action='store_true', help='lots of debug printouts')
+    parser.add_argument('-verbose', default=True, action='store_true', help='lots of debug printouts')
 
     args = parser.parse_args()
 
@@ -231,9 +230,6 @@ if __name__ == '__main__':
             # MAP calculations
             T = inputs.shape[-1]
             try:
-                # TODO: remove after testing with yolo_kp
-                # predictions = torch.concat([net.yolo(predictions[0], net.anchors[0]),
-                #                             net.yolo(predictions[1], net.anchors[1])], dim=1)
                 predictions = torch.concat([net.yolo(p, a) for (p, a)
                                             in zip(predictions, net.anchors)],
                                            dim=1)
@@ -273,10 +269,9 @@ if __name__ == '__main__':
                 for loss_idx, loss_key in enumerate(loss_order):
                     loss_tracker[loss_key].append(loss_distr[loss_idx].item())
                     plt.semilogy(loss_tracker[loss_key], label=loss_key)
-                    if not args.subset:
-                        writer.add_scalar(f'Loss Tracker/{loss_key}',
-                                          loss_distr[loss_idx].item(),
-                                          len(loss_tracker[loss_key]) - 1)
+                    writer.add_scalar(f'Loss Tracker/{loss_key}',
+                                        loss_distr[loss_idx].item(),
+                                        len(loss_tracker[loss_key]) - 1)
                 plt.xlabel(f'iters (x {args.track_iter})')
                 plt.legend()
                 plt.savefig(f'{trained_folder}/yolo_loss_tracker.png')
@@ -319,10 +314,9 @@ if __name__ == '__main__':
                 header_list += [f'IOU   loss: {loss_distr[4].item()}']
                 stats.print(epoch, i, samples_sec, header=header_list)
 
-        if not args.subset:
-            writer.add_scalar('Loss/train', stats.training.loss, epoch)
-            writer.add_scalar('mAP@50/train', stats.training.accuracy, epoch)
-            writer.add_scalar('mAP@50/test', stats.testing.accuracy, epoch)
+        writer.add_scalar('Loss/train', stats.training.loss, epoch)
+        writer.add_scalar('mAP@50/train', stats.training.accuracy, epoch)
+        writer.add_scalar('mAP@50/test', stats.testing.accuracy, epoch)
 
         stats.update()
         stats.plot(path=trained_folder + '/')
@@ -359,10 +353,10 @@ if __name__ == '__main__':
                                           marked_img.height))
         marked_images.paste(marked_img, (0, 0))
         marked_images.paste(marked_gt, (marked_img.width, 0))
-        if not args.subset:
-            writer.add_image('Prediction',
-                             transforms.PILToTensor()(marked_images),
-                             epoch)
+
+        writer.add_image('Prediction',
+                            transforms.PILToTensor()(marked_images),
+                            epoch)
 
         if stats.testing.best_accuracy is True:
             torch.save(module.state_dict(), trained_folder + '/network.pt')
@@ -380,10 +374,9 @@ if __name__ == '__main__':
         module.load_state_dict(torch.load(trained_folder + '/network.pt'))
         module.export_hdf5(trained_folder + '/network.net')
 
-    if not args.subset:
-        params_dict = {}
-        for key, val in args._get_kwargs():
-            params_dict[key] = str(val)
-        writer.add_hparams(params_dict, {'mAP@50': stats.testing.max_accuracy})
-        writer.flush()
-        writer.close()
+    params_dict = {}
+    for key, val in args._get_kwargs():
+        params_dict[key] = str(val)
+    writer.add_hparams(params_dict, {'mAP@50': stats.testing.max_accuracy})
+    writer.flush()
+    writer.close()
