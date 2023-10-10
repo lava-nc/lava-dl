@@ -53,6 +53,8 @@ class Network(AbstractProcess):
         neuron's reset parameter. None means no reset. Defaults to None.
     reset_offset: int
         determines the phase shift of network reset if enabled. Defaults to 0.
+    spike_exp: int
+        determines the decimal place of graded spike. Defaults to 6.
     sparse_fc_layer : boolean, optional
         If True, all fully-connected layer synapses will be interpreted as
         Sparse types in Lava.
@@ -66,6 +68,7 @@ class Network(AbstractProcess):
                  input_shape: Optional[Tuple[int, ...]] = None,
                  reset_interval: Optional[int] = None,
                  reset_offset: int = 0,
+                 spike_exp: int = 6,
                  sparse_fc_layer: bool = False) -> None:
         super().__init__(net_config=net_config,
                          num_layers=num_layers,
@@ -79,6 +82,7 @@ class Network(AbstractProcess):
         self.input_shape = input_shape
         self.reset_interval = reset_interval
         self.reset_offset = reset_offset
+        self.spike_exp = spike_exp
         self.sparse_fc_layer = sparse_fc_layer
 
         self.net_str = ''
@@ -107,7 +111,8 @@ class Network(AbstractProcess):
     def get_neuron_params(neuron_config: h5py.Group,
                           input: bool = False,
                           reset_interval: Optional[int] = None,
-                          reset_offset: int = 0) -> AbstractProcess:
+                          reset_offset: int = 0,
+                          spike_exp: int = 6) -> AbstractProcess:
         """Provides the correct neuron configuration process and parameters
         from the neuron description in hdf5 config.
 
@@ -123,6 +128,8 @@ class Network(AbstractProcess):
         reset_offset: int
             the offset/phase of reset. It is only valid of reset_interval is
             not None.
+        spike_exp: int
+            determines the decimal place of graded spike. Defaults to 6.
 
         Returns
         -------
@@ -164,7 +171,7 @@ class Network(AbstractProcess):
                 neuron_process = Delta
                 neuron_params = {'neuron_proc': neuron_process,
                                  'vth': neuron_config['vThMant'],
-                                 'spike_exp': 6,
+                                 'spike_exp': spike_exp,
                                  'state_exp': 6,
                                  'num_message_bits': num_message_bits}
             elif 'sigma_output' in neuron_config.keys():
@@ -175,7 +182,7 @@ class Network(AbstractProcess):
                 neuron_process = SigmaDelta
                 neuron_params = {'neuron_proc': neuron_process,
                                  'vth': neuron_config['vThMant'],
-                                 'spike_exp': 6,
+                                 'spike_exp': spike_exp,
                                  'state_exp': 6,
                                  'num_message_bits': num_message_bits}
             return neuron_params
@@ -238,7 +245,8 @@ class Network(AbstractProcess):
     @staticmethod
     def create_input(layer_config: h5py.Group,
                      reset_interval: Optional[int] = None,
-                     reset_offset: int = 0) -> Tuple[Input, str]:
+                     reset_offset: int = 0,
+                     spike_exp: int = 6) -> Tuple[Input, str]:
         """Creates input layer from layer configuration.
 
         Parameters
@@ -250,6 +258,8 @@ class Network(AbstractProcess):
         reset_offset: int
             the offset/phase of reset. It is only valid of reset_interval is
             not None.
+        spike_exp: int
+            determines the decimal place of graded spike. Defaults to 6.
 
         Returns
         -------
@@ -262,7 +272,8 @@ class Network(AbstractProcess):
         neuron_params = Network.get_neuron_params(layer_config['neuron'],
                                                   reset_interval=reset_interval,
                                                   reset_offset=reset_offset,
-                                                  input=True)
+                                                  input=True,
+                                                  spike_exp=spike_exp)
 
         if 'weight' in layer_config.keys():
             weight = int(layer_config['weight'])
@@ -304,6 +315,7 @@ class Network(AbstractProcess):
                      input_message_bits: int = 0,
                      reset_interval: Optional[int] = None,
                      reset_offset: int = 0,
+                     spike_exp: int = 6,
                      sparse_synapse: bool = 0) -> Tuple[Dense, str]:
         """Creates dense layer from layer configuration
 
@@ -319,6 +331,8 @@ class Network(AbstractProcess):
         reset_offset: int
             the offset/phase of reset. It is only valid of reset_interval is
             not None.
+        spike_exp: int
+            determines the decimal place of graded spike. Defaults to 6.
 
         Returns
         -------
@@ -341,7 +355,8 @@ class Network(AbstractProcess):
                              'gradedSpike': False}
         neuron_params = Network.get_neuron_params(neuron_config,
                                                   reset_interval=reset_interval,
-                                                  reset_offset=reset_offset)
+                                                  reset_offset=reset_offset,
+                                                  spike_exp=spike_exp)
         if "weight/imag" in layer_config.f:
             weight_real = layer_config['weight/real']
             weight_imag = layer_config['weight/imag']
@@ -430,7 +445,8 @@ class Network(AbstractProcess):
                     input_shape: Tuple[int, int, int],
                     input_message_bits: int = 0,
                     reset_interval: Optional[int] = None,
-                    reset_offset: int = 0) -> Tuple[Conv, str]:
+                    reset_offset: int = 0,
+                    spike_exp: int = 6) -> Tuple[Conv, str]:
         """Creates conv layer from layer configuration
 
         Parameters
@@ -447,6 +463,8 @@ class Network(AbstractProcess):
         reset_offset: int
             the offset/phase of reset. It is only valid of reset_interval is
             not None.
+        spike_exp: int
+            determines the decimal place of graded spike. Defaults to 6.
 
         Returns
         -------
@@ -462,7 +480,8 @@ class Network(AbstractProcess):
         shape = tuple(layer_config['shape'][::-1])  # WHC (XYZ)
         neuron_params = Network.get_neuron_params(layer_config['neuron'],
                                                   reset_interval=reset_interval,
-                                                  reset_offset=reset_offset)
+                                                  reset_offset=reset_offset,
+                                                  spike_exp=spike_exp)
         weight = layer_config['weight'][:, :, ::-1, ::-1]
         weight = weight.reshape(weight.shape[:4]).transpose((0, 3, 2, 1))
         stride = expand(layer_config['stride'])
@@ -546,7 +565,8 @@ class Network(AbstractProcess):
                     layer, table = self.create_input(
                         layer_config[i],
                         reset_interval=reset_interval,
-                        reset_offset=reset_offset)
+                        reset_offset=reset_offset,
+                        spike_exp=self.spike_exp)
                     if i >= self.skip_layers:
                         layers.append(layer)
                         reset_offset += 1
@@ -571,7 +591,8 @@ class Network(AbstractProcess):
                     input_shape=input_shape,
                     input_message_bits=input_message_bits,
                     reset_interval=reset_interval,
-                    reset_offset=reset_offset)
+                    reset_offset=reset_offset,
+                    spike_exp=self.spike_exp)
                 if i >= self.skip_layers:
                     layers.append(layer)
                     reset_offset += 1
@@ -600,6 +621,7 @@ class Network(AbstractProcess):
                     input_message_bits=input_message_bits,
                     reset_interval=reset_interval,
                     reset_offset=reset_offset,
+                    spike_exp=self.spike_exp,
                     sparse_synapse=self.sparse_fc_layer)
                 if i >= self.skip_layers:
                     layers.append(layer)
