@@ -142,6 +142,7 @@ $ pip install lava-dl-0.2.0.tar.gz
 
 **End to end training tutorials**
 * [Oxford spike train regression](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/oxford/train.ipynb)
+* [XOR regression](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/xor_regression/xor_regression.ipynb)
 * [MNIST digit classification](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/bootstrap/mnist/train.ipynb)
 * [NMNIST digit classification](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/nmnist/train.ipynb)
 * [PilotNet steering angle prediction](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/pilotnet/train.ipynb)

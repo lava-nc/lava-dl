@@ -55,6 +55,9 @@ class Network(AbstractProcess):
         determines the phase shift of network reset if enabled. Defaults to 0.
     spike_exp: int
         determines the decimal place of graded spike. Defaults to 6.
+    sparse_fc_layer : boolean, optional
+        If True, all fully-connected layer synapses will be interpreted as
+        Sparse types in Lava.
     """
 
     def __init__(self,
@@ -65,7 +68,8 @@ class Network(AbstractProcess):
                  input_shape: Optional[Tuple[int, ...]] = None,
                  reset_interval: Optional[int] = None,
                  reset_offset: int = 0,
-                 spike_exp: int = 6) -> None:
+                 spike_exp: int = 6,
+                 sparse_fc_layer: bool = False) -> None:
         super().__init__(net_config=net_config,
                          num_layers=num_layers,
                          input_message_bits=input_message_bits)
@@ -79,6 +83,7 @@ class Network(AbstractProcess):
         self.reset_interval = reset_interval
         self.reset_offset = reset_offset
         self.spike_exp = spike_exp
+        self.sparse_fc_layer = sparse_fc_layer
 
         self.net_str = ''
         self.layers = self._create()
@@ -310,7 +315,8 @@ class Network(AbstractProcess):
                      input_message_bits: int = 0,
                      reset_interval: Optional[int] = None,
                      reset_offset: int = 0,
-                     spike_exp: int = 6) -> Tuple[Dense, str]:
+                     spike_exp: int = 6,
+                     sparse_synapse: bool = 0) -> Tuple[Dense, str]:
         """Creates dense layer from layer configuration
 
         Parameters
@@ -376,7 +382,8 @@ class Network(AbstractProcess):
                       'weight_exponent_imag': weight_exponent_imag,
                       'sign_mode_real': sign_mode_real,
                       'sign_mode_imag': sign_mode_imag,
-                      'input_message_bits': input_message_bits}
+                      'input_message_bits': input_message_bits,
+                      "sparse_synapse": sparse_synapse}
 
             proc = ComplexDense(**params)
 
@@ -395,10 +402,15 @@ class Network(AbstractProcess):
                       'num_weight_bits': num_weight_bits,
                       'weight_exponent': weight_exponent,
                       'sign_mode': sign_mode,
-                      'input_message_bits': input_message_bits}
+                      'input_message_bits': input_message_bits,
+                      "sparse_synapse": sparse_synapse}
 
             if 'delay' in layer_config.keys():
                 delay = layer_config['delay']
+                if delay.max() > 62:
+                    warnings.warn(f'Found max delay of {delay.max()}.'
+                                  f' Clamping the delays.')
+                    delay = np.clip(delay, a_min=0, a_max=62)
 
                 if np.isscalar(delay):
                     delay = delay * np.ones_like(weight)
@@ -609,7 +621,8 @@ class Network(AbstractProcess):
                     input_message_bits=input_message_bits,
                     reset_interval=reset_interval,
                     reset_offset=reset_offset,
-                    spike_exp=self.spike_exp)
+                    spike_exp=self.spike_exp,
+                    sparse_synapse=self.sparse_fc_layer)
                 if i >= self.skip_layers:
                     layers.append(layer)
                     reset_offset += 1
