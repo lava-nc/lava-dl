@@ -50,7 +50,7 @@ python = ">=3.8, <3.11"
 
 lava-nc = { git = "https://github.com/lava-nc/lava.git", branch = "main", develop = true }
 
-torchvision = "^0.15.2"
+torchvision = "^0.16.0"
 h5py = "^3.7.0"
 ninja = "^1.10.2.3"
 matplotlib = "^3.5.2"
@@ -59,7 +59,7 @@ scipy = "^1.8.1"
 pillow = ">=10.0.1,<11.0"
 pytest = "^7.2.0"
 unittest2 = "^1.1.0"
-torch = "^2.0.1"
+torch = "^2.1.0"
 
 [tool.poetry.dev-dependencies]
 bandit = "1.7.4"
