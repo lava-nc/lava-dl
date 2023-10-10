@@ -208,6 +208,7 @@ class TestHdf5Netx(unittest.TestCase):
             f'Output spike and ground truth do not match for PilotNet SDNN. '
             f'Found {output[output != gt] = } and {gt[output != gt] = }. '
             f'Error was {error}.'
+        )
 
     def test_sparse_pilotnet_sdnn(self) -> None:
         """Tests sparse_fc_layer Network arg on Dense blocks"""
