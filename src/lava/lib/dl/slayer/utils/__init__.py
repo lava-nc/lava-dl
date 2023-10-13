@@ -5,6 +5,7 @@ from . import filter, time
 from .utils import staticproperty, diagonal_mask
 from .stats import LearningStat, LearningStats
 from .quantize import quantize
+from .dequantize import dequantize
 from .quantize import MODE as QUANTIZE_MODE
 from .assistant import Assistant
 
@@ -12,6 +13,6 @@ __all__ = [
     'filter', 'time',
     'staticproperty', 'diagonal_mask',
     'LearningStat', 'LearningStats',
-    'quantize', 'QUANTIZE_MODE',
+    'quantize', 'dequantize', 'QUANTIZE_MODE',
     'Assistant'
 ]
