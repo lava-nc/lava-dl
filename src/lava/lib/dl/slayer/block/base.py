@@ -388,10 +388,14 @@ class AbstractAffine(torch.nn.Module):
             handle.create_dataset('weight', data=weight(self.synapse))
 
         if self.delay is not None:
+            self.delay.clamp()  # clamp the delay value
             handle.create_dataset('delay', data=delay(self.delay))
 
-        # for key, value in self.neuron.device_params.items():
-        #     handle.create_dataset(f'neuron/{key}', data=value)
+        if self.dynamics is True:
+            for key, value in self.neuron.device_params.items():
+                if key == 'vThMant':
+                    value = (1 << 18) - 1  # set the maximum possible threshold
+                handle.create_dataset(f'neuron/{key}', data=value)
 
 
 class AbstractTimeDecimation(torch.nn.Module):
@@ -609,6 +613,7 @@ class AbstractDense(torch.nn.Module):
 
         # delay
         if self.delay is not None:
+            self.delay.clamp()  # clamp the delay value
             handle.create_dataset('delay', data=delay(self.delay))
 
         # neuron
@@ -769,6 +774,7 @@ class AbstractConv(torch.nn.Module):
 
         # delay
         if self.delay is not None:
+            self.delay.clamp()  # clamp the delay value
             handle.create_dataset('delay', data=delay(self.delay))
 
         # neuron
@@ -907,6 +913,7 @@ class AbstractPool(torch.nn.Module):
 
         # delay
         if self.delay is not None:
+            self.delay.clamp()  # clamp the delay value
             handle.create_dataset('delay', data=delay(self.delay))
 
         # neuron
@@ -1061,6 +1068,7 @@ class AbstractConvT(torch.nn.Module):
 
         # delay
         if self.delay is not None:
+            self.delay.clamp()  # clamp the delay value
             handle.create_dataset('delay', data=delay(self.delay))
 
         # neuron
@@ -1199,6 +1207,7 @@ class AbstractUnpool(torch.nn.Module):
 
         # delay
         if self.delay is not None:
+            self.delay.clamp()  # clamp the delay value
             handle.create_dataset('delay', data=delay(self.delay))
 
         # neuron
