@@ -286,3 +286,44 @@ class SpikeMoid(torch.nn.Module):
                 label.flatten(),
                 reduction=self.reduction
             )
+
+
+class SparsityEnforcer:
+    """Event sparsity enforcement module. Penalizes event rate higher than
+    a specific value.
+
+    Parameters
+    ----------
+    max_rate : float, optional
+        Rate above which the events are penalized, by default 0.01.
+    lam : float, optional
+        Ratio of event rate loss scaling, by default 1.0.
+    """
+    def __init__(self, max_rate: float = 0.01, lam: float = 1.0) -> None:
+        self.max_rate = max_rate
+        self.lam = lam
+        self.loss_list = []
+
+    def clear(self) -> None:
+        """Clear all gathered sparsity loss.
+        """
+        self.loss_list = []
+
+    @property
+    def loss(self) -> torch.tensor:
+        """Accumulate sparsity loss.
+        """
+        return self.lam * sum(self.loss_list)
+
+    def append(self, x: torch.tensor) -> None:
+        """Appends loss tickets given the state of input tensors.
+
+        Parameters
+        ----------
+        x : torch.tensor
+            Input tensor.
+        """
+        mean_event_rate = torch.mean(torch.abs(x))
+        self.loss_list.append(F.mse_loss(F.relu(mean_event_rate
+                                                - self.max_rate),
+                                         torch.zeros_like(mean_event_rate)))
