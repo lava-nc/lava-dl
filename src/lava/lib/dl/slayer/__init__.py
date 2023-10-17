@@ -12,6 +12,7 @@ from . import loss
 from . import io
 from . import auto
 from . import utils
+from . import object_detection as obd
 
 __all__ = [
     'neuron',
@@ -24,5 +25,6 @@ __all__ = [
     'loss',
     'io',
     'auto',
-    'utils'
+    'utils',
+    'obd'
 ]
