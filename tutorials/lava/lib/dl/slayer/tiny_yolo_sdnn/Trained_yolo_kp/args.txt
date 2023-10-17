@@ -5,7 +5,7 @@ clamp_max : 5.0
 clip : 1.0
 dataset : BDD100K
 epoch : 200
-exp : 2023_09_21_002
+exp :
 gpu : [0]
 label_smoothing : 0.03
 lambda_cls : 1.0
@@ -13,7 +13,7 @@ lambda_coord : 2.0
 lambda_iou : 2.25
 lambda_noobj : 4.0
 lambda_obj : 1.8
-load : slayer
+load : Trained_Loihi8_2023_06_21_002/network.pt
 lr : 0.0001
 lrf : 0.01
 num_workers : 12
