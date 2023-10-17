@@ -56,7 +56,7 @@ def _yolo(x: torch.tensor,
 
 
 def _yolo_target(x: torch.tensor, anchors: torch.tensor) -> torch.tensor:
-    # Generates target tesnsor for a given anchor resolution.
+    # Generates target tensor for a given anchor resolution.
     _, _, H, W, _ = x.shape
     range_y, range_x = torch.meshgrid(
         torch.arange(H, dtype=x.dtype, device=x.device),
@@ -281,10 +281,9 @@ class YOLOLoss(torch.nn.Module):
         """
         loss = 0
         loss_distr = []
-        # for time in range(len(targets)):
+
         for time in range(predictions[0].shape[-1]):
             prediction = [p[..., time].clone() for p in predictions]
-            # target = self.build_targets(prediction, targets[time])
             target = [t[..., time] for t in targets]
             for p, t, a in zip(prediction, target, self.anchors):
                 l, ld = self.forward_scale(p, t.to(p.device), a.to(p.device))

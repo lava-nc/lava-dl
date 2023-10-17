@@ -39,7 +39,7 @@ def removesuffix(input_string: str, suffix: str) -> str:
 
 
 class _BDD(Dataset):
-    # Low level BDD100K dataset. To be wrapped around, do not use extrnally.
+    # Low level BDD100K dataset. To be wrapped around, do not use externally.
     def __init__(self,
                  root: str = '.',
                  dataset: str = '.',
