@@ -125,6 +125,9 @@ class Network(torch.nn.Module):
 <img src="https://user-images.githubusercontent.com/29907126/135402787-ca849ef2-697d-4c5c-9f05-9b6fe3c3b072.png" alt="Drawing" style="height: 400px;"/>
 </p>
 
+### Object detection mdoule (`slayer.obd`)
+`slayer.obd` includes object detection specific modules, utilities and some pre-designed object detection networks. These can be used to design and train your custon SNN based object detection networks using SLAYER. More details can be found [here](https://github.com/lava-nc/lava-dl/blob/main/src/lava/lib/dl/slayer/object_detection/README.md).
+
 ### Fundamental Practices
 
 * Tensors are always assumed to be in the order `NCHWT` or `NCT` where `N`:Batch, `C`:Channel, `H`: Height(y), `W`: Width(x) and `T`: Time. 
