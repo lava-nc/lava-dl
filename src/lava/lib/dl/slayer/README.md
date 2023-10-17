@@ -21,8 +21,11 @@
 
 **End to End**
 * [Oxford spike train regression](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/oxford/train.ipynb)
+* [XOR regression](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/xor_regression/xor_regression.ipynb)
 * [NMNIST digit classification](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/nmnist/train.ipynb)
 * [PilotNet steering angle prediction](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/pilotnet/train.ipynb)
+* [Video object detection with sigma-detla YOLO](https://github.com/lava-nc/lava-dl/tree/main/tutorials/lava/lib/dl/slayer/tiny_yolo_sdnn)
+    * [Inference on GPU](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/tiny_yolo_sdnn/inference.ipynb)
 
 **Deep Dive**
 * [Dynamics and Neurons](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/neuron_dynamics/dynamics.ipynb)
