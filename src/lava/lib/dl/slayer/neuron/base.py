@@ -191,11 +191,11 @@ class Neuron(torch.nn.Module):
         if descale is False:
             return quantize(
                 weight, step=2 / self.w_scale
-            ).clamp(-256 / self.w_scale, 255 / self.w_scale)
+            ).clamp(-256 / self.w_scale, 254 / self.w_scale)
         else:
             return quantize(
                 weight, step=2 / self.w_scale
-            ).clamp(-256 / self.w_scale, 255 / self.w_scale) * self.w_scale
+            ).clamp(-256 / self.w_scale, 254 / self.w_scale) * self.w_scale
 
     @property
     def weight_exponent(self):

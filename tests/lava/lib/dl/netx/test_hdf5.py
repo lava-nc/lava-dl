@@ -15,6 +15,8 @@ from lava.magma.core.run_configs import RunConfig
 from lava.magma.core.run_conditions import RunSteps
 from lava.proc import io
 from lava.proc.conv import utils
+from lava.proc.sparse.process import Sparse, DelaySparse
+from lava.proc.dense.process import Dense, DelayDense
 
 from lava.lib.dl import netx
 
@@ -65,6 +67,15 @@ class TestHdf5Netx(unittest.TestCase):
             weight, 36,
             f'Expected transformation weight to be 36. Found {weight}.'
         )
+
+    def test_mnist(self) -> None:
+        """Tests loading of MNIST MLP."""
+        net = netx.hdf5.Network(net_config=root + '/mnist.net')
+        self.assertEqual(len(net), 4)
+        self.assertTrue(type(net.layers[0]) == netx.blocks.process.Input)
+        self.assertTrue(type(net.layers[1]) == netx.blocks.process.Dense)
+        self.assertTrue(type(net.layers[2]) == netx.blocks.process.Dense)
+        self.assertTrue(type(net.layers[3]) == netx.blocks.process.Dense)
 
     def test_tinynet(self) -> None:
         """Tests the output of three layer CNN."""
@@ -163,6 +174,117 @@ class TestHdf5Netx(unittest.TestCase):
             f'Output spike and ground truth do not match for PilotNet SDNN. '
             f'Found {output[output != gt] = } and {gt[output != gt] = }. '
             f'Error was {error}.'
+        )
+
+    def test_pilotnet_sdnn_spike_exp(self) -> None:
+        """Tests the output of pilotnet sdnn with spike exp."""
+        net_config = root + '/gts/pilotnet_sdnn/network.net'
+        net = netx.hdf5.Network(net_config=net_config, spike_exp=0)
+        input = np.load(root + '/gts/pilotnet_sdnn/input.npy')
+        source = io.source.RingBuffer(data=input)
+        sink = io.sink.RingBuffer(shape=net.out_layer.shape,
+                                  buffer=len(net.layers))
+        source.s_out.connect(net.in_layer.neuron.a_in)
+        net.out_layer.out.connect(sink.a_in)
+
+        num_steps = len(net.layers)
+        run_condition = RunSteps(num_steps=num_steps)
+        run_config = TestRunConfig(select_tag='fixed_pt')
+        net.run(condition=run_condition, run_cfg=run_config)
+        output = sink.data.get()
+        net.stop()
+
+        scale = (1 << (6 - net.spike_exp))
+        gt = np.load(root + '/gts/pilotnet_sdnn/output.npy') / scale
+        error = np.abs(output - gt).mean()
+        if verbose:
+            print('Network:')
+            print(net)
+            print(f'{output=}')
+            print('PilotNet SDNN spike error:', error)
+
+        self.assertTrue(
+            error < 2 * scale,
+            f'Output spike and ground truth do not match for PilotNet SDNN. '
+            f'Found {output[output != gt] = } and {gt[output != gt] = }. '
+            f'Error was {error}.'
+        )
+
+    def test_sparse_pilotnet_sdnn(self) -> None:
+        """Tests sparse_fc_layer Network arg on Dense blocks"""
+        net_config = root + '/gts/pilotnet_sdnn/network.net'
+        net = netx.hdf5.Network(net_config=net_config, sparse_fc_layer=True)
+        dense_layers = [layer for layer in net.layers
+                        if isinstance(layer, netx.blocks.process.Dense)]
+
+        self.assertTrue(
+            np.all([
+                isinstance(layer.synapse, Sparse) for layer in dense_layers
+            ])
+        )
+
+    def test_axonal_delay_ntidigits(self) -> None:
+        """Tests the output of ntidigits hdf5 description. This network
+        consists of axonal delay. So this tests specifically tests for
+        correctness of axonal delay."""
+        net_config = root + '/gts/ntidigits/ntidigits.net'
+        input = np.load(root + '/gts/ntidigits/input.npy')
+        gt = np.load(root + '/gts/ntidigits/output.npy')
+        num_steps = input.shape[1]
+
+        # skipping the last average layer which is not suppprted
+        net = netx.hdf5.Network(net_config=net_config, num_layers=5)
+
+        inp_gen = io.source.RingBuffer(data=input)
+        output_logger = io.sink.RingBuffer(shape=net.out_layer.shape,
+                                           buffer=num_steps)
+
+        inp_gen.s_out.connect(net.inp)
+        net.out.connect(output_logger.a_in)
+
+        run_condition = RunSteps(num_steps=num_steps)
+        run_config = TestRunConfig(select_tag='fixed_pt')
+        net.run(condition=run_condition, run_cfg=run_config)
+        output = output_logger.data.get()
+        net.stop()
+
+        out_ev = np.argwhere(output > 0)
+        gt_ev = np.argwhere(gt > 0)
+
+        error = np.abs(output[:, -1] - gt[:, 1]).sum()
+
+        if verbose:
+            if bool(os.environ.get('DISPLAY', None)):
+                plt.figure(figsize=(10, 5))
+                plt.plot(out_ev[:, 1], out_ev[:, 0], '.',
+                         markersize=12, label='Output Spikes')
+                plt.plot(gt_ev[:, 1], gt_ev[:, 0], '.', label='GT Spikes')
+                plt.xlabel(f'time')
+                plt.ylabel('Neuron ID')
+                plt.legend()
+                plt.show()
+
+        self.assertTrue(
+            error == 0,
+            f'Output spike and ground truth do not match for NTIDIGITS network.'
+            f'Found {output[output != gt] = } and {gt[output != gt] = }. '
+            f'Error was {error}.'
+        )
+
+    def test_sparse_axonal_delay_ntidigits(self) -> None:
+        """Tests that sparse axonal delays work on Dense Blocks."""
+        net_config = root + '/gts/ntidigits/ntidigits.net'
+        # skipping the last average layer which is not suppprted
+        net = netx.hdf5.Network(net_config=net_config, num_layers=5,
+                                sparse_fc_layer=True)
+        dense_layers = [layer for layer in net.layers
+                        if isinstance(layer, netx.blocks.process.Dense)]
+
+        self.assertTrue(
+            np.all([
+                isinstance(layer.synapse, (Sparse, DelaySparse))
+                for layer in dense_layers
+            ])
         )
 
 

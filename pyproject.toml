@@ -10,14 +10,15 @@ packages = [
     {include = "tests"}
 ]
 include = ["tutorials"]
-version = "0.3.2"
+version = "0.4.0.dev0"
+readme = "README.md"
 description = "A library of deep learning tools, which consists of lava.lib.dl.slayer and lava.lib.dl.netx for training and deployment of event-based deep neural networks on traditional as well as neuromorphic backends. Lava-DL is part of Lava Framework"
 homepage = "https://lava-nc.org/"
 repository = "https://github.com/lava-nc/lava-dl"
 authors = [ 
     "Intel's Neuromorphic Computing Lab and the open source community <lava@intel.com>"
 ]
-license = "Lava DL is licensed under BSD-3-Clause"
+license = "(BSD-3-Clause)"
 keywords = [
     "neuromorphic",
     "ai",
@@ -34,7 +35,7 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
-    "License :: OSI Approved :: The 3-Clause BSD License (BSD-3-Clause)",
+    "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent"
 ]
 
@@ -47,26 +48,27 @@ classifiers = [
 [tool.poetry.dependencies]
 python = ">=3.8, <3.11"
 
-lava-nc = { git = "https://github.com/lava-nc/lava.git", tag = "v0.6.0", develop = true }
+lava-nc = { git = "https://github.com/lava-nc/lava.git", branch = "main", develop = true }
 
-torch = "^1.12.0"
-torchvision = "^0.13.0"
+torchvision = "^0.15.1"
 h5py = "^3.7.0"
 ninja = "^1.10.2.3"
 matplotlib = "^3.5.2"
-numpy = "^1.23.1"
+numpy = "^1.24.4"
 scipy = "^1.8.1"
-pillow = "^9.2.0"
-pytest = "^7.1.2"
+pillow = ">=10.0.1,<11.0"
+pytest = "^7.2.0"
 unittest2 = "^1.1.0"
+torch = ">=2.0.0, !=2.0.1"
+opencv-python-headless = "^4.8.1.78"
 
 [tool.poetry.dev-dependencies]
-bandit = "1.7.2"
+bandit = "1.7.4"
 coverage = "^6.3.2"
 darglint = "^1.8.1"
-nbconvert = "^6.5.1"
+nbconvert = ">=7.2.10, <7.3"
 flake8 = "^4.0.1"
-flake8-bandit = "^2.1.2"
+flake8-bandit = "^3.0.0"
 flake8-bugbear = "^22.1.11"
 flake8-builtins = "^1.5.3"
 flake8-comprehensions = "^3.8.0"
@@ -76,7 +78,7 @@ flake8-isort = "^4.1.1"
 flake8-mutable = "^1.2.0"
 flake8-pytest-style = "^1.6.0"
 flake8-spellcheck = "^0.25.0"
-flakeheaven = "^0.11.1"
+flakeheaven = "^3.2.1"
 pep8-naming = "^0.11.1"
 poetry = "^1.1.13"
 pytest = "^7.0.1"
@@ -176,4 +178,10 @@ pylint = ["-*"]                             # Disable temporarily until lint fix
 pycodestyle = ["-F401"]                     # Disable a check
 flake8-bandit = ["-S101"]                   # Ignore asserts for tests
 pyflakes = ["-*"]                           # Disable a plugin
+
+[tool.flakeheaven.exceptions."src/lava/lib/dl/slayer/object_detection/models/*"]
+pycodestyle = ["-E501", "-E241", "-E221"]   # Disable a check
+
+[tool.flakeheaven.exceptions."tutorials/lava/lib/dl/slayer/tiny_yolo_sdnn/train_sdnn.py"]
+pycodestyle = ["-E501"]                     # Disable a check
 

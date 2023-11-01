@@ -195,7 +195,8 @@ class SpikeMax(torch.nn.Module):
             return F.nll_loss(log_p, label, reduction=self.reduction)
         else:
             if len(label.shape) == 1:  # assume label is in (batch, time) form
-                label = replicate(label, input.shape[-1])
+                float_label = label[..., None].float()
+                label = replicate(float_label, input.shape[-1]).to(label.dtype)
             # transpose the time dimension to the end
             # (batch, time, num_class) -> (batch, num_class, time)
             if self.mode == 'probability':
@@ -204,9 +205,125 @@ class SpikeMax(torch.nn.Module):
                 )
             else:
                 log_p = self.window.confidence(input, mode='logsoftmax')
-
             return F.nll_loss(
                 log_p.transpose(1, 2).reshape(-1, input.shape[1]),
                 label.flatten(),
                 reduction=self.reduction,
             )
+
+
+class SpikeMoid(torch.nn.Module):
+    """
+    SpikeMoid (BCE) loss.
+
+    .. math::
+
+        \\text{if sliding window:} \\quad
+        p(t) = \\sigma\\left(\\frac{r(t) - \\theta}{\\alpha}\\right) \\\\
+        \\text{otherwise:} \\quad
+        p = \\sigma\\left(\\frac{r - \\theta}{\\alpha}\\right)
+
+    r signifies a spike rate calculated over the time dimension
+
+    .. math::
+        \\mathcal{L} = \\begin{cases}
+            -\\int_T \\hat{y}(t) \\cdot \\log{p(t)}
+            + (1 - \\hat{y}(t)) \\cdot \\log{(1 - p(t))}\\,\\text{d}t
+            &\\text{if sliding window} \\\\
+            -\\left(\\hat{y} \\cdot \\log{p}
+            + (1 - \\hat{y}) \\cdot \\log{(1 - p)}\\right)
+            &\\text{otherwise}
+        \\end{cases}
+
+    Note: input is always collapsed in the spatial dimension.
+    r signifies a spike rate calculated over the time dimension
+
+    Parameters
+    ----------
+    moving_window : int
+        size of moving window. If not None, assumes label to be specified
+        at every time step. Defaults to None.
+    reduction : str
+        loss reduction method. One of 'sum'|'mean'. Defaults to 'sum'.
+    alpha : int
+        Sigmoid temperature parameter. Defaults to 1.
+    theta : int
+        Bias term for logits. Defaults to 1.
+    """
+    def __init__(
+        self, moving_window=None, reduction='sum', alpha=1, theta=0
+    ):
+        super(SpikeMoid, self).__init__()
+        if moving_window is not None:
+            self.window = MovingWindow(moving_window)
+        else:
+            self.window = None
+        self.reduction = reduction
+        self.alpha = alpha
+        self.theta = theta
+
+    def forward(self, input, label):
+        """Forward computation of loss.
+        """
+        input = input.reshape(input.shape[0], -1, input.shape[-1])
+        if self.window is None:  # one label for each sample in a batch
+            scaled_input = (input - self.theta) / self.alpha
+            probs = torch.sigmoid(scaled_input.mean(-1)).flatten(0, 1)
+            return F.binary_cross_entropy(
+                probs,
+                label.flatten(),
+                reduction=self.reduction
+            )
+        else:
+            # assume label is in (batch, num_classes, time) form
+            if len(label.shape) == 2:
+                label = replicate(label, input.shape[-1])
+                float_label = label[..., None]
+            rates = self.window.rate(input)
+            probs = torch.sigmoid((rates - self.theta) / self.alpha)
+            return F.binary_cross_entropy(
+                probs.flatten(),
+                label.flatten(),
+                reduction=self.reduction
+            )
+
+
+class SparsityEnforcer:
+    """Event sparsity enforcement module. Penalizes event rate higher than
+    a specific value.
+
+    Parameters
+    ----------
+    max_rate : float, optional
+        Rate above which the events are penalized, by default 0.01.
+    lam : float, optional
+        Ratio of event rate loss scaling, by default 1.0.
+    """
+    def __init__(self, max_rate: float = 0.01, lam: float = 1.0) -> None:
+        self.max_rate = max_rate
+        self.lam = lam
+        self.loss_list = []
+
+    def clear(self) -> None:
+        """Clear all gathered sparsity loss.
+        """
+        self.loss_list = []
+
+    @property
+    def loss(self) -> torch.tensor:
+        """Accumulate sparsity loss.
+        """
+        return self.lam * sum(self.loss_list)
+
+    def append(self, x: torch.tensor) -> None:
+        """Appends loss tickets given the state of input tensors.
+
+        Parameters
+        ----------
+        x : torch.tensor
+            Input tensor.
+        """
+        mean_event_rate = torch.mean(torch.abs(x))
+        self.loss_list.append(F.mse_loss(F.relu(mean_event_rate
+                                                - self.max_rate),
+                                         torch.zeros_like(mean_event_rate)))

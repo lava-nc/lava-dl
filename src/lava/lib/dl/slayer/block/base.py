@@ -12,6 +12,33 @@ from ..axon import delay
 from lava.lib.dl.slayer.utils import recurrent
 
 
+def step_delay(module, x):
+    """Step delay computation. This simulates the 1 timestep delay needed
+    for communication between layers.
+
+    Parameters
+    ----------
+    module: module
+        python module instance
+    x : torch.tensor
+        Tensor data to be delayed.
+    """
+    if hasattr(module, 'delay_buffer') is False:
+        module.delay_buffer = None
+    persistent_state = hasattr(module, 'neuron') \
+        and module.neuron.persistent_state is True
+    if module.delay_buffer is not None:
+        if module.delay_buffer.shape[0] != x.shape[0]:  # batch mismatch
+            module.delay_buffer = None
+    if persistent_state:
+        delay_buffer = 0 if module.delay_buffer is None else module.delay_buffer
+        module.delay_buffer = x[..., -1]
+    x = delay(x, 1)
+    if persistent_state:
+        x[..., 0] = delay_buffer
+    return x
+
+
 class AbstractInput(torch.nn.Module):
     """Abstract input block class. This should never be instantiated on its own.
 
@@ -88,7 +115,7 @@ class AbstractInput(torch.nn.Module):
             x = self.neuron(z)
 
         if self.delay_shift is True:
-            x = delay(x, 1)
+            x = step_delay(self, x)
 
         if self.input_shape is None:
             if self.neuron is not None:
@@ -361,10 +388,14 @@ class AbstractAffine(torch.nn.Module):
             handle.create_dataset('weight', data=weight(self.synapse))
 
         if self.delay is not None:
+            self.delay.clamp()  # clamp the delay value
             handle.create_dataset('delay', data=delay(self.delay))
 
-        # for key, value in self.neuron.device_params.items():
-        #     handle.create_dataset(f'neuron/{key}', data=value)
+        if self.dynamics is True:
+            for key, value in self.neuron.device_params.items():
+                if key == 'vThMant':
+                    value = (1 << 18) - 1  # set the maximum possible threshold
+                handle.create_dataset(f'neuron/{key}', data=value)
 
 
 class AbstractTimeDecimation(torch.nn.Module):
@@ -515,7 +546,7 @@ class AbstractDense(torch.nn.Module):
         z = self.synapse(x)
         x = self.neuron(z)
         if self.delay_shift is True:
-            x = delay(x, 1)
+            x = step_delay(self, x)
         if self.delay is not None:
             x = self.delay(x)
 
@@ -582,6 +613,7 @@ class AbstractDense(torch.nn.Module):
 
         # delay
         if self.delay is not None:
+            self.delay.clamp()  # clamp the delay value
             handle.create_dataset('delay', data=delay(self.delay))
 
         # neuron
@@ -670,7 +702,7 @@ class AbstractConv(torch.nn.Module):
         z = self.synapse(x)
         x = self.neuron(z)
         if self.delay_shift is True:
-            x = delay(x, 1)
+            x = step_delay(self, x)
         if self.delay is not None:
             x = self.delay(x)
 
@@ -742,6 +774,7 @@ class AbstractConv(torch.nn.Module):
 
         # delay
         if self.delay is not None:
+            self.delay.clamp()  # clamp the delay value
             handle.create_dataset('delay', data=delay(self.delay))
 
         # neuron
@@ -822,7 +855,7 @@ class AbstractPool(torch.nn.Module):
         z = self.synapse(x)
         x = self.neuron(z)
         if self.delay_shift is True:
-            x = delay(x, 1)
+            x = step_delay(self, x)
         if self.delay is not None:
             x = self.delay(x)
 
@@ -880,6 +913,7 @@ class AbstractPool(torch.nn.Module):
 
         # delay
         if self.delay is not None:
+            self.delay.clamp()  # clamp the delay value
             handle.create_dataset('delay', data=delay(self.delay))
 
         # neuron
@@ -962,7 +996,7 @@ class AbstractConvT(torch.nn.Module):
         z = self.synapse(x)
         x = self.neuron(z)
         if self.delay_shift is True:
-            x = delay(x, 1)
+            x = step_delay(self, x)
         if self.delay is not None:
             x = self.delay(x)
 
@@ -1034,6 +1068,7 @@ class AbstractConvT(torch.nn.Module):
 
         # delay
         if self.delay is not None:
+            self.delay.clamp()  # clamp the delay value
             handle.create_dataset('delay', data=delay(self.delay))
 
         # neuron
@@ -1114,7 +1149,7 @@ class AbstractUnpool(torch.nn.Module):
         z = self.synapse(x)
         x = self.neuron(z)
         if self.delay_shift is True:
-            x = delay(x, 1)
+            x = step_delay(self, x)
         if self.delay is not None:
             x = self.delay(x)
 
@@ -1172,6 +1207,7 @@ class AbstractUnpool(torch.nn.Module):
 
         # delay
         if self.delay is not None:
+            self.delay.clamp()  # clamp the delay value
             handle.create_dataset('delay', data=delay(self.delay))
 
         # neuron
@@ -1320,7 +1356,7 @@ class AbstractKWTA(torch.nn.Module):
         # self.spike_state = spike.clone().detach().reshape(z.shape[:-1])
 
         if self.delay_shift is True:
-            x = delay(x, 1)
+            x = step_delay(self, x)
 
         if self.count_log is True:
             return x, torch.mean(x > 0)
@@ -1442,7 +1478,7 @@ class AbstractRecurrent(torch.nn.Module):
         self.spike_state = spike.clone().detach().reshape(z.shape[:-1])
 
         if self.delay_shift is True:
-            x = delay(x, 1)
+            x = step_delay(self, x)
         if self.delay is not None:
             x = self.delay(x)
 

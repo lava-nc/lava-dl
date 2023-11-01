@@ -38,17 +38,12 @@ Typical Lava-DL workflow:
 
 ### Cloning Lava-DL and Running from Source
 
-**Note:** We assume you have already setup Lava with virtual environment. Make sure `PYTHONPATH` contains path to Lava core library first.
-
-* Linux/MacOS: `echo $PYTHONPATH`
-* Windows: `echo %PYTHONPATH%`
-
-The output should contain something like this `/home/user/lava`
+**Note:** The instructions to follow will setup a virtual environement and install lava-dl and all dependencies in that virtual environment. Please [`setup git-lfs`](https://docs.github.com/en/repositories/working-with-files/managing-large-files/installing-git-large-file-storage) to ensure large files are pulled during the `git clone`.
 
 #### [Linux/MacOS]
 ```bash
 cd $HOME
-git clone git@github.com:lava-dl/lava-dl.git
+git clone git@github.com:lava-nc/lava-dl.git
 cd lava-dl
 curl -sSL https://install.python-poetry.org | python3 -
 poetry config virtualenvs.in-project true
@@ -60,7 +55,7 @@ pytest
 ```powershell
 # Commands using PowerShell
 cd $HOME
-git clone git@github.com:lava-dl/lava-dl.git
+git clone git@github.com:lava-nc/lava-dl.git
 cd lava-dl
 python3 -m venv .venv
 .venv\Scripts\activate
@@ -109,6 +104,8 @@ Required test coverage of 45.0% reached. Total coverage: 46.99%
 ======================= 86 passed, 3 warnings in 46.56s ========================
 ```
 
+**Note:** If you see errors regarding `*.np` files or errors similar to "ValueError: Cannot load file containing pickled data when allow_pickle=False" please ensure git-lfs is installed. If you installed git-lfs after cloning the repository please fetch and pull, `git lfs fetch --all; git lfs pull` and try the tests again.
+
 ### [Alternative] Installing Lava via Conda
 If you use the Conda package manager, you can simply install the Lava package
 via:
@@ -145,9 +142,12 @@ $ pip install lava-dl-0.2.0.tar.gz
 
 **End to end training tutorials**
 * [Oxford spike train regression](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/oxford/train.ipynb)
+* [XOR regression](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/xor_regression/xor_regression.ipynb)
 * [MNIST digit classification](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/bootstrap/mnist/train.ipynb)
 * [NMNIST digit classification](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/nmnist/train.ipynb)
 * [PilotNet steering angle prediction](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/pilotnet/train.ipynb)
+* [Video object detection with sigma-detla YOLO](https://github.com/lava-nc/lava-dl/tree/main/tutorials/lava/lib/dl/slayer/tiny_yolo_sdnn)
+    * [Inference on GPU](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/tiny_yolo_sdnn/inference.ipynb)
 
 **Deep dive training tutorials**
 * [Dynamics and Neurons](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/neuron_dynamics/dynamics.ipynb)
