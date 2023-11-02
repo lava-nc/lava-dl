@@ -118,7 +118,8 @@ class YOLOPredictor(AbstractSeqModule):
 
 
 class YOLOMonitor(AbstractSeqModule):
-    def __init__(self, viz_fx: Callable, class_list: List[str]) -> None:
+    def __init__(self, class_list: List[str],
+                 viz_fx: Optional[Callable] = None) -> None:
         """YOLO output monitor. This module is responsible for displaying
         the output predictions and evaluating the mAP performance of the
         network.
@@ -128,11 +129,12 @@ class YOLOMonitor(AbstractSeqModule):
 
         Parameters
         ----------
-        viz_fx : Callable
-            Output visualization function. It is expected to take three args:
-            annotated_frame (PIL Image), map_score (float), frame_idx (int).
         class_list : List[str]
             List of calss id in the dataset.
+        viz_fx : Optional[Callable]
+            Output visualization function. It is expected to take three args:
+            annotated_frame (PIL Image), map_score (float), frame_idx (int).
+            If it is None, no visualization is done.
         """
         super().__init__()
         self.ap_stats = obd.bbox.metrics.APstats(iou_threshold=0.5)
@@ -172,7 +174,8 @@ class YOLOMonitor(AbstractSeqModule):
             predictions=[[torch.tensor(pred_bbox)]],
             classes=self.class_list,
             box_color_map=self.box_color_map)[0]
-        self.viz_fx(annotated_frame, self.ap_stats[:], self.time_step)
+        if self.viz_fx is not None:
+            self.viz_fx(annotated_frame, self.ap_stats[:], self.time_step)
 
 
 # Wrapped function calls
