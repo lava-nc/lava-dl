@@ -7,7 +7,6 @@ from typing import Tuple, Union
 import h5py
 import numpy as np
 from enum import IntEnum, unique
-import torch
 
 
 @unique
