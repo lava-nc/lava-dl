@@ -1,5 +1,5 @@
 from typing import Iterable, Optional, List, Callable
-from queue import Queue 
+from queue import Queue
 
 import numpy as np
 import torch
@@ -48,13 +48,13 @@ class DataGenerator(AbstractSeqModule):
 
     def forward(self) -> None:
         raw_frame = self.frames[..., self.frame_idx]
-        frame = raw_frame.clone().permute([2, 1, 0]) # CHW to XYZ
+        frame = raw_frame.clone().permute([2, 1, 0])  # CHW to XYZ
         annotation = self.annotations[self.frame_idx]
         self.frame_idx += 1
         if self.normalize:
             frame = (frame - self.mean) / self.std
         return frame, annotation, raw_frame
-    
+
     def post_forward(self) -> None:
         if self.frame_idx >= len(self.annotations):
             self.frame_idx = 0
@@ -97,7 +97,7 @@ class YOLOPredictor(AbstractSeqModule):
 
         range_y, range_x = np.meshgrid(np.arange(H), np.arange(W),
                                        indexing='ij')
-        
+
         anchor_x, anchor_y = self.anchors[:, 0], self.anchors[:, 1]
         x_center = (sigmoid(x[:, :, :, 0:1]) + range_x[None, :, :, None]) / W
         y_center = (sigmoid(x[:, :, :, 1:2]) + range_y[None, :, :, None]) / H
@@ -144,7 +144,7 @@ class YOLOMonitor(AbstractSeqModule):
         self.box_color_map = [(np.random.randint(256),
                                np.random.randint(256),
                                np.random.randint(256))
-                               for _ in range(len(class_list))]
+                              for _ in range(len(class_list))]
 
     def __call__(self,
                  input_frame: torch.tensor,
@@ -195,4 +195,4 @@ def sigmoid(x: np.ndarray) -> np.ndarray:
 
 
 def softmax(x: np.ndarray, axis=None) -> np.ndarray:
-    return np.exp(x)/np.sum(np.exp(x), axis=axis, keepdims=True)
+    return np.exp(x) / np.sum(np.exp(x), axis=axis, keepdims=True)
