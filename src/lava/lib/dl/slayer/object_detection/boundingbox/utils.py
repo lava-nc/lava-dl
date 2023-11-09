@@ -691,4 +691,11 @@ def create_video(inputs: torch.tensor,
     video.release()
 
 
+def render_events_img(inputs: torch.tensor) -> Image:
+    out = torch.zeros((3, inputs.shape[1], inputs.shape[2]))
+    out[0, :, :] = 255 * inputs[0, :, :]
+    out[2, :, :] = 255 * inputs[1, :, :]
+    return transforms.ToPILImage()(out.squeeze())
+     
+     
 nms = non_maximum_suppression
