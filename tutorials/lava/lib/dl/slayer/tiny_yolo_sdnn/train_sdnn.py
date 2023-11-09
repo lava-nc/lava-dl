@@ -17,13 +17,51 @@ from lava.lib.dl import slayer
 from lava.lib.dl.slayer import obd
 
 
+Width = int
+Height = int
+
+class PropheseeAutomotiveSmall(obd.dataset.PropheseeAutomotive):
+    def __init__(self,
+                 root: str = './',
+                 delta_t: int = 1, 
+                 size: Tuple[Height, Width] = (448, 448),
+                 train: bool = False,
+                 seq_len: int = 32,
+                 events_ratio: float = 0.07,
+                 randomize_seq: bool = False,
+                 augment_prob: float = 0.0) -> None:
+        super().__init__(root=root, delta_t=delta_t, train=train, size=size, 
+                         seq_len=seq_len, randomize_seq=randomize_seq, 
+                         events_ratio=events_ratio, augment_prob=augment_prob)
+
+    def __len__(self):
+        return 45
+    
+class PropheseeAutomotiveSmallTrain(obd.dataset.PropheseeAutomotive):
+    def __init__(self,
+                 root: str = './',
+                 delta_t: int = 1, 
+                 size: Tuple[Height, Width] = (448, 448),
+                 train: bool = False,
+                 seq_len: int = 32,
+                 events_ratio: float = 0.07,
+                 randomize_seq: bool = False,
+                 augment_prob: float = 0.0) -> None:
+        super().__init__(root=root, delta_t=delta_t, train=train, size=size, 
+                         seq_len=seq_len, randomize_seq=randomize_seq, 
+                         events_ratio=events_ratio, augment_prob=augment_prob)
+
+    def __len__(self):
+        return 5
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-gpu', type=int, default=[0], help='which gpu(s) to use', nargs='+')
-    parser.add_argument('-b',   type=int, default=32,  help='batch size for dataloader')
+    parser.add_argument('-b',   type=int, default=1,  help='batch size for dataloader')
     parser.add_argument('-verbose', default=False, action='store_true', help='lots of debug printouts')
     # Model
-    parser.add_argument('-model', type=str, default='tiny_yolov3_str', help='network model')
+    parser.add_argument('-model', type=str, default='yolo_kp_events', help='network model')
     # Sparsity
     parser.add_argument('-sparsity', action='store_true', default=False, help='enable sparsity loss')
     parser.add_argument('-sp_lam',   type=float, default=0.01, help='sparsity loss mixture ratio')
@@ -37,6 +75,12 @@ if __name__ == '__main__':
     parser.add_argument('-tau_grad',   type=float, default=0.1, help='surrogate gradient time constant')
     parser.add_argument('-scale_grad', type=float, default=0.2, help='surrogate gradient scale')
     parser.add_argument('-clip',       type=float, default=10, help='gradient clipping limit')
+    # Network/SDNN
+    parser.add_argument('-cuba_threshold',  type=float, default=0.1, help='neuron threshold')
+    parser.add_argument('-cuba_current_decay',   type=float, default=1, help='surrogate gradient time constant')
+    parser.add_argument('-cuba_voltage_decay', type=float, default=1, help='surrogate gradient scale')
+    parser.add_argument('-cuba_tau_grad',       type=float, default=0.1, help='gradient clipping limit')
+    parser.add_argument('-cuba_scale_grad',       type=float, default=15, help='gradient clipping limit')
     # Pretrained model
     parser.add_argument('-load', type=str, default='', help='pretrained model')
     # Target generation
@@ -57,10 +101,14 @@ if __name__ == '__main__':
     parser.add_argument('-epoch',  type=int, default=200, help='number of epochs to run')
     parser.add_argument('-warmup', type=int, default=10,  help='number of epochs to warmup')
     # dataset
-    parser.add_argument('-dataset',     type=str,   default='BDD100K', help='dataset to use [BDD100K]')
-    parser.add_argument('-path',        type=str,   default='data/bdd100k', help='dataset path')
+    parser.add_argument('-dataset',     type=str,   default='PropheseeAutomotive', help='dataset to use [BDD100K, PropheseeAutomotive]')
+    parser.add_argument('-subset',      default=False, action='store_true', help='use PropheseeAutomotive12 subset')
+    parser.add_argument('-seq_len',  type=int, default=32, help='number of time continous frames')
+    parser.add_argument('-delta_t',  type=int, default=1, help='time window for events')
+    parser.add_argument('-event_ratio',  type=float, default=0.07, help='filtering bbox')
+    parser.add_argument('-path',        type=str,   default='data/prophesee', help='dataset path')
     parser.add_argument('-output_dir',  type=str,   default='.', help='directory in which to put log folders')
-    parser.add_argument('-num_workers', type=int,   default=16, help='number of dataloader workers')
+    parser.add_argument('-num_workers', type=int,   default=1, help='number of dataloader workers')
     parser.add_argument('-aug_prob',    type=float, default=0.2, help='training augmentation probability')
     parser.add_argument('-clamp_max',   type=float, default=5.0, help='exponential clamp in height/width calculation')
 
@@ -89,13 +137,21 @@ if __name__ == '__main__':
     print('Using GPUs {}'.format(args.gpu))
     device = torch.device('cuda:{}'.format(args.gpu[0]))
 
+<<<<<<< HEAD
     classes_output = {'BDD100K': 11}
+=======
+    classes_output = {'BDD100K': 11, 'PropheseeAutomotive': 7}
+>>>>>>> 10b0244... working version of prophesee dataset
 
     print('Creating Network')
     if args.model == 'tiny_yolov3_str':
         Network = obd.models.tiny_yolov3_str.Network
     elif args.model == 'yolo_kp':
         Network = obd.models.yolo_kp.Network
+    elif args.model == 'tiny_yolov3_str_events':
+        Network = obd.models.tiny_yolov3_str_events.Network
+    elif args.model == 'yolo_kp_events':
+        Network = obd.models.yolo_kp_events.Network    
     else:
         raise RuntimeError(f'Model type {args.model=} not supported!')
     
@@ -104,7 +160,12 @@ if __name__ == '__main__':
                       tau_grad=args.tau_grad,
                       scale_grad=args.scale_grad,
                       num_classes=classes_output[args.dataset],
-                      clamp_max=args.clamp_max).to(device)
+                      clamp_max=args.clamp_max,
+                      cuba_params={'threshold': args.cuba_threshold,
+                                    'current_decay' : args.cuba_current_decay,
+                                    'voltage_decay' : args.cuba_voltage_decay,
+                                    'tau_grad'      : args.cuba_tau_grad,   
+                                    'scale_grad'    : args.cuba_scale_grad}).to(device)
         module = net
     else:
         net = torch.nn.DataParallel(Network(threshold=args.threshold,
@@ -129,7 +190,15 @@ if __name__ == '__main__':
         print(f'Initializing model from {saved_model}')
         module.load_model(saved_model)
 
-    module.init_model((448, 448))
+    if args.model == 'tiny_yolov3_str':
+       module.init_model((448, 448, 3))
+    elif args.model == 'yolo_kp':
+        module.init_model((448, 448, 3))
+    elif args.model == 'tiny_yolov3_str_events':
+        module.init_model((448, 448, 2))
+    elif args.model == 'yolo_kp_events':
+        module.init_model((448, 448, 2))
+    
 
     # Define optimizer module.
     print('Creating Optimizer')
@@ -169,14 +238,54 @@ if __name__ == '__main__':
                                  shuffle=True,
                                  collate_fn=yolo_target.collate_fn,
                                  num_workers=args.num_workers,
-                                 pin_memory=True)
-
-        box_color_map = [(np.random.randint(256),
-                          np.random.randint(256),
-                          np.random.randint(256))
-                         for i in range(11)]
+                                 pin_memory=True)        
+    elif args.dataset == 'PropheseeAutomotive':
+        if args.subset:
+            train_set = PropheseeAutomotiveSmall(root=args.path, train=True, 
+                                                augment_prob=args.aug_prob, 
+                                                randomize_seq=True,
+                                                events_ratio = args.event_ratio,
+                                                delta_t=args.delta_t,
+                                                seq_len=args.seq_len)
+            
+            test_set = PropheseeAutomotiveSmallTrain(root=args.path, train=False,
+                                                    randomize_seq=True,
+                                                    events_ratio = args.event_ratio,
+                                                    delta_t=args.delta_t,
+                                                    seq_len=args.seq_len)
+            print('Using PropheseeAutomotiveSmall Dataset')
+        else:      
+            train_set = obd.dataset.PropheseeAutomotive(root=args.path, train=True, 
+                                                        augment_prob=args.aug_prob, 
+                                                        randomize_seq=True,
+                                                        events_ratio = args.event_ratio,
+                                                        delta_t=args.delta_t,
+                                                        seq_len=args.seq_len)
+            test_set = obd.dataset.PropheseeAutomotive(root=args.path, train=False,
+                                                    randomize_seq=True,
+                                                    events_ratio = args.event_ratio,
+                                                    delta_t=args.delta_t,
+                                                    seq_len=args.seq_len)
+            
+        train_loader = DataLoader(train_set,
+                                batch_size=args.b,
+                                shuffle=True,
+                                collate_fn=yolo_target.collate_fn,
+                                num_workers=args.num_workers,
+                                pin_memory=True)
+        test_loader = DataLoader(test_set,
+                                batch_size=args.b,
+                                shuffle=True,
+                                collate_fn=yolo_target.collate_fn,
+                                num_workers=args.num_workers,
+                                pin_memory=True)        
     else:
         raise RuntimeError(f'Dataset {args.dataset} is not supported.')
+
+    box_color_map = [(np.random.randint(256),
+                      np.random.randint(256),
+                      np.random.randint(256))
+                     for _ in range(classes_output[args.dataset])]
 
     print('Creating YOLO Loss')
     yolo_loss = obd.YOLOLoss(anchors=net.anchors,
@@ -195,7 +304,9 @@ if __name__ == '__main__':
     loss_order = ['coord', 'obj', 'noobj', 'cls', 'iou']
 
     print('Training/Testing Loop')
+    
     for epoch in range(args.epoch):
+        
         t_st = datetime.now()
         ap_stats = obd.bbox.metrics.APstats(iou_threshold=0.5)
 
@@ -271,7 +382,8 @@ if __name__ == '__main__':
                 for loss_idx, loss_key in enumerate(loss_order):
                     loss_tracker[loss_key].append(loss_distr[loss_idx].item())
                     plt.semilogy(loss_tracker[loss_key], label=loss_key)
-                    writer.add_scalar(f'Loss Tracker/{loss_key}',
+                    if not args.subset:
+                        writer.add_scalar(f'Loss Tracker/{loss_key}',
                                         loss_distr[loss_idx].item(),
                                         len(loss_tracker[loss_key]) - 1)
                 plt.xlabel(f'iters (x {args.track_iter})')
@@ -279,7 +391,7 @@ if __name__ == '__main__':
                 plt.savefig(f'{trained_folder}/yolo_loss_tracker.png')
                 plt.close()
             stats.print(epoch, i, samples_sec, header=header_list)
-
+        
         t_st = datetime.now()
         ap_stats = obd.bbox.metrics.APstats(iou_threshold=0.5)
         for i, (inputs, targets, bboxes) in enumerate(test_loader):
@@ -292,6 +404,7 @@ if __name__ == '__main__':
                 T = inputs.shape[-1]
                 predictions = [obd.bbox.utils.nms(predictions[..., t])
                                for t in range(T)]
+            
                 for t in range(T):
                     ap_stats.update(predictions[t], bboxes[t])
 
@@ -315,17 +428,23 @@ if __name__ == '__main__':
                 header_list += [f'Class loss: {loss_distr[3].item()}']
                 header_list += [f'IOU   loss: {loss_distr[4].item()}']
                 stats.print(epoch, i, samples_sec, header=header_list)
-
-        writer.add_scalar('Loss/train', stats.training.loss, epoch)
-        writer.add_scalar('mAP@50/train', stats.training.accuracy, epoch)
-        writer.add_scalar('mAP@50/test', stats.testing.accuracy, epoch)
+                
+        if not args.subset:
+            writer.add_scalar('Loss/train', stats.training.loss, epoch)
+            writer.add_scalar('mAP@50/train', stats.training.accuracy, epoch)
+            writer.add_scalar('mAP@50/test', stats.testing.accuracy, epoch)
 
         stats.update()
         stats.plot(path=trained_folder + '/')
-        b = -1
-        image = Image.fromarray(np.uint8(
-            inputs[b, :, :, :, 0].cpu().data.numpy().transpose([1, 2, 0]) * 255
-        ))
+        
+        b = -1        
+        if args.dataset == 'PropheseeAutomotive':
+            image = obd.bbox.utils.render_events_img(inputs[b, :, :, :, 0].cpu().data.numpy())
+        else:
+            image = Image.fromarray(np.uint8(
+                inputs[b, :, :, :, 0].cpu().data.numpy().transpose([1, 2, 0]) * 255
+            ))
+            
         annotation = obd.bbox.utils.annotation_from_tensor(
             predictions[0][b],
             {'height': image.height, 'width': image.width},
@@ -336,10 +455,14 @@ if __name__ == '__main__':
             image, annotation['annotation']['object'],
             box_color_map=box_color_map, thickness=5
         )
+        
+        if args.dataset == 'PropheseeAutomotive':
+            image = obd.bbox.utils.render_events_img(inputs[b, :, :, :, 0].cpu().data.numpy())
+        else:
+            image = Image.fromarray(np.uint8(
+                inputs[b, :, :, :, 0].cpu().data.numpy().transpose([1, 2, 0]) * 255
+            ))
 
-        image = Image.fromarray(np.uint8(
-            inputs[b, :, :, :, 0].cpu().data.numpy().transpose([1, 2, 0]) * 255
-        ))
         annotation = obd.bbox.utils.annotation_from_tensor(
             bboxes[0][b],
             {'height': image.height, 'width': image.width},
@@ -355,30 +478,40 @@ if __name__ == '__main__':
                                           marked_img.height))
         marked_images.paste(marked_img, (0, 0))
         marked_images.paste(marked_gt, (marked_img.width, 0))
-
-        writer.add_image('Prediction',
-                            transforms.PILToTensor()(marked_images),
-                            epoch)
-
+        if not args.subset:
+            writer.add_image('Prediction',
+                                transforms.PILToTensor()(marked_images),
+                                epoch)
         if stats.testing.best_accuracy is True:
             torch.save(module.state_dict(), trained_folder + '/network.pt')
+            if hasattr(module, 'export_hdf5'):
+                module.load_state_dict(torch.load(trained_folder + '/network.pt'))
+                module.export_hdf5(trained_folder + '/network.net')
+            
             if inputs.shape[-1] == 1:
                 marked_images.save(
                     f'{trained_folder}/prediction_{epoch}_{b}.jpg')
             else:
                 filename = f'{trained_folder}/prediction_{epoch}_{b}'
-                obd.bbox.utils.create_video(inputs, bboxes, predictions,
-                                            filename, test_set.classes,
-                                            box_color_map=box_color_map)
+                if args.dataset == 'PropheseeAutomotive':
+                    obd.bbox.utils.create_video_events(inputs, bboxes, predictions, 
+                                                    filename, test_set.classes, 
+                                                    box_color_map=box_color_map)
+                else:
+                    obd.bbox.utils.create_video(inputs, bboxes, predictions,
+                                        filename, test_set.classes,
+                                        box_color_map=box_color_map)
+                    
         stats.save(trained_folder + '/')
 
     if hasattr(module, 'export_hdf5'):
         module.load_state_dict(torch.load(trained_folder + '/network.pt'))
         module.export_hdf5(trained_folder + '/network.net')
-
-    params_dict = {}
-    for key, val in args._get_kwargs():
-        params_dict[key] = str(val)
-    writer.add_hparams(params_dict, {'mAP@50': stats.testing.max_accuracy})
-    writer.flush()
-    writer.close()
+        
+    if not args.subset:
+        params_dict = {}
+        for key, val in args._get_kwargs():
+            params_dict[key] = str(val)
+        writer.add_hparams(params_dict, {'mAP@50': stats.testing.max_accuracy})
+        writer.flush()
+        writer.close()
