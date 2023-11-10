@@ -23,7 +23,7 @@ if __name__ == '__main__':
     parser.add_argument('-b',   type=int, default=32,  help='batch size for dataloader')
     parser.add_argument('-verbose', default=False, action='store_true', help='lots of debug printouts')
     # Model
-    parser.add_argument('-model', type=str, default='tiny_yolov3_str', help='network model')
+    parser.add_argument('-model', type=str, default='tiny_yolov3_str_events', help='network model')
     # Sparsity
     parser.add_argument('-sparsity', action='store_true', default=False, help='enable sparsity loss')
     parser.add_argument('-sp_lam',   type=float, default=0.01, help='sparsity loss mixture ratio')
@@ -57,8 +57,8 @@ if __name__ == '__main__':
     parser.add_argument('-epoch',  type=int, default=200, help='number of epochs to run')
     parser.add_argument('-warmup', type=int, default=10,  help='number of epochs to warmup')
     # dataset
-    parser.add_argument('-dataset',     type=str,   default='BDD100K', help='dataset to use [BDD100K]')
-    parser.add_argument('-path',        type=str,   default='data/bdd100k', help='dataset path')
+    parser.add_argument('-dataset',     type=str,   default='PropheseeAutomotive', help='dataset to use [BDD100K, PropheseeAutomotive]')
+    parser.add_argument('-path',        type=str,   default='/home/lecampos/lava-dev/data/prophesee', help='dataset path')
     parser.add_argument('-output_dir',  type=str,   default='.', help='directory in which to put log folders')
     parser.add_argument('-num_workers', type=int,   default=16, help='number of dataloader workers')
     parser.add_argument('-aug_prob',    type=float, default=0.2, help='training augmentation probability')
@@ -89,13 +89,15 @@ if __name__ == '__main__':
     print('Using GPUs {}'.format(args.gpu))
     device = torch.device('cuda:{}'.format(args.gpu[0]))
 
-    classes_output = {'BDD100K': 11}
+    classes_output = {'BDD100K': 11, 'PropheseeAutomotive': 7}
 
     print('Creating Network')
     if args.model == 'tiny_yolov3_str':
         Network = obd.models.tiny_yolov3_str.Network
     elif args.model == 'yolo_kp':
         Network = obd.models.yolo_kp.Network
+    elif args.model == 'tiny_yolov3_str_events':
+        Network = obd.models.tiny_yolov3_str_events.Network    
     else:
         raise RuntimeError(f'Model type {args.model=} not supported!')
     
@@ -129,7 +131,13 @@ if __name__ == '__main__':
         print(f'Initializing model from {saved_model}')
         module.load_model(saved_model)
 
-    module.init_model((448, 448))
+    if args.model == 'tiny_yolov3_str':
+       module.init_model((448, 448, 3))
+    elif args.model == 'yolo_kp':
+        module.init_model((448, 448, 3))
+    elif args.model == 'tiny_yolov3_str_events':
+        module.init_model((448, 448, 2))
+    
 
     # Define optimizer module.
     print('Creating Optimizer')
@@ -169,14 +177,33 @@ if __name__ == '__main__':
                                  shuffle=True,
                                  collate_fn=yolo_target.collate_fn,
                                  num_workers=args.num_workers,
-                                 pin_memory=True)
-
-        box_color_map = [(np.random.randint(256),
-                          np.random.randint(256),
-                          np.random.randint(256))
-                         for i in range(11)]
+                                 pin_memory=True)        
+    elif args.dataset == 'PropheseeAutomotive':        
+        train_set = obd.dataset.PropheseeAutomotive(root=args.path, train=True, 
+                                                    augment_prob=args.aug_prob, 
+                                                    randomize_seq=True)
+        # test_set = obd.dataset.PropheseeAutomotive(root=args.path, train=False,
+        #                                            randomize_seq=True)
+        
+        train_loader = DataLoader(train_set,
+                                  batch_size=args.b,
+                                  shuffle=True,
+                                  collate_fn=yolo_target.collate_fn,
+                                  num_workers=args.num_workers,
+                                  pin_memory=True)
+        # test_loader = DataLoader(test_set,
+        #                          batch_size=args.b,
+        #                          shuffle=True,
+        #                          collate_fn=yolo_target.collate_fn,
+        #                          num_workers=args.num_workers,
+        #                          pin_memory=True)        
     else:
         raise RuntimeError(f'Dataset {args.dataset} is not supported.')
+
+    box_color_map = [(np.random.randint(256),
+                      np.random.randint(256),
+                      np.random.randint(256))
+                     for _ in range(classes_output[args.dataset])]
 
     print('Creating YOLO Loss')
     yolo_loss = obd.YOLOLoss(anchors=net.anchors,
