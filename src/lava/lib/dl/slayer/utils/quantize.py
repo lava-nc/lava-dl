@@ -79,3 +79,37 @@ def quantize(input, step=1, mode=MODE.ROUND):
         return _floor.apply(input, step)
     else:
         raise ValueError(f'{mode=} is not recognized.')
+
+
+def quantize_hook_fx(x: torch.tensor,
+                     scale: int = (1 << 6),
+                     num_bits: int = 8,
+                     descale: bool = False) -> torch.tensor:
+    """Quantize prehook function to use in slayer synapse pre-hook for
+    quantization.
+
+    Parameters
+    ----------
+    x : torch.tensor
+        Input tensor.
+    scale : int, optional
+        Quantization decimal scale corresponding to 1.0 value,
+        by default (1 << 6).
+    num_bits : int, optional
+        Number of bits to use in quantization, by default 8.
+    descale : bool, optional
+        Flag to descale the fixed point number to integer or keep it as
+        fixed point number. By default False.
+
+    Returns
+    -------
+    torch.tensor
+        Quantized tensor.
+    """
+    min = -2 * (1 << num_bits)
+    max = 2 * ((1 << num_bits) - 1)
+    if descale is False:
+        return quantize(x, step=2 / scale).clamp(min / scale, max / scale)
+    else:
+        return quantize(x, step=2 / scale).clamp(min / scale,
+                                                 max / scale) * scale

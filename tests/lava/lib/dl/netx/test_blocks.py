@@ -19,6 +19,7 @@ from lava.proc.lif.process import LIF
 from lava.proc.rf.process import RF
 from lava.proc.rf_iz.process import RF_IZ
 from lava.proc.sdn.process import Sigma, Delta, SigmaDelta
+from lava.proc.sparse.process import Sparse
 from lava.proc.conv import utils
 
 from lava.lib.dl.netx.blocks.process import Dense, Conv, Input, ComplexDense,\
@@ -329,6 +330,25 @@ class TestRFBlocks(unittest.TestCase):
             f'Found {s[s != s_gt] = } and {s_gt[s != s_gt] = }. '
             f'Error was {s_error}.'
         )
+
+    def test_sparse(self) -> None:
+        """Tests RF dense block can use sparse types."""
+        rf_params = {'vth': 25,
+                     'period': 11,
+                     'state_exp': 6,
+                     'decay_bits': 12,
+                     'alpha': .05}
+
+        dense_blk = ComplexDense(
+            shape=(256,),
+            neuron_params={'neuron_proc': RF, **rf_params},
+            weight_real=np.load(root + '/gts/complex_dense/weight_r.npy'),
+            weight_imag=np.load(root + '/gts/complex_dense/weight_img.npy'),
+            sparse_synapse=True
+        )
+
+        self.assertTrue(isinstance(dense_blk.real_synapse, Sparse))
+        self.assertTrue(isinstance(dense_blk.imag_synapse, Sparse))
 
 
 class TestSDNBlocks(unittest.TestCase):

@@ -70,3 +70,8 @@ class Sigma(torch.nn.Module):
             self.pre_state = output[..., -1].detach().clone()
 
         return output
+
+    @property
+    def device_params(self):
+        """Dictionary of device parameters."""
+        return {'type': 'SDNN', 'sigma_output': True}
