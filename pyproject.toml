@@ -50,7 +50,7 @@ python = ">=3.8, <3.11"
 
 lava-nc = { git = "https://github.com/lava-nc/lava.git", branch = "main", develop = true }
 
-torchvision = "^0.14.0"
+torchvision = "^0.15.1"
 h5py = "^3.7.0"
 ninja = "^1.10.2.3"
 matplotlib = "^3.5.2"
@@ -59,7 +59,8 @@ scipy = "^1.8.1"
 pillow = ">=10.0.1,<11.0"
 pytest = "^7.2.0"
 unittest2 = "^1.1.0"
-torch = "^1.13.1"
+torch = ">=2.0.0, !=2.0.1"
+opencv-python-headless = "^4.8.1.78"
 
 [tool.poetry.dev-dependencies]
 bandit = "1.7.4"
@@ -177,4 +178,10 @@ pylint = ["-*"]                             # Disable temporarily until lint fix
 pycodestyle = ["-F401"]                     # Disable a check
 flake8-bandit = ["-S101"]                   # Ignore asserts for tests
 pyflakes = ["-*"]                           # Disable a plugin
+
+[tool.flakeheaven.exceptions."src/lava/lib/dl/slayer/object_detection/models/*"]
+pycodestyle = ["-E501", "-E241", "-E221"]   # Disable a check
+
+[tool.flakeheaven.exceptions."tutorials/lava/lib/dl/slayer/tiny_yolo_sdnn/train_sdnn.py"]
+pycodestyle = ["-E501"]                     # Disable a check
 

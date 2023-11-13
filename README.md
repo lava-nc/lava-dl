@@ -146,6 +146,8 @@ $ pip install lava-dl-0.2.0.tar.gz
 * [MNIST digit classification](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/bootstrap/mnist/train.ipynb)
 * [NMNIST digit classification](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/nmnist/train.ipynb)
 * [PilotNet steering angle prediction](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/pilotnet/train.ipynb)
+* [Video object detection with sigma-detla YOLO](https://github.com/lava-nc/lava-dl/tree/main/tutorials/lava/lib/dl/slayer/tiny_yolo_sdnn)
+    * [Inference on GPU](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/tiny_yolo_sdnn/inference.ipynb)
 
 **Deep dive training tutorials**
 * [Dynamics and Neurons](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/slayer/neuron_dynamics/dynamics.ipynb)
@@ -156,6 +158,7 @@ $ pip install lava-dl-0.2.0.tar.gz
 * [PilotNet LIF Benchmarking](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/pilotnet_snn/benchmark.ipynb)
 * [PilotNet SDNN Inference](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/pilotnet_sdnn/run.ipynb)
 * [PilotNet SDNN Benchmarking](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/pilotnet_sdnn/benchmark.ipynb)
+* [YOLO-KP SDNN Inference](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/yolo_kp/run.ipynb)
 
 ## __`lava.lib.dl.slayer`__ 
 
