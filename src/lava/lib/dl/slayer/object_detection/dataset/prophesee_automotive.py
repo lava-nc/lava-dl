@@ -53,24 +53,11 @@ class _PropheseeAutomotive(Dataset):
 
         while not video.done:
             events = video.load_delta_t(self.delta_t)
+            if len(events) == 0:
+                continue
             frame = np.zeros((height, width, 2), dtype=np.uint8)
-            if events['x'].max() > width:
-                print( events['x'].min())
-            if events['y'].max() > height:
-                print( events['y'].min())
-            
-            valid = np.all((events['x'] >= 0 ) & (events['x'] < width) & (events['y'] >= 0 ) & (events['y'] < height))
+            valid = (events['x'] >= 0 ) & (events['x'] < width) & (events['y'] >= 0 ) & (events['y'] < height)
             events = events[valid]
-            
-            if len(events) < 1:
-                print(len(events))
-            
-            #drop if out of FoV
-            if events['x'].max() > width:
-                continue
-            if events['y'].max() > height:
-                continue
-            
             frame[events['y'][events['p'] == 1], events['x'][events['p'] == 1], 0] = 1
             frame[events['y'][events['p'] == 0], events['x'][events['p'] == 0], 1] = 1
            
