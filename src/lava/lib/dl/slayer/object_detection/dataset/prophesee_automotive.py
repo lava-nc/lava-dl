@@ -37,7 +37,7 @@ class _PropheseeAutomotive(Dataset):
             self.idx_map = {int(key) : value for key, value in data.items()}
             [self.cat_name.append(value) for _, value in data.items()]
 
-        dataset = 'train' if train else 'val'
+        dataset = 'train' if train else 'test'
         self.dataset_path = root + os.sep + dataset
         
         td_files = [td_file for td_file in os.listdir(self.dataset_path) if td_file.endswith('.dat')]
@@ -54,6 +54,17 @@ class _PropheseeAutomotive(Dataset):
         while not video.done:
             events = video.load_delta_t(self.delta_t)
             frame = np.zeros((height, width, 2), dtype=np.uint8)
+            if events['x'].max() > width:
+                print( events['x'].min())
+            if events['y'].max() > height:
+                print( events['y'].min())
+            
+            valid = np.all((events['x'] >= 0 ) & (events['x'] < width) & (events['y'] >= 0 ) & (events['y'] < height))
+            events = events[valid]
+            
+            if len(events) < 1:
+                print(len(events))
+            
             #drop if out of FoV
             if events['x'].max() > width:
                 continue
@@ -83,6 +94,8 @@ class _PropheseeAutomotive(Dataset):
                 images.append(frame)
                 annotations.append({'annotation': annotation})
                 
+        if len(images) < 1:
+            print(self.videos[index])
             
         return images, annotations
 

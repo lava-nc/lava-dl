@@ -20,7 +20,7 @@ from lava.lib.dl.slayer import obd
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-gpu', type=int, default=[0], help='which gpu(s) to use', nargs='+')
-    parser.add_argument('-b',   type=int, default=32,  help='batch size for dataloader')
+    parser.add_argument('-b',   type=int, default=1,  help='batch size for dataloader')
     parser.add_argument('-verbose', default=False, action='store_true', help='lots of debug printouts')
     # Model
     parser.add_argument('-model', type=str, default='tiny_yolov3_str_events', help='network model')
@@ -58,7 +58,7 @@ if __name__ == '__main__':
     parser.add_argument('-warmup', type=int, default=10,  help='number of epochs to warmup')
     # dataset
     parser.add_argument('-dataset',     type=str,   default='PropheseeAutomotive', help='dataset to use [BDD100K, PropheseeAutomotive]')
-    parser.add_argument('-path',        type=str,   default='/home/lecampos/lava-dev/data/prophesee', help='dataset path')
+    parser.add_argument('-path',        type=str,   default='/home/lecampos/data/prophesee', help='dataset path')
     parser.add_argument('-output_dir',  type=str,   default='.', help='directory in which to put log folders')
     parser.add_argument('-num_workers', type=int,   default=16, help='number of dataloader workers')
     parser.add_argument('-aug_prob',    type=float, default=0.2, help='training augmentation probability')
@@ -182,8 +182,8 @@ if __name__ == '__main__':
         train_set = obd.dataset.PropheseeAutomotive(root=args.path, train=True, 
                                                     augment_prob=args.aug_prob, 
                                                     randomize_seq=True)
-        # test_set = obd.dataset.PropheseeAutomotive(root=args.path, train=False,
-        #                                            randomize_seq=True)
+        test_set = obd.dataset.PropheseeAutomotive(root=args.path, train=False,
+                                                   randomize_seq=True)
         
         train_loader = DataLoader(train_set,
                                   batch_size=args.b,
@@ -191,12 +191,12 @@ if __name__ == '__main__':
                                   collate_fn=yolo_target.collate_fn,
                                   num_workers=args.num_workers,
                                   pin_memory=True)
-        # test_loader = DataLoader(test_set,
-        #                          batch_size=args.b,
-        #                          shuffle=True,
-        #                          collate_fn=yolo_target.collate_fn,
-        #                          num_workers=args.num_workers,
-        #                          pin_memory=True)        
+        test_loader = DataLoader(test_set,
+                                 batch_size=args.b,
+                                 shuffle=True,
+                                 collate_fn=yolo_target.collate_fn,
+                                 num_workers=args.num_workers,
+                                 pin_memory=True)        
     else:
         raise RuntimeError(f'Dataset {args.dataset} is not supported.')
 
