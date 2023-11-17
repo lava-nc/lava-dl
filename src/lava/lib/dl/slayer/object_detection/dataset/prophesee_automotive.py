@@ -37,7 +37,7 @@ class _PropheseeAutomotive(Dataset):
             self.idx_map = {int(key) : value for key, value in data.items()}
             [self.cat_name.append(value) for _, value in data.items()]
 
-        dataset = 'train' if train else 'test'
+        dataset = 'train' if train else 'val'
         self.dataset_path = root + os.sep + dataset
         
         td_files = [td_file for td_file in os.listdir(self.dataset_path) if td_file.endswith('.dat')]
