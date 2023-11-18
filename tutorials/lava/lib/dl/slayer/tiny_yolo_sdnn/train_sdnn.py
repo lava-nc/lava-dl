@@ -20,7 +20,7 @@ from lava.lib.dl.slayer import obd
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-gpu', type=int, default=[0], help='which gpu(s) to use', nargs='+')
-    parser.add_argument('-b',   type=int, default=1,  help='batch size for dataloader')
+    parser.add_argument('-b',   type=int, default=4,  help='batch size for dataloader')
     parser.add_argument('-verbose', default=False, action='store_true', help='lots of debug printouts')
     # Model
     parser.add_argument('-model', type=str, default='tiny_yolov3_str_events', help='network model')
@@ -60,7 +60,7 @@ if __name__ == '__main__':
     parser.add_argument('-dataset',     type=str,   default='PropheseeAutomotive', help='dataset to use [BDD100K, PropheseeAutomotive]')
     parser.add_argument('-path',        type=str,   default='/home/lecampos/data/prophesee', help='dataset path')
     parser.add_argument('-output_dir',  type=str,   default='.', help='directory in which to put log folders')
-    parser.add_argument('-num_workers', type=int,   default=16, help='number of dataloader workers')
+    parser.add_argument('-num_workers', type=int,   default=4, help='number of dataloader workers')
     parser.add_argument('-aug_prob',    type=float, default=0.2, help='training augmentation probability')
     parser.add_argument('-clamp_max',   type=float, default=5.0, help='exponential clamp in height/width calculation')
 
@@ -163,7 +163,7 @@ if __name__ == '__main__':
     if args.dataset == 'BDD100K':
         train_set = obd.dataset.BDD(root=args.path, dataset='track',
                                     train=True, augment_prob=args.aug_prob,
-                                    randomize_seq=True)
+                                    randomize_seq=True, seq_len=1000)
         test_set = obd.dataset.BDD(root=args.path, dataset='track',
                                    train=False, randomize_seq=True)
         train_loader = DataLoader(train_set,

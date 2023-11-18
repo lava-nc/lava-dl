@@ -24,13 +24,15 @@ class _PropheseeAutomotive(Dataset):
     def __init__(self,
                  root: str = '.',
                  delta_t: int = 1,
-                 skip: int = 0,
+                 seq_len: int = 32,
+                 randomize_seq: bool = False,
                  train: bool = False) -> None:
         super().__init__()
         
         self.cat_name = []
         self.delta_t = delta_t * 1000
-        self.skip = skip
+        self.seq_len = seq_len
+        self.randomize_seq = randomize_seq
         
         with open(root + os.sep + 'label_map_dictionary.json') as file:
             data = json.load(file)
@@ -50,8 +52,21 @@ class _PropheseeAutomotive(Dataset):
         height, width = video.get_size()
         images = []
         annotations = []
-
-        while not video.done:
+        
+        num_seq = int((video.duration_s * 1000) / (self.delta_t / 1000))
+        
+        if self.randomize_seq:
+            id_rand = (num_seq - self.seq_len) if num_seq > self.seq_len else num_seq
+            start_idx = np.random.randint(id_rand)
+        else:
+            start_idx = 0
+            
+        stop_idx = start_idx + self.seq_len
+        stop_idx = stop_idx if stop_idx < num_seq else num_seq
+        
+        video.seek_time(start_idx * 1000)
+        
+        while not video.done: #or video.current_time <= (stop_idx * 1000):
             events = video.load_delta_t(self.delta_t)
             if len(events) == 0:
                 continue
@@ -80,6 +95,8 @@ class _PropheseeAutomotive(Dataset):
                 annotation = {'size': size, 'object': objects}
                 images.append(frame)
                 annotations.append({'annotation': annotation})
+            if len(images) == self.seq_len:
+                break
                 
         if len(images) < 1:
             print(self.videos[index])
@@ -94,7 +111,6 @@ class PropheseeAutomotive(Dataset):
     def __init__(self,
                  root: str = './',
                  delta_t: int = 1, 
-                 skip: int = 0,
                  size: Tuple[Height, Width] = (448, 448),
                  train: bool = False,
                  seq_len: int = 32,
@@ -107,7 +123,8 @@ class PropheseeAutomotive(Dataset):
             lambda x: bbutils.resize_bounding_boxes(x, size),
         ])
 
-        self.datasets = [_PropheseeAutomotive(root=root, delta_t=delta_t, skip=skip, train=train)]
+        self.datasets = [_PropheseeAutomotive(root=root, delta_t=delta_t, train=train,
+                                              seq_len=seq_len, randomize_seq=randomize_seq)]
 
         self.classes = self.datasets[0].cat_name
         self.idx_map = self.datasets[0].idx_map
@@ -133,18 +150,9 @@ class PropheseeAutomotive(Dataset):
         annotations = [self.bb_transform(ann) for ann in annotations]
 
         # [C, H, W, T], [bbox] * T
-        num_seq = image.shape[-1]
-        
-        if self.randomize_seq:
-            id_rand = (num_seq - self.seq_len) if num_seq > self.seq_len else num_seq
-            start_idx = np.random.randint(id_rand)
-        else:
-            start_idx = 0
-        stop_idx = start_idx + self.seq_len
-        stop_idx = stop_idx if stop_idx < image.shape[-1] else image.shape[-1]
-
+       
         # list in time
-        return image[..., start_idx:stop_idx], annotations[start_idx:stop_idx]
+        return image, annotations
 
     def __len__(self) -> int:
         return sum([len(dataset) for dataset in self.datasets])
