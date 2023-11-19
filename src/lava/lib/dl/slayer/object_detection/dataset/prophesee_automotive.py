@@ -58,13 +58,8 @@ class _PropheseeAutomotive(Dataset):
         if self.randomize_seq:
             id_rand = (num_seq - self.seq_len) if num_seq > self.seq_len else num_seq
             start_idx = np.random.randint(id_rand)
-        else:
-            start_idx = 0
-            
-        stop_idx = start_idx + self.seq_len
-        stop_idx = stop_idx if stop_idx < num_seq else num_seq
+            video.seek_time(start_idx * 1000) 
         
-        video.seek_time(start_idx * 1000)
         
         while not video.done: #or video.current_time <= (stop_idx * 1000):
             events = video.load_delta_t(self.delta_t)
@@ -95,7 +90,7 @@ class _PropheseeAutomotive(Dataset):
                 annotation = {'size': size, 'object': objects}
                 images.append(frame)
                 annotations.append({'annotation': annotation})
-            if len(images) == self.seq_len:
+            if len(images) >= self.seq_len:
                 break
                 
         if len(images) < 1:

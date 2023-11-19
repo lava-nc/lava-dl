@@ -181,9 +181,11 @@ if __name__ == '__main__':
     elif args.dataset == 'PropheseeAutomotive':        
         train_set = obd.dataset.PropheseeAutomotive(root=args.path, train=True, 
                                                     augment_prob=args.aug_prob, 
-                                                    randomize_seq=True)
+                                                    randomize_seq=True, 
+                                                    seq_len=1000)
         test_set = obd.dataset.PropheseeAutomotive(root=args.path, train=False,
-                                                   randomize_seq=True)
+                                                   randomize_seq=True, 
+                                                   seq_len=1000)
         
         train_loader = DataLoader(train_set,
                                   batch_size=args.b,
