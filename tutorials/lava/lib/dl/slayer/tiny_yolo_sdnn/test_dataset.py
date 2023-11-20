@@ -60,7 +60,7 @@ if __name__ == '__main__':
     parser.add_argument('-dataset',     type=str,   default='PropheseeAutomotive', help='dataset to use [BDD100K, PropheseeAutomotive]')
     parser.add_argument('-path',        type=str,   default='/home/lecampos/data/prophesee', help='dataset path')
     parser.add_argument('-output_dir',  type=str,   default='.', help='directory in which to put log folders')
-    parser.add_argument('-num_workers', type=int,   default=1, help='number of dataloader workers')
+    parser.add_argument('-num_workers', type=int,   default=0, help='number of dataloader workers')
     parser.add_argument('-aug_prob',    type=float, default=0.2, help='training augmentation probability')
     parser.add_argument('-clamp_max',   type=float, default=5.0, help='exponential clamp in height/width calculation')
 
@@ -76,27 +76,27 @@ if __name__ == '__main__':
                                                 augment_prob=args.aug_prob, 
                                                 randomize_seq=True, 
                                                 seq_len=100)
-    test_set = obd.dataset.PropheseeAutomotive(root=args.path, train=False,
-                                                randomize_seq=True, 
-                                                seq_len=100)
+    #test_set = obd.dataset.PropheseeAutomotive(root=args.path, train=False,
+    #                                            randomize_seq=True, 
+    #                                            seq_len=100)
     
     train_loader = DataLoader(train_set,
                                 batch_size=args.b,
                                 shuffle=True,
                                 num_workers=args.num_workers,
                                 pin_memory=True)
-    test_loader = DataLoader(test_set,
-                                batch_size=args.b,
-                                shuffle=True,
-                                num_workers=args.num_workers,
-                                pin_memory=True)        
+    #test_loader = DataLoader(test_set,
+    #                            batch_size=args.b,
+    #                            shuffle=True,
+    #                            num_workers=args.num_workers,
+    #                            pin_memory=True)        
    
 
     print('Training/Testing Loop')
     for epoch in range(args.epoch):
         print(f'{epoch=}')
-        for i, (inputs, targets, bboxes) in enumerate(train_loader):
+        for i, (inputs, targets) in enumerate(train_loader):
             inputs = inputs.to(device)
-        for i, (inputs, targets, bboxes) in enumerate(test_loader):
-            inputs = inputs.to(device)
+        #for i, (inputs, targets, bboxes) in enumerate(test_loader):
+        #    inputs = inputs.to(device)
            
