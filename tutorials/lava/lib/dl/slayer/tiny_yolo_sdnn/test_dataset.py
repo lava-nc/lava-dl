@@ -69,34 +69,33 @@ if __name__ == '__main__':
     device = torch.device('cuda:{}'.format(args.gpu[0]))
 
     print('Creating Dataset')
-    
-
-      
     train_set = obd.dataset.PropheseeAutomotive(root=args.path, train=True, 
                                                 augment_prob=args.aug_prob, 
                                                 randomize_seq=True, 
                                                 seq_len=100)
-    #test_set = obd.dataset.PropheseeAutomotive(root=args.path, train=False,
-    #                                            randomize_seq=True, 
-    #                                            seq_len=100)
+    test_set = obd.dataset.PropheseeAutomotive(root=args.path, train=False,
+                                                randomize_seq=True, 
+                                                seq_len=100)
     
     train_loader = DataLoader(train_set,
                                 batch_size=args.b,
                                 shuffle=True,
                                 num_workers=args.num_workers,
                                 pin_memory=True)
-    #test_loader = DataLoader(test_set,
-    #                            batch_size=args.b,
-    #                            shuffle=True,
-    #                            num_workers=args.num_workers,
-    #                            pin_memory=True)        
+    test_loader = DataLoader(test_set,
+                                batch_size=args.b,
+                                shuffle=True,
+                                num_workers=args.num_workers,
+                                pin_memory=True)        
    
 
     print('Training/Testing Loop')
     for epoch in range(args.epoch):
         print(f'{epoch=}')
+        print('Training Loop')
         for i, (inputs, targets) in enumerate(train_loader):
             inputs = inputs.to(device)
-        #for i, (inputs, targets, bboxes) in enumerate(test_loader):
-        #    inputs = inputs.to(device)
+        print('Testing Loop')
+        for i, (inputs, targets) in enumerate(test_loader):
+            inputs = inputs.to(device)
            

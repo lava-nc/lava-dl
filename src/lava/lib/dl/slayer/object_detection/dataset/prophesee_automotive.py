@@ -46,22 +46,14 @@ class _PropheseeAutomotive(Dataset):
         self.videos = [PSEELoader(self.dataset_path + os.sep + td_file) for td_file in td_files]
         self.bbox_videos = [PSEELoader(self.dataset_path + os.sep + td_file.split('_td.dat')[0] +  '_bbox.npy') for td_file in td_files]    
 
-    def __getitem__(self, index: int) -> Tuple[torch.tensor, Dict[Any, Any]]:
-        video = self.videos[index]
-        bbox_video = self.bbox_videos[index]
-        height, width = video.get_size()
+    
+    def get_seq(self, video, bbox_video):
+        
         images = []
         annotations = []
-        
-        num_seq = int((video.duration_s * 1000) / (self.delta_t / 1000))
-        
-        if self.randomize_seq:
-            id_rand = (num_seq - self.seq_len) if num_seq > self.seq_len else num_seq
-            start_idx = np.random.randint(id_rand)
-            video.seek_time(start_idx * 1000) 
-        
-        
-        while not video.done: #or video.current_time <= (stop_idx * 1000):
+        height, width = video.get_size()
+         
+        while not video.done:
             events = video.load_delta_t(self.delta_t)
             if len(events) == 0:
                 continue
@@ -70,7 +62,7 @@ class _PropheseeAutomotive(Dataset):
             events = events[valid]
             frame[events['y'][events['p'] == 1], events['x'][events['p'] == 1], 0] = 1
             frame[events['y'][events['p'] == 0], events['x'][events['p'] == 0], 1] = 1
-           
+            
             boxes = bbox_video.load_delta_t(self.delta_t)
             objects = []
             size = {'height': height, 'width': width}
@@ -92,9 +84,22 @@ class _PropheseeAutomotive(Dataset):
                 annotations.append({'annotation': annotation})
             if len(images) >= self.seq_len:
                 break
-                
+        return images, annotations
+
+
+    def __getitem__(self, index: int) -> Tuple[torch.tensor, Dict[Any, Any]]:
+        video = self.videos[index]
+        bbox_video = self.bbox_videos[index]
+       
+        if self.randomize_seq:
+            skip_time = video.duration_s - ((self.seq_len * self.delta_t) / 1000000)
+            video.seek_time( skip_time * np.random.random() * 1000000)
+  
+        images, annotations = self.get_seq(video, bbox_video)
+       
         if len(images) < 1:
-            print(self.videos[index])
+            video.reset()
+            images, annotations = self.get_seq(video, bbox_video)
             
         return images, annotations
 
