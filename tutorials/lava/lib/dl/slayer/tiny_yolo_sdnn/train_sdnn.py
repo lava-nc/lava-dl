@@ -224,6 +224,7 @@ if __name__ == '__main__':
     loss_order = ['coord', 'obj', 'noobj', 'cls', 'iou']
 
     print('Training/Testing Loop')
+    
     for epoch in range(args.epoch):
         t_st = datetime.now()
         ap_stats = obd.bbox.metrics.APstats(iou_threshold=0.5)
@@ -321,6 +322,7 @@ if __name__ == '__main__':
                 T = inputs.shape[-1]
                 predictions = [obd.bbox.utils.nms(predictions[..., t])
                                for t in range(T)]
+            
                 for t in range(T):
                     ap_stats.update(predictions[t], bboxes[t])
 
@@ -344,17 +346,22 @@ if __name__ == '__main__':
                 header_list += [f'Class loss: {loss_distr[3].item()}']
                 header_list += [f'IOU   loss: {loss_distr[4].item()}']
                 stats.print(epoch, i, samples_sec, header=header_list)
-
+        
         writer.add_scalar('Loss/train', stats.training.loss, epoch)
         writer.add_scalar('mAP@50/train', stats.training.accuracy, epoch)
         writer.add_scalar('mAP@50/test', stats.testing.accuracy, epoch)
 
         stats.update()
         stats.plot(path=trained_folder + '/')
-        b = -1
-        image = Image.fromarray(np.uint8(
-            inputs[b, :, :, :, 0].cpu().data.numpy().transpose([1, 2, 0]) * 255
-        ))
+        
+        b = -1        
+        if args.dataset == 'PropheseeAutomotive':
+            image = obd.bbox.utils.render_events_img( inputs[b, :, :, :, 0].cpu() )
+        else:
+            image = Image.fromarray(np.uint8(
+                inputs[b, :, :, :, 0].cpu().data.numpy().transpose([1, 2, 0]) * 255
+            ))
+            
         annotation = obd.bbox.utils.annotation_from_tensor(
             predictions[0][b],
             {'height': image.height, 'width': image.width},
@@ -365,10 +372,14 @@ if __name__ == '__main__':
             image, annotation['annotation']['object'],
             box_color_map=box_color_map, thickness=5
         )
+        
+        if args.dataset == 'PropheseeAutomotive':
+            image = obd.bbox.utils.render_events_img( inputs[b, :, :, :, 0].cpu() )
+        else:
+            image = Image.fromarray(np.uint8(
+                inputs[b, :, :, :, 0].cpu().data.numpy().transpose([1, 2, 0]) * 255
+            ))
 
-        image = Image.fromarray(np.uint8(
-            inputs[b, :, :, :, 0].cpu().data.numpy().transpose([1, 2, 0]) * 255
-        ))
         annotation = obd.bbox.utils.annotation_from_tensor(
             bboxes[0][b],
             {'height': image.height, 'width': image.width},
@@ -388,7 +399,6 @@ if __name__ == '__main__':
         writer.add_image('Prediction',
                             transforms.PILToTensor()(marked_images),
                             epoch)
-
         if stats.testing.best_accuracy is True:
             torch.save(module.state_dict(), trained_folder + '/network.pt')
             if inputs.shape[-1] == 1:
@@ -396,9 +406,15 @@ if __name__ == '__main__':
                     f'{trained_folder}/prediction_{epoch}_{b}.jpg')
             else:
                 filename = f'{trained_folder}/prediction_{epoch}_{b}'
-                obd.bbox.utils.create_video(inputs, bboxes, predictions,
-                                            filename, test_set.classes,
-                                            box_color_map=box_color_map)
+                if args.dataset == 'PropheseeAutomotive':
+                    obd.bbox.utils.create_video_events(inputs, bboxes, predictions, 
+                                                    filename, test_set.classes, 
+                                                    box_color_map=box_color_map)
+                else:
+                    obd.bbox.utils.create_video(inputs, bboxes, predictions,
+                                        filename, test_set.classes,
+                                        box_color_map=box_color_map)
+                    
         stats.save(trained_folder + '/')
 
     if hasattr(module, 'export_hdf5'):
