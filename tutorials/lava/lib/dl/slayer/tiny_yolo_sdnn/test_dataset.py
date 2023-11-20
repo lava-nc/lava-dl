@@ -73,20 +73,20 @@ if __name__ == '__main__':
                                                 augment_prob=args.aug_prob, 
                                                 randomize_seq=True, 
                                                 seq_len=100)
-    test_set = obd.dataset.PropheseeAutomotive(root=args.path, train=False,
-                                                randomize_seq=True, 
-                                                seq_len=100)
+    #test_set = obd.dataset.PropheseeAutomotive(root=args.path, train=False,
+    #                                            randomize_seq=True, 
+    #                                            seq_len=100)
     
     train_loader = DataLoader(train_set,
                                 batch_size=args.b,
                                 shuffle=True,
                                 num_workers=args.num_workers,
                                 pin_memory=True)
-    test_loader = DataLoader(test_set,
-                                batch_size=args.b,
-                                shuffle=True,
-                                num_workers=args.num_workers,
-                                pin_memory=True)        
+    #test_loader = DataLoader(test_set,
+    #                            batch_size=args.b,
+    #                            shuffle=True,
+    #                            num_workers=args.num_workers,
+    #                            pin_memory=True)        
    
 
     print('Training/Testing Loop')
@@ -95,7 +95,7 @@ if __name__ == '__main__':
         print('Training Loop')
         for i, (inputs, targets) in enumerate(train_loader):
             inputs = inputs.to(device)
-        print('Testing Loop')
-        for i, (inputs, targets) in enumerate(test_loader):
-            inputs = inputs.to(device)
+        #print('Testing Loop')
+        #for i, (inputs, targets) in enumerate(test_loader):
+        #    inputs = inputs.to(device)
            
