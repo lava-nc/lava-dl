@@ -61,7 +61,7 @@ class Network(YOLOBase):
             'activation'    : F.relu,      # activation function
         }
         cuba_params = {
-                'threshold'     : 0.01,
+                'threshold'     : 0.001,
                 'current_decay' : 1,
                 'voltage_decay' : 0.1  
         }
