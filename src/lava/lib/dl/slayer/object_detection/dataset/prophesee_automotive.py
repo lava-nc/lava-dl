@@ -124,7 +124,7 @@ class PropheseeAutomotive(Dataset):
                  augment_prob: float = 0.0) -> None:
         super().__init__()
         self.img_transform = transforms.Compose([lambda x: resize_events_frame(x, size),
-                                                 transforms.ToTensor()])
+                                                 lambda x: torch.FloatTensor(x).permute([2, 1, 0])])
         self.bb_transform = transforms.Compose([
             lambda x: bbutils.resize_bounding_boxes(x, size),
         ])
@@ -144,6 +144,7 @@ class PropheseeAutomotive(Dataset):
         index = index % len(self.datasets[0])
         #print('dataset_idx: ', dataset_idx, ' index: ', index)
         images, annotations = self.datasets[dataset_idx][index]
+        
 
         # flip left right
         if random.random() < self.augment_prob:

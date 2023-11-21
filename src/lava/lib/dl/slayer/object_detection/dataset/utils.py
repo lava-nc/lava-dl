@@ -49,8 +49,8 @@ def resize_events_frame(events: np.array,
     
     height = events.shape[0]
     width = events.shape[1]
-    return np.asarray([[ events[int(height * rows / size[0])][int(width * cols / size[1])] for cols in range(size[1])] for rows in range(size[0])])
-
+    img = np.asarray([[ events[int(height * rows / size[0])][int(width * cols / size[1])] for cols in range(size[1])] for rows in range(size[0])])
+    return img
   
 def fliplr_events(events: np.array) -> np.array:
     return np.fliplr(events)
