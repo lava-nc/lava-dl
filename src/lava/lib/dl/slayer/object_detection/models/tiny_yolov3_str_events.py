@@ -61,9 +61,9 @@ class Network(YOLOBase):
             'activation'    : F.relu,      # activation function
         }
         cuba_params = {
-                'threshold'     : 0.1,
+                'threshold'     : 0.01,
                 'current_decay' : 1,
-                'voltage_decay' : 0.05  
+                'voltage_decay' : 0.1  
         }
 
         def _quantize_8bit(x: torch.tensor,
