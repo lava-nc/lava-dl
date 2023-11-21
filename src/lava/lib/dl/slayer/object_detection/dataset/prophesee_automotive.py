@@ -82,8 +82,9 @@ class _PropheseeAutomotive(Dataset):
                 annotation = {'size': size, 'object': objects}
                 annotations.append({'annotation': annotation})
             else:
+                if len(annotations) < 1:
+                    continue
                 annotations.append(annotations[-1])
-                
             images.append(frame)
             if len(images) >= self.seq_len:
                 break
