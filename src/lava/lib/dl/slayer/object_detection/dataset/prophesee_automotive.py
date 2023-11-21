@@ -55,8 +55,8 @@ class _PropheseeAutomotive(Dataset):
          
         while not video.done:
             events = video.load_delta_t(self.delta_t)
-            if len(events) == 0:
-                continue
+            # if len(events) == 0:
+            #    continue
             frame = np.zeros((height, width, 2), dtype=np.uint8)
             valid = (events['x'] >= 0 ) & (events['x'] < width) & (events['y'] >= 0 ) & (events['y'] < height)
             events = events[valid]
@@ -80,8 +80,11 @@ class _PropheseeAutomotive(Dataset):
                                         'bndbox': bndbox})
             if len(objects) > 0: 
                 annotation = {'size': size, 'object': objects}
-                images.append(frame)
                 annotations.append({'annotation': annotation})
+            else:
+                annotations.append(annotations[-1])
+                
+            images.append(frame)
             if len(images) >= self.seq_len:
                 break
         return images, annotations
