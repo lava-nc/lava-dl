@@ -142,9 +142,7 @@ class PropheseeAutomotive(Dataset):
         
         dataset_idx = index // len(self.datasets[0])
         index = index % len(self.datasets[0])
-        #print('dataset_idx: ', dataset_idx, ' index: ', index)
         images, annotations = self.datasets[dataset_idx][index]
-        
 
         # flip left right
         if random.random() < self.augment_prob:
@@ -153,15 +151,11 @@ class PropheseeAutomotive(Dataset):
                 annotations[idx] = bbutils.fliplr_bounding_boxes(
                     annotations[idx])
         
-        #print('len(images): ', len(images))
-        #print('len(annotations): ', len(annotations))
-
         image = torch.cat([torch.unsqueeze(self.img_transform(img), -1)
                            for img in images], dim=-1)
         annotations = [self.bb_transform(ann) for ann in annotations]
 
         # [C, H, W, T], [bbox] * T
-       
         # list in time
         return image, annotations
 

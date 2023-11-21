@@ -1,19 +1,8 @@
 # nosec # noqa
-import os
 import argparse
-from typing import Any, Dict, Tuple
-import cv2
-import numpy as np
-from PIL import Image
-import matplotlib.pyplot as plt
-from datetime import datetime
 import torch
-import torch.nn.functional as F
 from torch.utils.data import DataLoader
-from torchvision import transforms
-from torch.utils.tensorboard import SummaryWriter
 
-from lava.lib.dl import slayer
 from lava.lib.dl.slayer import obd
 
 
