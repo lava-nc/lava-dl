@@ -55,15 +55,17 @@ class _PropheseeAutomotive(Dataset):
          
         while not video.done:
             events = video.load_delta_t(self.delta_t)
-            # if len(events) == 0:
-            #    continue
+            boxes = bbox_video.load_delta_t(self.delta_t)
+            
+            if len(boxes) == 0:
+                continue
+            
             frame = np.zeros((height, width, 2), dtype=np.uint8)
             valid = (events['x'] >= 0 ) & (events['x'] < width) & (events['y'] >= 0 ) & (events['y'] < height)
             events = events[valid]
             frame[events['y'][events['p'] == 1], events['x'][events['p'] == 1], 0] = 1
             frame[events['y'][events['p'] == 0], events['x'][events['p'] == 0], 1] = 1
             
-            boxes = bbox_video.load_delta_t(self.delta_t)
             objects = []
             size = {'height': height, 'width': width}
             
@@ -82,8 +84,6 @@ class _PropheseeAutomotive(Dataset):
                 annotation = {'size': size, 'object': objects}
                 annotations.append({'annotation': annotation})
             else:
-                if len(annotations) < 1:
-                    continue
                 annotations.append(annotations[-1])
             images.append(frame)
             if len(images) >= self.seq_len:
