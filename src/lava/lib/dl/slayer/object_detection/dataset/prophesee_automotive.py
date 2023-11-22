@@ -57,7 +57,7 @@ class _PropheseeAutomotive(Dataset):
             events = video.load_delta_t(self.delta_t)
             boxes = bbox_video.load_delta_t(self.delta_t)
             
-            if len(boxes) == 0:
+            if (len(boxes) == 0) and (len(annotations) == 0):
                 continue
             
             frame = np.zeros((height, width, 2), dtype=np.uint8)
