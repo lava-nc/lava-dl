@@ -3,5 +3,6 @@
 
 from . import metrics
 from . import utils
+from . import utils_ann
 
-__all__ = ['metrics', 'utils']
+__all__ = ['metrics', 'utils', 'utils_ann']
