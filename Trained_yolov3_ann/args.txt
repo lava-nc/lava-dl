@@ -1,0 +1,26 @@
+alpha_iou : 0.8
+aug_prob : 0.2
+b : 64
+dataset : BDD100K
+epoch : 200
+exp : 
+gpu : [0]
+label_smoothing : 0.1
+lambda_cls : 4.0
+lambda_coord : 1.0
+lambda_iou : 2.0
+lambda_noobj : 2.0
+lambda_obj : 2.0
+load : 
+lr : 0.0001
+lrf : 0.01
+model : yolov3_ann
+num_workers : 2
+output_dir : .
+path : /home/lecampos/data/bdd100k
+seed : None
+tgt_iou_thr : 0.5
+track_iter : 1000
+verbose : False
+warmup : 10
+wd : 1e-05

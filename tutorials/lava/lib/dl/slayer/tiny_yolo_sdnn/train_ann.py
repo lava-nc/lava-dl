@@ -20,7 +20,7 @@ from lava.lib.dl.slayer import obd
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-gpu', type=int, default=[0], help='which gpu(s) to use', nargs='+')
-    parser.add_argument('-b',   type=int, default=4,  help='batch size for dataloader')
+    parser.add_argument('-b',   type=int, default=12,  help='batch size for dataloader')
     parser.add_argument('-verbose', default=False, action='store_true', help='lots of debug printouts')
     # Model
     parser.add_argument('-model', type=str, default='yolov3_ann', help='network model')
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     parser.add_argument('-dataset',     type=str,   default='BDD100K', help='dataset to use [BDD100K, PropheseeAutomotive]')
     parser.add_argument('-path',        type=str,   default='/home/lecampos/data/bdd100k', help='dataset path')
     parser.add_argument('-output_dir',  type=str,   default='.', help='directory in which to put log folders')
-    parser.add_argument('-num_workers', type=int,   default=4, help='number of dataloader workers')
+    parser.add_argument('-num_workers', type=int,   default=6, help='number of dataloader workers')
     parser.add_argument('-aug_prob',    type=float, default=0.2, help='training augmentation probability')
 
     args = parser.parse_args()
