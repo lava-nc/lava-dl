@@ -83,9 +83,9 @@ class Network(YOLOBase):
         
         neuron_kwargs = {**cuba_params, 'norm': slayer.neuron.norm.MeanOnlyBatchNorm}
         self.backend_blocks = torch.nn.ModuleList([
-            slayer.block.cuba.Conv(neuron_kwargs,   2,  16, 3, padding=1, stride=2, weight_scale=3, **block_kwargs),
-            slayer.block.cuba.Conv(neuron_kwargs,  16,  32, 3, padding=1, stride=2, weight_scale=1, **block_kwargs),
-            slayer.block.cuba.Conv(neuron_kwargs,  32,  64, 3, padding=1, stride=2, weight_scale=1, **block_kwargs),
+            slayer.block.cuba.Conv(neuron_kwargs,   2,  16, 3, padding=1, stride=2, weight_scale=5, **block_kwargs),
+            slayer.block.cuba.Conv(neuron_kwargs,  16,  32, 3, padding=1, stride=2, weight_scale=3, **block_kwargs),
+            slayer.block.cuba.Conv(neuron_kwargs,  32,  64, 3, padding=1, stride=2, weight_scale=3, **block_kwargs),
             slayer.block.cuba.Conv(neuron_kwargs,  64, 128, 3, padding=1, stride=2, weight_scale=3, **block_kwargs),
             slayer.block.cuba.Conv(neuron_kwargs, 128, 256, 3, padding=1, stride=1, weight_scale=3, **block_kwargs),
         ])
