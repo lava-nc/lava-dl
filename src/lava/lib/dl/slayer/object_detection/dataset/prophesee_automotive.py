@@ -99,11 +99,13 @@ class _PropheseeAutomotive(Dataset):
         if self.randomize_seq:
             skip_time = video.duration_s - ((self.seq_len * self.delta_t) / 1000000)
             video.seek_time( skip_time * np.random.random() * 1000000)
+            bbox_video.seek_time( skip_time * np.random.random() * 1000000)
   
         images, annotations = self.get_seq(video, bbox_video)
        
         if len(images) < self.seq_len:
             video.reset()
+            bbox_video.reset()
             images, annotations = self.get_seq(video, bbox_video)
             
         return images, annotations
