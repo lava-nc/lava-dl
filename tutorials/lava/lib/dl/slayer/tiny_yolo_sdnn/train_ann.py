@@ -20,10 +20,10 @@ from lava.lib.dl.slayer import obd
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-gpu', type=int, default=[0], help='which gpu(s) to use', nargs='+')
-    parser.add_argument('-b',   type=int, default=12,  help='batch size for dataloader')
+    parser.add_argument('-b',   type=int, default=16,  help='batch size for dataloader')
     parser.add_argument('-verbose', default=False, action='store_true', help='lots of debug printouts')
     # Model
-    parser.add_argument('-model', type=str, default='yolov3_ann', help='network model')
+    parser.add_argument('-model', type=str, default='tiny_yolov3_ann', help='network model')
     # Optimizer
     parser.add_argument('-lr',  type=float, default=0.0001, help='initial learning rate')
     parser.add_argument('-wd',  type=float, default=1e-5,   help='optimizer weight decay')
@@ -48,10 +48,10 @@ if __name__ == '__main__':
     parser.add_argument('-epoch',  type=int, default=200, help='number of epochs to run')
     parser.add_argument('-warmup', type=int, default=10,  help='number of epochs to warmup')
     # dataset
-    parser.add_argument('-dataset',     type=str,   default='BDD100K', help='dataset to use [BDD100K, PropheseeAutomotive]')
+    parser.add_argument('-dataset',     type=str,   default='BDD100K', help='dataset to use [BDD100K]')
     parser.add_argument('-path',        type=str,   default='/home/lecampos/data/bdd100k', help='dataset path')
     parser.add_argument('-output_dir',  type=str,   default='.', help='directory in which to put log folders')
-    parser.add_argument('-num_workers', type=int,   default=6, help='number of dataloader workers')
+    parser.add_argument('-num_workers', type=int,   default=8, help='number of dataloader workers')
     parser.add_argument('-aug_prob',    type=float, default=0.2, help='training augmentation probability')
 
     args = parser.parse_args()
@@ -79,11 +79,13 @@ if __name__ == '__main__':
     print('Using GPUs {}'.format(args.gpu))
     device = torch.device('cuda:{}'.format(args.gpu[0]))
 
-    classes_output = {'BDD100K': 11, 'PropheseeAutomotive': 7}
+    classes_output = {'BDD100K': 11}
 
     print('Creating Network')
     if args.model == 'yolov3_ann':
         Network = obd.models.yolov3_ann.Network
+    elif args.model == 'tiny_yolov3_ann':
+        Network = obd.models.tiny_yolov3_ann.Network
     else:
         raise RuntimeError(f'Model type {args.model=} not supported!')
     
@@ -242,7 +244,6 @@ if __name__ == '__main__':
                     plt.savefig(f'{trained_folder}/yolo_loss_tracker.png')
                     plt.close()
                 stats.print(epoch, i, samples_sec, header=header_list)
-
         t_st = datetime.now()
         ap_stats = obd.bbox.metrics.APstats(iou_threshold=0.5)
 
@@ -277,7 +278,6 @@ if __name__ == '__main__':
                     header_list += [f'Class loss: {loss_distr[3].item()}']
                     header_list += [f'IOU   loss: {loss_distr[4].item()}']
                     stats.print(epoch, i, samples_sec, header=header_list)
-    
         writer.add_scalar('Loss/train', stats.training.loss, epoch)
         writer.add_scalar('mAP@50/train', stats.training.accuracy, epoch)
         writer.add_scalar('mAP@50/test', stats.testing.accuracy, epoch)
