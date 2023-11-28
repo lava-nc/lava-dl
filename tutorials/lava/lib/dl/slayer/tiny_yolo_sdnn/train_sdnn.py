@@ -203,13 +203,12 @@ if __name__ == '__main__':
                                                 augment_prob=0.0, 
                                                 randomize_seq=False,
                                                 delta_t=1,
-                                                seq_len=100)
+                                                seq_len=50)
             
             test_set = PropheseeAutomotive12(root=args.path, train=False,
                                                     randomize_seq=False,
                                                     delta_t=1,
-                                                    seq_len=100)
-            
+                                                    seq_len=50)
             train_loader = DataLoader(train_set,
                                     batch_size=args.b,
                                     shuffle=True,
@@ -222,6 +221,7 @@ if __name__ == '__main__':
                                     collate_fn=yolo_target.collate_fn,
                                     num_workers=args.num_workers,
                                     pin_memory=True)
+            print('Using PropheseeAutomotive12 Dataset')
         else:      
             train_set = obd.dataset.PropheseeAutomotive(root=args.path, train=True, 
                                                         augment_prob=args.aug_prob, 
