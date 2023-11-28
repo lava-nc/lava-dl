@@ -683,7 +683,7 @@ def create_frames_events(inputs: torch.tensor,
     frames = []
     b = batch
     for t in range(inputs.shape[-1]):
-        image = render_events_img( inputs[b, :, :, :, t].cpu() )
+        image = render_events_img( inputs[b, :, :, :, t].cpu().data.numpy())
         annotation = annotation_from_tensor(predictions[t][b],
                                             {'height': image.height,
                                              'width': image.width},
@@ -808,11 +808,14 @@ def create_video_events(inputs: torch.tensor,
     video.release()
 
 
-def render_events_img(inputs: torch.tensor) -> Image:
-    out = torch.zeros((3, inputs.shape[1], inputs.shape[2]))
+def render_events_img(inputs: np.ndarray) -> Image:
+    
+    out = np.zeros((3, inputs.shape[1], inputs.shape[2]))
+    
     out[0, :, :] = 255 * inputs[0, :, :]
     out[2, :, :] = 255 * inputs[1, :, :]
-    return transforms.ToPILImage()(out.squeeze())
+    
+    return Img.fromarray(np.uint8(out).transpose([1, 2, 0]))
      
      
 nms = non_maximum_suppression

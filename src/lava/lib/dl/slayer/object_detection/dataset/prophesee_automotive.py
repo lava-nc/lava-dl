@@ -125,7 +125,7 @@ class PropheseeAutomotive(Dataset):
                  augment_prob: float = 0.0) -> None:
         super().__init__()
         self.img_transform = transforms.Compose([lambda x: resize_events_frame(x, size),
-                                                 lambda x: torch.FloatTensor(x).permute([2, 1, 0])])
+                                                 lambda x: torch.FloatTensor(x).permute([2, 0, 1])])
         self.bb_transform = transforms.Compose([
             lambda x: bbutils.resize_bounding_boxes(x, size),
         ])

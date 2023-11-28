@@ -17,6 +17,24 @@ from lava.lib.dl import slayer
 from lava.lib.dl.slayer import obd
 
 
+Width = int
+Height = int
+
+class PropheseeAutomotive12(obd.dataset.PropheseeAutomotive):
+    def __init__(self,
+                 root: str = './',
+                 delta_t: int = 1, 
+                 size: Tuple[Height, Width] = (448, 448),
+                 train: bool = False,
+                 seq_len: int = 32,
+                 randomize_seq: bool = False,
+                 augment_prob: float = 0.0) -> None:
+        super().__init__(root=root, delta_t=delta_t, train=train, size=size, seq_len=seq_len, randomize_seq=randomize_seq, augment_prob=augment_prob)
+
+    def __len__(self):
+        return 12
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-gpu', type=int, default=[0], help='which gpu(s) to use', nargs='+')
@@ -58,6 +76,7 @@ if __name__ == '__main__':
     parser.add_argument('-warmup', type=int, default=10,  help='number of epochs to warmup')
     # dataset
     parser.add_argument('-dataset',     type=str,   default='PropheseeAutomotive', help='dataset to use [BDD100K, PropheseeAutomotive]')
+    parser.add_argument('-subset',      default=True, action='store_true', help='use PropheseeAutomotive12 subset')
     parser.add_argument('-path',        type=str,   default='/home/lecampos/data/prophesee', help='dataset path')
     parser.add_argument('-output_dir',  type=str,   default='.', help='directory in which to put log folders')
     parser.add_argument('-num_workers', type=int,   default=1, help='number of dataloader workers')
@@ -178,29 +197,54 @@ if __name__ == '__main__':
                                  collate_fn=yolo_target.collate_fn,
                                  num_workers=args.num_workers,
                                  pin_memory=True)        
-    elif args.dataset == 'PropheseeAutomotive':        
-        train_set = obd.dataset.PropheseeAutomotive(root=args.path, train=True, 
-                                                    augment_prob=args.aug_prob, 
-                                                    randomize_seq=True, 
+    elif args.dataset == 'PropheseeAutomotive':
+        if args.subset:
+            train_set = PropheseeAutomotive12(root=args.path, train=True, 
+                                                augment_prob=0.0, 
+                                                randomize_seq=False,
+                                                delta_t=1,
+                                                seq_len=100)
+            
+            test_set = PropheseeAutomotive12(root=args.path, train=False,
+                                                    randomize_seq=False,
                                                     delta_t=1,
                                                     seq_len=100)
-        test_set = obd.dataset.PropheseeAutomotive(root=args.path, train=False,
-                                                   randomize_seq=True,
-                                                   delta_t=1,
-                                                   seq_len=100)
-        
-        train_loader = DataLoader(train_set,
-                                  batch_size=args.b,
-                                  shuffle=True,
-                                  collate_fn=yolo_target.collate_fn,
-                                  num_workers=args.num_workers,
-                                  pin_memory=True)
-        test_loader = DataLoader(test_set,
-                                 batch_size=args.b,
-                                 shuffle=True,
-                                 collate_fn=yolo_target.collate_fn,
-                                 num_workers=args.num_workers,
-                                 pin_memory=True)        
+            
+            train_loader = DataLoader(train_set,
+                                    batch_size=args.b,
+                                    shuffle=True,
+                                    collate_fn=yolo_target.collate_fn,
+                                    num_workers=args.num_workers,
+                                    pin_memory=True)
+            test_loader = DataLoader(test_set,
+                                    batch_size=args.b,
+                                    shuffle=True,
+                                    collate_fn=yolo_target.collate_fn,
+                                    num_workers=args.num_workers,
+                                    pin_memory=True)
+        else:      
+            train_set = obd.dataset.PropheseeAutomotive(root=args.path, train=True, 
+                                                        augment_prob=args.aug_prob, 
+                                                        randomize_seq=True,
+                                                        delta_t=10,
+                                                        seq_len=150)
+            test_set = obd.dataset.PropheseeAutomotive(root=args.path, train=False,
+                                                    randomize_seq=True,
+                                                    delta_t=10,
+                                                    seq_len=150)
+            
+            train_loader = DataLoader(train_set,
+                                    batch_size=args.b,
+                                    shuffle=True,
+                                    collate_fn=yolo_target.collate_fn,
+                                    num_workers=args.num_workers,
+                                    pin_memory=True)
+            test_loader = DataLoader(test_set,
+                                    batch_size=args.b,
+                                    shuffle=True,
+                                    collate_fn=yolo_target.collate_fn,
+                                    num_workers=args.num_workers,
+                                    pin_memory=True)        
     else:
         raise RuntimeError(f'Dataset {args.dataset} is not supported.')
 
@@ -303,7 +347,8 @@ if __name__ == '__main__':
                 for loss_idx, loss_key in enumerate(loss_order):
                     loss_tracker[loss_key].append(loss_distr[loss_idx].item())
                     plt.semilogy(loss_tracker[loss_key], label=loss_key)
-                    writer.add_scalar(f'Loss Tracker/{loss_key}',
+                    if not args.subset:
+                        writer.add_scalar(f'Loss Tracker/{loss_key}',
                                         loss_distr[loss_idx].item(),
                                         len(loss_tracker[loss_key]) - 1)
                 plt.xlabel(f'iters (x {args.track_iter})')
@@ -348,17 +393,18 @@ if __name__ == '__main__':
                 header_list += [f'Class loss: {loss_distr[3].item()}']
                 header_list += [f'IOU   loss: {loss_distr[4].item()}']
                 stats.print(epoch, i, samples_sec, header=header_list)
-        
-        writer.add_scalar('Loss/train', stats.training.loss, epoch)
-        writer.add_scalar('mAP@50/train', stats.training.accuracy, epoch)
-        writer.add_scalar('mAP@50/test', stats.testing.accuracy, epoch)
+                
+        if not args.subset:
+            writer.add_scalar('Loss/train', stats.training.loss, epoch)
+            writer.add_scalar('mAP@50/train', stats.training.accuracy, epoch)
+            writer.add_scalar('mAP@50/test', stats.testing.accuracy, epoch)
 
         stats.update()
         stats.plot(path=trained_folder + '/')
         
         b = -1        
         if args.dataset == 'PropheseeAutomotive':
-            image = obd.bbox.utils.render_events_img( inputs[b, :, :, :, 0].cpu() )
+            image = obd.bbox.utils.render_events_img(inputs[b, :, :, :, 0].cpu().data.numpy())
         else:
             image = Image.fromarray(np.uint8(
                 inputs[b, :, :, :, 0].cpu().data.numpy().transpose([1, 2, 0]) * 255
@@ -376,7 +422,7 @@ if __name__ == '__main__':
         )
         
         if args.dataset == 'PropheseeAutomotive':
-            image = obd.bbox.utils.render_events_img( inputs[b, :, :, :, 0].cpu() )
+            image = obd.bbox.utils.render_events_img(inputs[b, :, :, :, 0].cpu().data.numpy())
         else:
             image = Image.fromarray(np.uint8(
                 inputs[b, :, :, :, 0].cpu().data.numpy().transpose([1, 2, 0]) * 255
@@ -397,10 +443,10 @@ if __name__ == '__main__':
                                           marked_img.height))
         marked_images.paste(marked_img, (0, 0))
         marked_images.paste(marked_gt, (marked_img.width, 0))
-
-        writer.add_image('Prediction',
-                            transforms.PILToTensor()(marked_images),
-                            epoch)
+        if not args.subset:
+            writer.add_image('Prediction',
+                                transforms.PILToTensor()(marked_images),
+                                epoch)
         if stats.testing.best_accuracy is True:
             torch.save(module.state_dict(), trained_folder + '/network.pt')
             if inputs.shape[-1] == 1:
@@ -422,10 +468,11 @@ if __name__ == '__main__':
     if hasattr(module, 'export_hdf5'):
         module.load_state_dict(torch.load(trained_folder + '/network.pt'))
         module.export_hdf5(trained_folder + '/network.net')
-
-    params_dict = {}
-    for key, val in args._get_kwargs():
-        params_dict[key] = str(val)
-    writer.add_hparams(params_dict, {'mAP@50': stats.testing.max_accuracy})
-    writer.flush()
-    writer.close()
+        
+    if not args.subset:
+        params_dict = {}
+        for key, val in args._get_kwargs():
+            params_dict[key] = str(val)
+        writer.add_hparams(params_dict, {'mAP@50': stats.testing.max_accuracy})
+        writer.flush()
+        writer.close()
