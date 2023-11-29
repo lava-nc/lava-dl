@@ -158,6 +158,8 @@ if __name__ == '__main__':
         module.init_model((448, 448, 3))
     elif args.model == 'tiny_yolov3_str_events':
         module.init_model((448, 448, 2))
+    elif args.model == 'yolo_kp_events':
+        module.init_model((448, 448, 2))
     
 
     # Define optimizer module.
