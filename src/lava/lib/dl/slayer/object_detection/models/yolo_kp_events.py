@@ -69,11 +69,6 @@ class Network(YOLOBase):
                 'tau_grad'      : 1,    # delta unit surrogate gradient relaxation parameter
                 'scale_grad'    : 15,  # delta unit surrogate gradient scale parameter
         }
-
-        # standard imagenet normalization of RGB images
-        self.normalize_mean = torch.tensor([0.485, 0.456, 0.406]).reshape([1, 3, 1, 1, 1])
-        self.normalize_std  = torch.tensor([0.229, 0.224, 0.225]).reshape([1, 3, 1, 1, 1])
-
         self.input_blocks = torch.nn.ModuleList([
             slayer.block.sigma_delta.Input(sdnn_params),
         ])
@@ -148,11 +143,6 @@ class Network(YOLOBase):
             Event rate statistics.
         """
         has_sparisty_loss = sparsity_monitor is not None
-        if self.normalize_mean.device != input.device:
-            self.normalize_mean = self.normalize_mean.to(input.device)
-            self.normalize_std = self.normalize_std.to(input.device)
-        input = (input - self.normalize_mean) / self.normalize_std
-
         count = []
         for block in self.input_blocks:
             input = block(input)
