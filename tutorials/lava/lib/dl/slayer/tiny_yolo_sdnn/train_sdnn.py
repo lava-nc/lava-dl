@@ -32,7 +32,7 @@ class PropheseeAutomotive12(obd.dataset.PropheseeAutomotive):
         super().__init__(root=root, delta_t=delta_t, train=train, size=size, seq_len=seq_len, randomize_seq=randomize_seq, augment_prob=augment_prob)
 
     def __len__(self):
-        return 12
+        return 1
 
 
 if __name__ == '__main__':
