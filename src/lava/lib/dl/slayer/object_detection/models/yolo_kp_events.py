@@ -91,9 +91,9 @@ class Network(YOLOBase):
         neuron_kwargs = {**sdnn_params, 'norm': slayer.neuron.norm.MeanOnlyBatchNorm}
         neuron_cuba_kwargs = {**cuba_params, 'norm': slayer.neuron.norm.MeanOnlyBatchNorm}
 
-        self.input_blocks = torch.nn.ModuleList([
-            slayer.block.sigma_delta.Input(sdnn_params),
-        ])
+        #self.input_blocks = torch.nn.ModuleList([
+        #    slayer.block.sigma_delta.Input(sdnn_params),
+        #])
 
         self.blocks = torch.nn.ModuleList([
             slayer.block.cuba.Conv(neuron_cuba_kwargs,   2,  16, 3, padding=1, stride=2, weight_scale=1, **block_8_kwargs),
@@ -144,9 +144,9 @@ class Network(YOLOBase):
         """
         has_sparisty_loss = sparsity_monitor is not None
         count = []
-        for block in self.input_blocks:
-            input = block(input)
-            count.append(slayer.utils.event_rate(input))
+        #for block in self.input_blocks:
+        #    input = block(input)
+        #    count.append(slayer.utils.event_rate(input))
 
         x = input
         for block in self.blocks:

@@ -76,9 +76,9 @@ class Network(YOLOBase):
 
         quantizer = _quantize_8bit
 
-        self.input_blocks = torch.nn.ModuleList([
-            slayer.block.sigma_delta.Input(sdnn_params),
-        ])
+        #self.input_blocks = torch.nn.ModuleList([
+        #    slayer.block.sigma_delta.Input(sdnn_params),
+        #])
 
         synapse_kwargs = dict(weight_norm=False, pre_hook_fx=quantizer)
         block_kwargs = dict(weight_norm=True, delay_shift=False, pre_hook_fx=quantizer)
@@ -149,9 +149,9 @@ class Network(YOLOBase):
         """
         has_sparisty_loss = sparsity_monitor is not None
         count = []
-        for block in self.input_blocks:
-            input = block(input)
-            count.append(slayer.utils.event_rate(input))
+        #for block in self.input_blocks:
+        #    input = block(input)
+        #    count.append(slayer.utils.event_rate(input))
 
         backend = input
         for block in self.backend_blocks:
