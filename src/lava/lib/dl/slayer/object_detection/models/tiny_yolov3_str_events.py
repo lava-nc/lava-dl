@@ -65,7 +65,7 @@ class Network(YOLOBase):
                 'current_decay' : 1,
                 'voltage_decay' : 0.1,
                 'tau_grad'      : 1,    # delta unit surrogate gradient relaxation parameter
-                'scale_grad'    : 1,  # delta unit surrogate gradient scale parameter
+                'scale_grad'    : 15,  # delta unit surrogate gradient scale parameter
         }
 
         def _quantize_8bit(x: torch.tensor,

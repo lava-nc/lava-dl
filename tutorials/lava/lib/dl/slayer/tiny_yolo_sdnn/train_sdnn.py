@@ -41,7 +41,7 @@ if __name__ == '__main__':
     parser.add_argument('-b',   type=int, default=1,  help='batch size for dataloader')
     parser.add_argument('-verbose', default=False, action='store_true', help='lots of debug printouts')
     # Model
-    parser.add_argument('-model', type=str, default='tiny_yolov3_str_events', help='network model')
+    parser.add_argument('-model', type=str, default='yolo_kp_events', help='network model')
     # Sparsity
     parser.add_argument('-sparsity', action='store_true', default=False, help='enable sparsity loss')
     parser.add_argument('-sp_lam',   type=float, default=0.01, help='sparsity loss mixture ratio')
@@ -116,7 +116,9 @@ if __name__ == '__main__':
     elif args.model == 'yolo_kp':
         Network = obd.models.yolo_kp.Network
     elif args.model == 'tiny_yolov3_str_events':
-        Network = obd.models.tiny_yolov3_str_events.Network    
+        Network = obd.models.tiny_yolov3_str_events.Network
+    elif args.model == 'yolo_kp_events':
+        Network = obd.models.yolo_kp_events.Network    
     else:
         raise RuntimeError(f'Model type {args.model=} not supported!')
     
