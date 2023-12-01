@@ -89,13 +89,17 @@ class _PropheseeAutomotive(Dataset):
                             objects.append({'id': boxes['class_id'][idx],
                                             'name': name,
                                             'bndbox': bndbox})
-            if len(boxes) == 0:
+            
+            if (len(objects) == 0) and (len(annotations) == 0):
+                continue
+            if len(objects) == 0:
                 annotations.append(annotations[-1])
             else:
                 annotation = {'size': size, 'object': objects}
                 annotations.append({'annotation': annotation})
                 
             images.append(frame)
+            
             if len(images) >= self.seq_len:
                 break
         return images, annotations
