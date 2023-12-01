@@ -55,6 +55,12 @@ if __name__ == '__main__':
     parser.add_argument('-tau_grad',   type=float, default=0.1, help='surrogate gradient time constant')
     parser.add_argument('-scale_grad', type=float, default=0.2, help='surrogate gradient scale')
     parser.add_argument('-clip',       type=float, default=10, help='gradient clipping limit')
+    # Network/SDNN
+    parser.add_argument('-cuba_threshold',  type=float, default=0.1, help='neuron threshold')
+    parser.add_argument('-cuba_current_decay',   type=float, default=1, help='surrogate gradient time constant')
+    parser.add_argument('-cuba_voltage_decay', type=float, default=0.1, help='surrogate gradient scale')
+    parser.add_argument('-cuba_tau_grad',       type=float, default=0.1, help='gradient clipping limit')
+    parser.add_argument('-cuba_scale_grad',       type=float, default=15, help='gradient clipping limit')
     # Pretrained model
     parser.add_argument('-load', type=str, default='', help='pretrained model')
     # Target generation
@@ -127,7 +133,12 @@ if __name__ == '__main__':
                       tau_grad=args.tau_grad,
                       scale_grad=args.scale_grad,
                       num_classes=classes_output[args.dataset],
-                      clamp_max=args.clamp_max).to(device)
+                      clamp_max=args.clamp_max,
+                      cuba_params={'threshold': args.cuba_threshold,
+                                    'current_decay' : args.cuba_current_decay,
+                                    'voltage_decay' : args.cuba_voltage_decay,
+                                    'tau_grad'      : args.cuba_tau_grad,   
+                                    'scale_grad'    : args.cuba_scale_grad}).to(device)
         module = net
     else:
         net = torch.nn.DataParallel(Network(threshold=args.threshold,
