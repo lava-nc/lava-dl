@@ -161,10 +161,10 @@ class PropheseeAutomotive(Dataset):
             images, annotations = self.datasets[dataset_idx][index]
             if len(images) == self.seq_len and len(annotations) == self.seq_len:
                 break
-            print('new index')
+            #print('new index')
             index = random.randint(0, len(self.datasets[0]))
         
-        print('returning len: ', len(images),  len(annotations))
+        #print('returning len: ', len(images),  len(annotations))
 
         # flip left right
         if random.random() < self.augment_prob:
