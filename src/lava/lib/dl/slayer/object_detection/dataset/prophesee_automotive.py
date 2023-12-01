@@ -90,7 +90,7 @@ class _PropheseeAutomotive(Dataset):
                                             'name': name,
                                             'bndbox': bndbox})
             
-            if (len(objects) == 0): # and (len(annotations) == 0):
+            if len(objects) == 0: # and (len(annotations) == 0):
                 continue
             #if len(objects) == 0:
             #    annotations.append(annotations[-1])
@@ -120,6 +120,8 @@ class _PropheseeAutomotive(Dataset):
             video.reset()
             bbox_video.reset()
             images, annotations = self.get_seq(video, bbox_video)
+        
+        print('len: ', len(images),  len(annotations))
             
         return images, annotations
 

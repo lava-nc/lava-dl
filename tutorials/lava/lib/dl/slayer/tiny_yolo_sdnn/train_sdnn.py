@@ -58,7 +58,7 @@ if __name__ == '__main__':
     # Network/SDNN
     parser.add_argument('-cuba_threshold',  type=float, default=0.1, help='neuron threshold')
     parser.add_argument('-cuba_current_decay',   type=float, default=1, help='surrogate gradient time constant')
-    parser.add_argument('-cuba_voltage_decay', type=float, default=0.1, help='surrogate gradient scale')
+    parser.add_argument('-cuba_voltage_decay', type=float, default=1, help='surrogate gradient scale')
     parser.add_argument('-cuba_tau_grad',       type=float, default=0.1, help='gradient clipping limit')
     parser.add_argument('-cuba_scale_grad',       type=float, default=15, help='gradient clipping limit')
     # Pretrained model
