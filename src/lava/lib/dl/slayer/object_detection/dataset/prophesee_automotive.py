@@ -64,7 +64,7 @@ class _PropheseeAutomotive(Dataset):
             try:
                 events = video.load_delta_t(self.delta_t)
                 boxes = bbox_video.load_delta_t(self.delta_t)
-            except:
+            except (AssertionError, IndexError):
                 continue
             
             if (len(boxes) == 0) and (len(annotations) == 0):
