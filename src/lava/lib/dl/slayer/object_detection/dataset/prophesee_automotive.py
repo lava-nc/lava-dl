@@ -115,16 +115,11 @@ class _PropheseeAutomotive(Dataset):
             bbox_video.seek_time( skip_time * np.random.random() * 1000000)
   
         images, annotations = self.get_seq(video, bbox_video)
-        print('len: ', len(images),  len(annotations))
         
         if len(images) != self.seq_len or len(annotations) != self.seq_len:
-            print('reseting')
             video.reset()
             bbox_video.reset()
-            images, annotations = self.get_seq(video, bbox_video)
-        
-        print('returining len: ', len(images),  len(annotations))
-            
+            images, annotations = self.get_seq(video, bbox_video)    
         return images, annotations
 
     def __len__(self) -> int:
@@ -160,7 +155,16 @@ class PropheseeAutomotive(Dataset):
         
         dataset_idx = index // len(self.datasets[0])
         index = index % len(self.datasets[0])
-        images, annotations = self.datasets[dataset_idx][index]
+        
+        
+        while True:
+            images, annotations = self.datasets[dataset_idx][index]
+            if len(images) == self.seq_len and len(annotations) == self.seq_len:
+                break
+            print('new index')
+            index = random.randint(0, len(self.datasets[0]))
+        
+        print('returning len: ', len(images),  len(annotations))
 
         # flip left right
         if random.random() < self.augment_prob:
