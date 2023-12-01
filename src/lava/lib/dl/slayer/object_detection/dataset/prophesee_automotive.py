@@ -115,13 +115,15 @@ class _PropheseeAutomotive(Dataset):
             bbox_video.seek_time( skip_time * np.random.random() * 1000000)
   
         images, annotations = self.get_seq(video, bbox_video)
-       
+        print('len: ', len(images),  len(annotations))
+        
         if len(images) != self.seq_len or len(annotations) != self.seq_len:
+            print('reseting')
             video.reset()
             bbox_video.reset()
             images, annotations = self.get_seq(video, bbox_video)
         
-        print('len: ', len(images),  len(annotations))
+        print('returining len: ', len(images),  len(annotations))
             
         return images, annotations
 
