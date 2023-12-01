@@ -46,7 +46,8 @@ class Network(YOLOBase):
                  threshold: float = 0.1,
                  tau_grad: float = 0.1,
                  scale_grad: float = 0.1,
-                 clamp_max: float = 5.0) -> None:
+                 clamp_max: float = 5.0,
+                 cuba_params = {'threshold': 0.1,'current_decay': 1, 'voltage_decay': 0.1, 'tau_grad': 0.1, 'scale_grad': 15}) -> None:
         super().__init__(num_classes=num_classes,
                          anchors=anchors,
                          clamp_max=clamp_max)
@@ -61,13 +62,6 @@ class Network(YOLOBase):
         sdnn_params = {
             **sigma_params,
             'activation'    : F.relu,      # activation function
-        }
-        cuba_params = {
-                'threshold'     : 0.1,
-                'current_decay' : 1,
-                'voltage_decay' : 0.1,
-                'tau_grad'      : 1,    # delta unit surrogate gradient relaxation parameter
-                'scale_grad'    : 15,  # delta unit surrogate gradient scale parameter
         }
         self.input_blocks = torch.nn.ModuleList([
             slayer.block.sigma_delta.Input(sdnn_params),
@@ -96,8 +90,8 @@ class Network(YOLOBase):
         #])
 
         self.blocks = torch.nn.ModuleList([
-            slayer.block.cuba.Conv(neuron_cuba_kwargs,   2,  16, 3, padding=1, stride=2, weight_scale=1, **block_8_kwargs),
-            slayer.block.cuba.Conv(neuron_cuba_kwargs,  16,  32, 3, padding=1, stride=2, weight_scale=1, **block_8_kwargs),
+            slayer.block.cuba.Conv(neuron_cuba_kwargs,   2,  16, 3, padding=1, stride=2, weight_scale=3, **block_8_kwargs),
+            slayer.block.cuba.Conv(neuron_cuba_kwargs,  16,  32, 3, padding=1, stride=2, weight_scale=3, **block_8_kwargs),
             slayer.block.sigma_delta.Conv(neuron_kwargs,  32,  64, 3, padding=1, stride=2, weight_scale=1, **block_8_kwargs),
             slayer.block.sigma_delta.Conv(neuron_kwargs,  64, 128, 3, padding=1, stride=2, weight_scale=3, **block_8_kwargs),
             slayer.block.sigma_delta.Conv(neuron_kwargs, 128, 256, 3, padding=1, stride=1, weight_scale=3, **block_8_kwargs),

@@ -33,6 +33,7 @@ class _PropheseeAutomotive(Dataset):
         self.delta_t = delta_t * 1000
         self.seq_len = seq_len
         self.randomize_seq = randomize_seq
+        self.events_ratio_threshold = 0.07
         
         with open(root + os.sep + 'label_map_dictionary.json') as file:
             data = json.load(file)
@@ -46,6 +47,12 @@ class _PropheseeAutomotive(Dataset):
         self.videos = [PSEELoader(self.dataset_path + os.sep + td_file) for td_file in td_files]
         self.bbox_videos = [PSEELoader(self.dataset_path + os.sep + td_file.split('_td.dat')[0] +  '_bbox.npy') for td_file in td_files]    
 
+    def validate_bbox(self, events, bbox):
+        events_bbox = events[bbox['ymin']:bbox['ymax'], bbox['xmin']:bbox['xmax']]
+        pixels_area = (bbox['xmax'] - bbox['xmin'])*(bbox['ymax'] - bbox['ymin'])
+        events_ratio = np.count_nonzero(events_bbox) / pixels_area
+        return events_ratio > self.events_ratio_threshold
+        
     
     def get_seq(self, video, bbox_video):
         
@@ -77,9 +84,11 @@ class _PropheseeAutomotive(Dataset):
                                 'ymax': int(boxes['y'][idx]) + int(boxes['h'][idx])}
                     name = self.idx_map[boxes['class_id'][idx]]
                     if (bndbox['xmax'] < width) and (bndbox['ymax']  < height) and (bndbox['xmin'] > 0) and (bndbox['ymin'] > 0):
-                        objects.append({'id': boxes['class_id'][idx],
-                                        'name': name,
-                                        'bndbox': bndbox})
+                        
+                        if self.validate_bbox(frame, bndbox):
+                            objects.append({'id': boxes['class_id'][idx],
+                                            'name': name,
+                                            'bndbox': bndbox})
             if len(boxes) == 0:
                 annotations.append(annotations[-1])
             else:

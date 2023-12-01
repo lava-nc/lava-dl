@@ -287,6 +287,7 @@ if __name__ == '__main__':
     print('Training/Testing Loop')
     
     for epoch in range(args.epoch):
+        
         t_st = datetime.now()
         ap_stats = obd.bbox.metrics.APstats(iou_threshold=0.5)
 
@@ -371,7 +372,8 @@ if __name__ == '__main__':
                 plt.savefig(f'{trained_folder}/yolo_loss_tracker.png')
                 plt.close()
             stats.print(epoch, i, samples_sec, header=header_list)
-
+            break
+        
         t_st = datetime.now()
         ap_stats = obd.bbox.metrics.APstats(iou_threshold=0.5)
         for i, (inputs, targets, bboxes) in enumerate(test_loader):
@@ -408,6 +410,7 @@ if __name__ == '__main__':
                 header_list += [f'Class loss: {loss_distr[3].item()}']
                 header_list += [f'IOU   loss: {loss_distr[4].item()}']
                 stats.print(epoch, i, samples_sec, header=header_list)
+            break
                 
         if not args.subset:
             writer.add_scalar('Loss/train', stats.training.loss, epoch)
