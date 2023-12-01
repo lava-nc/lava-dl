@@ -116,7 +116,7 @@ class _PropheseeAutomotive(Dataset):
   
         images, annotations = self.get_seq(video, bbox_video)
        
-        if len(images) < self.seq_len:
+        if len(images) != self.seq_len or len(annotations) != self.seq_len:
             video.reset()
             bbox_video.reset()
             images, annotations = self.get_seq(video, bbox_video)
