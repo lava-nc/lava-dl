@@ -82,7 +82,7 @@ if __name__ == '__main__':
     parser.add_argument('-warmup', type=int, default=10,  help='number of epochs to warmup')
     # dataset
     parser.add_argument('-dataset',     type=str,   default='PropheseeAutomotive', help='dataset to use [BDD100K, PropheseeAutomotive]')
-    parser.add_argument('-subset',      default=True, action='store_true', help='use PropheseeAutomotive12 subset')
+    parser.add_argument('-subset',      default=False, action='store_true', help='use PropheseeAutomotive12 subset')
     parser.add_argument('-path',        type=str,   default='/home/lecampos/data/prophesee', help='dataset path')
     parser.add_argument('-output_dir',  type=str,   default='.', help='directory in which to put log folders')
     parser.add_argument('-num_workers', type=int,   default=1, help='number of dataloader workers')
@@ -241,12 +241,12 @@ if __name__ == '__main__':
             train_set = obd.dataset.PropheseeAutomotive(root=args.path, train=True, 
                                                         augment_prob=args.aug_prob, 
                                                         randomize_seq=True,
-                                                        delta_t=10,
-                                                        seq_len=150)
+                                                        delta_t=1,
+                                                        seq_len=50)
             test_set = obd.dataset.PropheseeAutomotive(root=args.path, train=False,
                                                     randomize_seq=True,
-                                                    delta_t=10,
-                                                    seq_len=150)
+                                                    delta_t=1,
+                                                    seq_len=50)
             
             train_loader = DataLoader(train_set,
                                     batch_size=args.b,
