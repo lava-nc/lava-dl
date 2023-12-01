@@ -110,7 +110,7 @@ class _PropheseeAutomotive(Dataset):
         bbox_video = self.bbox_videos[index]
        
         if self.randomize_seq:
-            skip_time = video.duration_s - ((self.seq_len * self.delta_t) / 1000000)
+            skip_time = (video.duration_s - 0.1) - ((self.seq_len * self.delta_t) / 1000000)
             while True:
                 try:
                     video.seek_time( skip_time * np.random.random() * 1000000)
