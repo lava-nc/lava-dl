@@ -61,11 +61,8 @@ class _PropheseeAutomotive(Dataset):
         height, width = video.get_size()
          
         while not video.done:
-            try:
-                events = video.load_delta_t(self.delta_t)
-                boxes = bbox_video.load_delta_t(self.delta_t)
-            except (AssertionError, IndexError):
-                continue
+            events = video.load_delta_t(self.delta_t)
+            boxes = bbox_video.load_delta_t(self.delta_t)
             
             if (len(boxes) == 0) and (len(annotations) == 0):
                 continue
