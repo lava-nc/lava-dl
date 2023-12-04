@@ -54,8 +54,7 @@ class _PropheseeAutomotive(Dataset):
         return events_ratio > self.events_ratio_threshold
         
     
-    def get_seq(self, video, bbox_video):
-        
+    def get_seq(self, video, bbox_video): 
         images = []
         annotations = []
         height, width = video.get_size()
@@ -93,10 +92,8 @@ class _PropheseeAutomotive(Dataset):
                                             'name': name,
                                             'bndbox': bndbox})
             
-            if len(objects) == 0: # and (len(annotations) == 0):
+            if len(objects) == 0:
                 continue
-            #if len(objects) == 0:
-            #    annotations.append(annotations[-1])
             else:
                 annotation = {'size': size, 'object': objects}
                 annotations.append({'annotation': annotation})
@@ -107,6 +104,11 @@ class _PropheseeAutomotive(Dataset):
                 break
         return images, annotations
 
+    def get_name(self, index):
+        video = self.videos[index]
+        return video._file.name.split('_td.dat')[0].split('/')[-1]
+        #return name
+        
 
     def __getitem__(self, index: int) -> Tuple[torch.tensor, Dict[Any, Any]]:
         video = self.videos[index]
@@ -169,10 +171,7 @@ class PropheseeAutomotive(Dataset):
             images, annotations = self.datasets[dataset_idx][index]
             if len(images) == self.seq_len and len(annotations) == self.seq_len:
                 break
-            #print('new index')
             index = random.randint(0, len(self.datasets[0]))
-        
-        #print('returning len: ', len(images),  len(annotations))
 
         # flip left right
         if random.random() < self.augment_prob:
@@ -194,7 +193,7 @@ class PropheseeAutomotive(Dataset):
 
 
 if __name__ == '__main__':
-    train_set = PropheseeAutomotive(root='/home/lecampos/lava-dev/data/prophesee', train=True)
+    train_set = _PropheseeAutomotive(root='/home/lecampos/lava-dev/data/prophesee', train=True, sqe_len = 999999999999999 )
     print(f'{len(train_set) = }')
     print(f'{train_set.classes = }')
     print(f'{train_set.idx_map = }')
