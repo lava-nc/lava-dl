@@ -29,6 +29,8 @@ if __name__ == '__main__':
     if not os.path.exists(test_path):
         os.makedirs(test_path)
         
+    print('starting...')
+        
     for idx in range(len(train_set)):
         name = train_set.get_name(idx) 
         images, annotations = train_set[idx]
@@ -36,21 +38,22 @@ if __name__ == '__main__':
             os.makedirs(train_path + os.path.sep + name)
             os.makedirs(train_path + os.path.sep + name +  os.path.sep + 'events')
             os.makedirs(train_path + os.path.sep + name +  os.path.sep + 'labels')
-        idx = 0
+            
+        idd = 0
         for events, label in zip(images, annotations):
             np.savez_compressed(train_path + os.path.sep + name +  os.path.sep + 
-                                'events' + os.path.sep + '{:05d}'.format(idx) + '.npz', a=events)
+                                'events' + os.path.sep + '{:05d}'.format(idd) + '.npz', a=events)
             np.savez_compressed(train_path + os.path.sep + name +  os.path.sep + 
-                                    'labels' + os.path.sep + '{:05d}'.format(idx) + '.npz', a=label)
+                                    'labels' + os.path.sep + '{:05d}'.format(idd) + '.npz', a=label)
             
             events_loaded = np.load(train_path + os.path.sep + name +  os.path.sep + 
-                                'events' + os.path.sep + '{:05d}'.format(idx) + '.npz')['a']
+                                'events' + os.path.sep + '{:05d}'.format(idd) + '.npz')['a']
 
             label_loaded = np.load(train_path + os.path.sep + name +  os.path.sep + 
-                                'labels' + os.path.sep + '{:05d}'.format(idx) + '.npz',
+                                'labels' + os.path.sep + '{:05d}'.format(idd) + '.npz',
                                 allow_pickle='TRUE')['a'].item()
-            idx += 1
-        print('train_set: ', name)
+            idd += 1
+        print(idx, '/', len(train_set), ' train_set: ', name)
             
     for idx in range(len(test_set)):
         name = test_set.get_name(idx) 
@@ -59,18 +62,19 @@ if __name__ == '__main__':
             os.makedirs(test_path + os.path.sep + name)
             os.makedirs(test_path + os.path.sep + name +  os.path.sep + 'events')
             os.makedirs(test_path + os.path.sep + name +  os.path.sep + 'labels')
-        idx = 0
+            
+        idd = 0
         for events, label in zip(images, annotations):
             np.savez_compressed(test_path + os.path.sep + name +  os.path.sep + 
-                                'events' + os.path.sep + '{:05d}'.format(idx) + '.npz', a=events)
+                                'events' + os.path.sep + '{:05d}'.format(idd) + '.npz', a=events)
             np.savez_compressed(test_path + os.path.sep + name +  os.path.sep + 
-                                    'labels' + os.path.sep + '{:05d}'.format(idx) + '.npz', a=label)
+                                    'labels' + os.path.sep + '{:05d}'.format(idd) + '.npz', a=label)
             
             events_loaded = np.load(test_path + os.path.sep + name +  os.path.sep + 
-                                'events' + os.path.sep + '{:05d}'.format(idx) + '.npz')['a']
+                                'events' + os.path.sep + '{:05d}'.format(idd) + '.npz')['a']
 
             label_loaded = np.load(test_path + os.path.sep + name +  os.path.sep + 
-                                'labels' + os.path.sep + '{:05d}'.format(idx) + '.npz',
+                                'labels' + os.path.sep + '{:05d}'.format(idd) + '.npz',
                                 allow_pickle='TRUE')['a'].item()
-            idx += 1
-        print('test_set: ', name)
+            idd += 1
+        print(idx, '/', len(test_set), ' test_set: ', name)

@@ -238,14 +238,14 @@ if __name__ == '__main__':
                                     pin_memory=True)
             print('Using PropheseeAutomotive12 Dataset')
         else:      
-            train_set = obd.dataset.PropheseeAutomotive(root=args.path, train=True, 
+            train_set = obd.dataset.PropheseeAutomotiveFiltered(root=args.path, train=True, 
                                                         augment_prob=args.aug_prob, 
                                                         randomize_seq=True,
-                                                        delta_t=1,
+                                                        #delta_t=1,
                                                         seq_len=50)
-            test_set = obd.dataset.PropheseeAutomotive(root=args.path, train=False,
+            test_set = obd.dataset.PropheseeAutomotiveFiltered(root=args.path, train=False,
                                                     randomize_seq=True,
-                                                    delta_t=1,
+                                                    #delta_t=1,
                                                     seq_len=50)
             
             train_loader = DataLoader(train_set,
