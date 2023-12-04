@@ -1,7 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib import animation
-import IPython.display as ipd
 from lava.lib.dl.slayer import obd
 import os
 
