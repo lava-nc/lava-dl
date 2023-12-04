@@ -16,7 +16,7 @@ if __name__ == '__main__':
                                                 seq_len = 999999999999)
                     
 
-    out_path = '/data-raid/sshresth/data/Prophesee_1mp/Prophesee_fl'
+    out_path = '/data-raid/sshresth/data/Prophesee_fl'
 
     if not os.path.exists(out_path):
         os.makedirs(out_path)
