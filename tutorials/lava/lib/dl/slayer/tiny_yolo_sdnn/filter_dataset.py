@@ -7,25 +7,25 @@ if __name__ == '__main__':
                                                 delta_t = 1,
                                                 train=True, 
                                                 randomize_seq= False,
-                                                seq_len = 999999999)
+                                                seq_len = 999999999999)
     
     test_set = obd.dataset._PropheseeAutomotive(root='/data-raid/sshresth/data/Prophesee_1mp', 
                                                 delta_t = 1,
                                                 train=False, 
                                                 randomize_seq= False,
-                                                seq_len = 999999999)
+                                                seq_len = 999999999999)
                     
 
-    out_path = '/data-raid/sshresth/data/Prophesee_fl'
+    out_path = '/data-raid/sshresth/data/Prophesee_1mp/Prophesee_fl'
 
     if not os.path.exists(out_path):
         os.makedirs(out_path)
 
-    train_path = '/data-raid/sshresth/data/Prophesee_fl' + '/train'
+    train_path = out_path + os.path.sep + '/train'
     if not os.path.exists(train_path):
         os.makedirs(train_path)
         
-    test_path = '/data-raid/sshresth/data/Prophesee_fl' + '/val'
+    test_path = out_path + os.path.sep + '/val'
     if not os.path.exists(test_path):
         os.makedirs(test_path)
         
