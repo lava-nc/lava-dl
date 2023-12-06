@@ -67,9 +67,11 @@ class _PropheseeAutomotiveFiltered(Dataset):
         
         images = []
         annotations = []
-        for idx in range(id_load, len(videos_list)):
-            images.append(np.load(videos_path + os.path.sep + videos_list[idx])['a'])
-            annotations.append(np.load(bbox_path + os.path.sep + bbox_list[idx], allow_pickle='TRUE')['a'].item())
+        #for idx in range(id_load, len(videos_list)):
+        while len(images) < self.seq_len:
+            images.append(np.load(videos_path + os.path.sep + videos_list[id_load])['a'])
+            annotations.append(np.load(bbox_path + os.path.sep + bbox_list[id_load], allow_pickle='TRUE')['a'].item())
+            id_load += 1
   
         return images, annotations
 
