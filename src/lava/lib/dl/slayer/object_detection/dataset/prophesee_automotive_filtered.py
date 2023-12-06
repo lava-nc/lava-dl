@@ -32,9 +32,19 @@ class _PropheseeAutomotiveFiltered(Dataset):
 
         dataset = 'train' if train else 'val'
         self.dataset_path = root + os.sep + dataset
-        self.files = os.listdir(self.dataset_path)
-        self.files.sort()
+        tmp_files = os.listdir(self.dataset_path)
         
+        
+        # validate frames size
+        self.files = []
+        for file in tmp_files:
+            videos_path = self.dataset_path + os.path.sep + file + os.path.sep + 'events'
+            bbox_path = self.dataset_path + os.path.sep + file + os.path.sep + 'labels'
+            
+            if len( os.listdir(videos_path)) >= self.seq_len and len(os.listdir(bbox_path)) >= self.seq_len:
+                self.files.append(file)
+        
+        self.files.sort()
 
 
     def __getitem__(self, index: int) -> Tuple[torch.tensor, Dict[Any, Any]]:
@@ -49,13 +59,13 @@ class _PropheseeAutomotiveFiltered(Dataset):
         bbox_list = os.listdir(bbox_path)
         bbox_list.sort()
         
-        if len(videos_list) < self.seq_len or len(bbox_path) < self.seq_len:
-            return [], []
+        #if len(videos_list) < self.seq_len or len(bbox_path) < self.seq_len:
+        #    return [], []
         
         id_load = 0
         if self.randomize_seq:
-            if len(videos_list) > (self.seq_len - 1):
-                skip_time = len(videos_list) - (self.seq_len - 1)
+            if len(videos_list) > self.seq_len:
+                skip_time = len(videos_list) - (self.seq_len + 1)
                 id_load = np.random.randint(0, skip_time)
         
         images = []
@@ -98,13 +108,14 @@ class PropheseeAutomotiveFiltered(Dataset):
         
         dataset_idx = index // len(self.datasets[0])
         index = index % len(self.datasets[0])
+        images, annotations = self.datasets[dataset_idx][index]
         
         
-        while True:
-            images, annotations = self.datasets[dataset_idx][index]
-            if (len(images) == self.seq_len) and (len(annotations) == self.seq_len):
-                break
-            index = random.randint(0, (len(self.datasets[0]) - 1) )
+        # while True:
+        #     images, annotations = self.datasets[dataset_idx][index]
+        #     if (len(images) == self.seq_len) and (len(annotations) == self.seq_len):
+        #         break
+        #     index = random.randint(0, (len(self.datasets[0]) - 1) )
 
         # flip left right
         if random.random() < self.augment_prob:
