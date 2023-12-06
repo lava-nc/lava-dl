@@ -59,13 +59,10 @@ class _PropheseeAutomotiveFiltered(Dataset):
         bbox_list = os.listdir(bbox_path)
         bbox_list.sort()
         
-        #if len(videos_list) < self.seq_len or len(bbox_path) < self.seq_len:
-        #    return [], []
-        
         id_load = 0
         if self.randomize_seq:
             if len(videos_list) > self.seq_len:
-                skip_time = len(videos_list) - (self.seq_len + 1)
+                skip_time = len(videos_list) - self.seq_len
                 id_load = np.random.randint(0, skip_time)
         
         images = []
