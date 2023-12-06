@@ -83,7 +83,7 @@ if __name__ == '__main__':
     # dataset
     parser.add_argument('-dataset',     type=str,   default='PropheseeAutomotive', help='dataset to use [BDD100K, PropheseeAutomotive]')
     parser.add_argument('-subset',      default=False, action='store_true', help='use PropheseeAutomotive12 subset')
-    parser.add_argument('-path',        type=str,   default='/home/lecampos/data/prophesee', help='dataset path')
+    parser.add_argument('-path',        type=str,   default='/home/lecampos/data/prophesee_small', help='dataset path')
     parser.add_argument('-output_dir',  type=str,   default='.', help='directory in which to put log folders')
     parser.add_argument('-num_workers', type=int,   default=1, help='number of dataloader workers')
     parser.add_argument('-aug_prob',    type=float, default=0.2, help='training augmentation probability')

@@ -50,7 +50,7 @@ class _PropheseeAutomotiveFiltered(Dataset):
         bbox_list.sort()
         
         if len(videos_list) < self.seq_len:
-            return None, None
+            return [], []
         
         id_load = 0
         if self.randomize_seq:
@@ -61,7 +61,6 @@ class _PropheseeAutomotiveFiltered(Dataset):
         images = []
         annotations = []
         for idx in range(id_load, len(videos_list)):
-            
             images.append(np.load(videos_path + os.path.sep + videos_list[idx])['a'])
             annotations.append(np.load(bbox_path + os.path.sep + bbox_list[idx], allow_pickle='TRUE')['a'].item())
   
@@ -103,7 +102,7 @@ class PropheseeAutomotiveFiltered(Dataset):
         
         while True:
             images, annotations = self.datasets[dataset_idx][index]
-            if images != None:
+            if (len(images) == self.seq_len) and (len(annotations) == self.seq_len):
                 break
             index = random.randint(0, len(self.datasets[0]))
 
