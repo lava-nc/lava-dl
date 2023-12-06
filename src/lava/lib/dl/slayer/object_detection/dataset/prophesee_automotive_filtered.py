@@ -104,7 +104,7 @@ class PropheseeAutomotiveFiltered(Dataset):
             images, annotations = self.datasets[dataset_idx][index]
             if (len(images) == self.seq_len) and (len(annotations) == self.seq_len):
                 break
-            index = random.randint(0, len(self.datasets[0]))
+            index = random.randint(0, (len(self.datasets[0]) - 1) )
 
         # flip left right
         if random.random() < self.augment_prob:
