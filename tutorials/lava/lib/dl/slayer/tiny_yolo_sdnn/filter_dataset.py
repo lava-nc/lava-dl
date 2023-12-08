@@ -49,7 +49,7 @@ if __name__ == '__main__':
     if not os.path.exists(test_path):
         os.makedirs(test_path)
         
-    num_cores = 45 #multiprocessing.cpu_count() - 1
+    num_cores = 85 #multiprocessing.cpu_count() - 1
     print('starting...')
     processed_list = Parallel(n_jobs=num_cores, prefer="threads")(delayed(single_data)(train_set, idx, train_path) for idx in range(len(train_set)))
     processed_list = Parallel(n_jobs=num_cores, prefer="threads")(delayed(single_data)(test_set, idx, test_path) for idx in range(len(test_set)))
