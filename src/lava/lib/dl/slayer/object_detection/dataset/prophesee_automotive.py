@@ -15,6 +15,7 @@ from typing import Any, Dict, Tuple
 
 try:
     from src.io.psee_loader import PSEELoader
+    from src.io.box_filtering import filter_boxes
 except ModuleNotFoundError:
     print(" Error! ")
 
@@ -33,7 +34,7 @@ class _PropheseeAutomotive(Dataset):
         self.delta_t = delta_t * 1000
         self.seq_len = seq_len
         self.randomize_seq = randomize_seq
-        self.events_ratio_threshold = 0.1
+        self.events_ratio_threshold = 0.065
         
         with open(root + os.sep + 'label_map_dictionary.json') as file:
             data = json.load(file)
@@ -66,7 +67,11 @@ class _PropheseeAutomotive(Dataset):
             except (AssertionError, IndexError):
                 continue
             
-            if (len(boxes) == 0) and (len(annotations) == 0):
+            min_box_diag = 60
+            min_box_side = 20
+            boxes = filter_boxes(boxes, int(1e5), min_box_diag, min_box_side)
+            
+            if len(boxes) == 0:
                 continue
             
             frame = np.zeros((height, width, 2), dtype=np.uint8)
