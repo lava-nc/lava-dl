@@ -37,7 +37,7 @@ class PropheseeAutomotive12(obd.dataset.PropheseeAutomotive):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-gpu', type=int, default=[0], help='which gpu(s) to use', nargs='+')
+    parser.add_argument('-gpu', type=int, default=[1], help='which gpu(s) to use', nargs='+')
     parser.add_argument('-b',   type=int, default=1,  help='batch size for dataloader')
     parser.add_argument('-verbose', default=False, action='store_true', help='lots of debug printouts')
     # Model
@@ -112,7 +112,7 @@ if __name__ == '__main__':
             f.write('{} : {}\n'.format(arg, value))
 
     print('Using GPUs {}'.format(args.gpu))
-    device = torch.device('cuda:{}'.format(args.gpu[1]))
+    device = torch.device('cuda:{}'.format(args.gpu[0]))
 
     classes_output = {'BDD100K': 11, 'PropheseeAutomotive': 7}
 
