@@ -112,7 +112,7 @@ if __name__ == '__main__':
             f.write('{} : {}\n'.format(arg, value))
 
     print('Using GPUs {}'.format(args.gpu))
-    device = torch.device('cuda:{}'.format(args.gpu[0]))
+    device = torch.device('cuda:{}'.format(args.gpu[1]))
 
     classes_output = {'BDD100K': 11, 'PropheseeAutomotive': 7}
 
