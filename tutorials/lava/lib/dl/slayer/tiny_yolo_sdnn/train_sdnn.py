@@ -37,7 +37,7 @@ class PropheseeAutomotive12(obd.dataset.PropheseeAutomotive):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-gpu', type=int, default=[1], help='which gpu(s) to use', nargs='+')
+    parser.add_argument('-gpu', type=int, default=[2], help='which gpu(s) to use', nargs='+')
     parser.add_argument('-b',   type=int, default=1,  help='batch size for dataloader')
     parser.add_argument('-verbose', default=False, action='store_true', help='lots of debug printouts')
     # Model
@@ -242,11 +242,11 @@ if __name__ == '__main__':
                                                         augment_prob=args.aug_prob, 
                                                         randomize_seq=True,
                                                         #delta_t=1,
-                                                        seq_len=50)
+                                                        seq_len=100)
             test_set = obd.dataset.PropheseeAutomotiveFiltered(root=args.path, train=False,
                                                     randomize_seq=True,
                                                     #delta_t=1,
-                                                    seq_len=50)
+                                                    seq_len=100)
             
             train_loader = DataLoader(train_set,
                                     batch_size=args.b,
