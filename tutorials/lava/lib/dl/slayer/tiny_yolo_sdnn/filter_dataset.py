@@ -25,18 +25,18 @@ def single_data(dataset, idx, ds_path):
 
 if __name__ == '__main__':
     train_set = obd.dataset._PropheseeAutomotive(root='/home/lecampos/data/prophesee', 
-                                                delta_t = 1,
+                                                delta_t = 5,
                                                 train=True, 
                                                 randomize_seq= False,
                                                 seq_len = 999999999999999)
     
     test_set = obd.dataset._PropheseeAutomotive(root='/home/lecampos/data/prophesee', 
-                                                delta_t = 1,
+                                                delta_t = 5,
                                                 train=False, 
                                                 randomize_seq= False,
                                                 seq_len = 999999999999999)
                     
-    out_path = '/home/lecampos/data/prophesee_small'
+    out_path = '/home/lecampos/data/prophesee_5ms'
     
     if not os.path.exists(out_path):
         os.makedirs(out_path)

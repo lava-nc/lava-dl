@@ -34,7 +34,7 @@ class _PropheseeAutomotive(Dataset):
         self.delta_t = delta_t * 1000
         self.seq_len = seq_len
         self.randomize_seq = randomize_seq
-        self.events_ratio_threshold = 0.065
+        self.events_ratio_threshold = 0.15
         
         with open(root + os.sep + 'label_map_dictionary.json') as file:
             data = json.load(file)
