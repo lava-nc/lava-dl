@@ -267,8 +267,21 @@ class Network(YOLOBase):
         model_keys[f'anchors'] = True
         #model_keys[f'input_blocks.0.neuron.bias'] = True
         #model_keys[f'input_blocks.0.neuron.delta.threshold'] = True
+        
+        for i in range(2):
+            self.blocks[i].neuron.current_decay.data = saved_model[f'blocks.{i}.neuron.current_decay'].data
+            self.blocks[i].neuron.voltage_decay.data = saved_model[f'blocks.{i}.neuron.voltage_decay'].data
+            self.blocks[i].neuron.norm.running_mean.data = saved_model[f'blocks.{i}.neuron.norm.running_mean'].data
+            self.blocks[i].synapse.weight_g.data = saved_model[f'blocks.{i}.synapse.weight_g'].data
+            self.blocks[i].synapse.weight_v.data = saved_model[f'blocks.{i}.synapse.weight_v'].data
+            
+            model_keys[f'blocks.{i}.neuron.current_decay'] = True
+            model_keys[f'blocks.{i}.neuron.voltage_decay'] = True
+            model_keys[f'blocks.{i}.neuron.norm.running_mean'] = True
+            model_keys[f'blocks.{i}.synapse.weight_g'] = True
+            model_keys[f'blocks.{i}.synapse.weight_v'] = True
 
-        for i in range(len(self.blocks)):
+        for i in range(2, len(self.blocks)):
             self.blocks[i].neuron.bias.data = saved_model[f'blocks.{i}.neuron.bias'].data
             self.blocks[i].neuron.norm.running_mean.data = saved_model[f'blocks.{i}.neuron.norm.running_mean'].data
             self.blocks[i].neuron.delta.threshold.data = saved_model[f'blocks.{i}.neuron.delta.threshold'].data

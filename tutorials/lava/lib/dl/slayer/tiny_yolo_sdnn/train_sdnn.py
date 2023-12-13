@@ -62,7 +62,7 @@ if __name__ == '__main__':
     parser.add_argument('-cuba_tau_grad',       type=float, default=0.1, help='gradient clipping limit')
     parser.add_argument('-cuba_scale_grad',       type=float, default=15, help='gradient clipping limit')
     # Pretrained model
-    parser.add_argument('-load', type=str, default='', help='pretrained model')
+    parser.add_argument('-load', type=str, default='/home/lecampos/Trained_yolo_kp_events/network.pt', help='pretrained model')
     # Target generation
     parser.add_argument('-tgt_iou_thr', type=float, default=0.5, help='ignore iou threshold in target generation')
     # YOLO loss
