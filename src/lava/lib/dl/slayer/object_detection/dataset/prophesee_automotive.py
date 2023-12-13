@@ -177,10 +177,10 @@ class PropheseeAutomotive(Dataset):
         index = index % len(self.datasets[0])
         
         #while True:
-        images, annotations = self.datasets[dataset_idx][index]
-            #if len(images) == self.seq_len and len(annotations) == self.seq_len:
-            #    break
-            #index = random.randint(0, len(self.datasets[0]))
+        images, annotations = [], []
+        while (len(images) != self.seq_len) and (len(annotations) != self.seq_len):
+            images, annotations = self.datasets[dataset_idx][index]
+            index = random.randint(0, len(self.datasets[0]) - 1)
 
         # flip left right
         if random.random() < self.augment_prob:
