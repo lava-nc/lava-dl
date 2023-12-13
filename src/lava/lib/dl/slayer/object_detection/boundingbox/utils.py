@@ -47,17 +47,23 @@ def accuracy(pred_nms, bboxes, printFlag = False):
     return ap_stats.ap_scores()[0]
 
 
-class temporal_NMS:
+class temporal_NMS():
     # implemented the temporal Non Maximum Suppression over two consecutive frames 
     """Performs temporal Non-Maximal suppression of the input predictions. First a basic
     filtering of the bounding boxes based on a minimum confidence threshold are
-    eliminated. Subsequently a non-maximal suppression is performed. A
-    non-maximal threshold is used to determine if the two bounding boxes
-    represent the same object. It supports batch inputs.
+    eliminated. Subsequently we operate a non-maximal suppression is performed maching 
+    bboxes over two successive frames. A non-maximal threshold is used to determine if the
+    two bounding boxes represent the same object, above(below) which the likelihood of the 
+    object is increased(decreased). It supports batch inputs.
 
-    initialize class by setting the instance with n_batches
-    t_nms = temporal_NMS(n_batches) 
-    detections = [t_nms(predictions[...,t]) for t in T] 
+    
+    import temporal_NMS as t_nms
+    ### the class is self initialized!! no need to initialize it. Instances can be accessed 
+    ### directly calling class_name.instance
+    ### calling the frame predictions to be analyzed, will automatically initialize variables
+    detections = [t_nms.next(predictions[...,t]) for t in T] 
+    ### to reset to zero frame data call:
+    t_nms.reset()
     
     Parameters
     ----------
@@ -85,12 +91,34 @@ class temporal_NMS:
         Non-maximal filterered prediction outputs per batch.
     """    
     
-    # def __call__(self, pred: List[torch.tensor]) -> List[torch.tensor]:
-    def __call__(self, pred):
-        
-        n_batches = pred.shape[0]
-        conf_threshold, nms_threshold, merge_conf, max_iterations_temporal, temporal_scaling_threshold, scaling_prob = (
-            self.conf_threshold, self.nms_threshold, self.merge_conf, self.max_iterations_temporal, self.temporal_scaling_threshold, self.scaling_prob)
+    init              = 0
+    detections        = []
+    dets_             = []    
+    k_frames          = 2
+    n_batches         = None
+    
+    def reset():
+        ## initialize buffers                       
+        __class__.detections        = [[] for _ in range(__class__.n_batches)]
+        __class__.dets_             = [deque(maxlen = __class__.k_frames) for _ in range(__class__.n_batches)]
+        __class__.init              = 1
+
+    def next(pred: List[torch.tensor],
+             conf_threshold = 0.5, 
+             nms_threshold = 0.4, 
+             merge_conf = True, 
+             max_iterations_temporal = 15,
+             temporal_scaling_threshold = .9, 
+             scaling_prob = [1.15, .85]) -> List[torch.tensor]:
+        # def __call__(self, pred):
+
+        # initialize to data
+        __class__.n_batches = n_batches = pred.shape[0]
+        # housekeeping only on first call
+        if __class__.init==0:
+            __class__.reset() 
+
+        dets_, detections = __class__.dets_, __class__.detections
 
         for b_n, pred_, in enumerate(pred): #along the batch                    
             filtered = pred_[pred_[:, 4] > conf_threshold]            
@@ -99,14 +127,13 @@ class temporal_NMS:
                 scores = filtered[:, 4:5] * obj_conf
             else:
                 scores = filtered[:, 4:5]
-            boxes = filtered[:, :4]          
-        
+            boxes = filtered[:, :4]                  
             #last updated frame in detections0
-            self.dets_[b_n].append(torch.cat([boxes, scores, labels], dim=-1))
-            if len(self.dets_[b_n])==1: ###loads the first frame NMS components discarding NMS                 
-                detections0 = detections1 = self.dets_[b_n][-1]
+            dets_[b_n].append(torch.cat([boxes, scores, labels], dim=-1))
+            if len(dets_[b_n])==1: ###loads the first frame NMS components discarding NMS                 
+                detections0 = detections1 = dets_[b_n][-1]
             else:
-                detections0, detections1 = self.dets_[b_n][-1], self.dets_[b_n][-2] ###best performer
+                detections0, detections1 = dets_[b_n][-1], dets_[b_n][-2] ###best performer
                 # detections0, detections1 = self.dets_[b_n][-1], self.detections[b_n]  ## less good on prev scaled det          
             for k in range(max_iterations_temporal):                                 
                 if k==max_iterations_temporal-1: # last iteration is classic NMS
@@ -129,22 +156,8 @@ class temporal_NMS:
                     detections00[:,4] *= scaling_prob[1]                    
                     # considering also last iteration is classic NMS
                     detections0 = torch.cat([detections01, detections00], dim=0) if k < max_iterations_temporal-1 else detections01 
-            self.detections[b_n] = detections0.clone()
-        return self.detections[:n_batches]                        
-            
-
-    def reset(self):
-        ## initialize buffers        
-        self.detections        = [[] for _ in range(self.n_batches )]
-        self.dets_             = [deque(maxlen=self.k_frames) for _ in range(self.n_batches)]
-
-    
-    def __init__(self, n_batches = 8, conf_threshold = 0.5, nms_threshold = 0.4, merge_conf = True, max_iterations_temporal = 15,
-                 temporal_scaling_threshold = .9, scaling_prob = [1.15, .85], k_frames = 2):
-        self.conf_threshold, self.nms_threshold, self.merge_conf, self.max_iterations_temporal,self.temporal_scaling_threshold, self.scaling_prob, self.k_frames, self.n_batches = (
-        conf_threshold, nms_threshold, merge_conf, max_iterations_temporal, temporal_scaling_threshold, scaling_prob, k_frames, n_batches)
-        self.reset()
-        
+            detections[b_n] = detections0.clone()
+        return detections[:n_batches]                                   
 
 
 
