@@ -242,11 +242,11 @@ if __name__ == '__main__':
                                                         augment_prob=args.aug_prob, 
                                                         randomize_seq=True,
                                                         #delta_t=1,
-                                                        seq_len=100)
+                                                        seq_len=5)
             test_set = obd.dataset.PropheseeAutomotiveFiltered(root=args.path, train=False,
                                                     randomize_seq=True,
                                                     #delta_t=1,
-                                                    seq_len=100)
+                                                    seq_len=5)
             
             train_loader = DataLoader(train_set,
                                     batch_size=args.b,
@@ -465,6 +465,10 @@ if __name__ == '__main__':
                                 epoch)
         if stats.testing.best_accuracy is True:
             torch.save(module.state_dict(), trained_folder + '/network.pt')
+            if hasattr(module, 'export_hdf5'):
+                module.load_state_dict(torch.load(trained_folder + '/network.pt'))
+                module.export_hdf5(trained_folder + '/network.net')
+            
             if inputs.shape[-1] == 1:
                 marked_images.save(
                     f'{trained_folder}/prediction_{epoch}_{b}.jpg')

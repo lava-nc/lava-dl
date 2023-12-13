@@ -63,9 +63,9 @@ class Network(YOLOBase):
             **sigma_params,
             'activation'    : F.relu,      # activation function
         }
-        self.input_blocks = torch.nn.ModuleList([
-            slayer.block.sigma_delta.Input(sdnn_params),
-        ])
+        #self.input_blocks = torch.nn.ModuleList([
+        #    slayer.block.sigma_delta.Input(sdnn_params),
+        #])
 
         def quantize_8bit(x: torch.tensor,
                           scale: int = (1 << 6),
@@ -209,9 +209,11 @@ class Network(YOLOBase):
         h = h5py.File(filename, 'w')
         layer = h.create_group('layer')
         offset = 0
-        for i, b in enumerate(self.input_blocks):
-            b.export_hdf5(layer.create_group(f'{i + offset}'))
-        offset += len(self.input_blocks)
+        
+        #for i, b in enumerate(self.input_blocks):
+        #    b.export_hdf5(layer.create_group(f'{i + offset}'))
+        
+        #offset += len(self.input_blocks)
         for i, b in enumerate(self.blocks):
             b.export_hdf5(layer.create_group(f'{i + offset}'))
         offset += len(self.blocks)
@@ -260,11 +262,11 @@ class Network(YOLOBase):
         model_keys = {k : False for k in saved_model.keys()}
         device = self.anchors.device
         self.anchors.data = saved_model['anchors'].data.to(device)
-        self.input_blocks[0].neuron.bias.data = saved_model[f'input_blocks.0.neuron.bias'].data.to(device)
-        self.input_blocks[0].neuron.delta.threshold.data = saved_model[f'input_blocks.0.neuron.delta.threshold'].data.to(device)
+        #self.input_blocks[0].neuron.bias.data = saved_model[f'input_blocks.0.neuron.bias'].data.to(device)
+        #self.input_blocks[0].neuron.delta.threshold.data = saved_model[f'input_blocks.0.neuron.delta.threshold'].data.to(device)
         model_keys[f'anchors'] = True
-        model_keys[f'input_blocks.0.neuron.bias'] = True
-        model_keys[f'input_blocks.0.neuron.delta.threshold'] = True
+        #model_keys[f'input_blocks.0.neuron.bias'] = True
+        #model_keys[f'input_blocks.0.neuron.delta.threshold'] = True
 
         for i in range(len(self.blocks)):
             self.blocks[i].neuron.bias.data = saved_model[f'blocks.{i}.neuron.bias'].data
