@@ -20,19 +20,39 @@ from lava.lib.dl.slayer import obd
 Width = int
 Height = int
 
-class PropheseeAutomotive12(obd.dataset.PropheseeAutomotive):
+class PropheseeAutomotiveSmall(obd.dataset.PropheseeAutomotive):
     def __init__(self,
                  root: str = './',
                  delta_t: int = 1, 
                  size: Tuple[Height, Width] = (448, 448),
                  train: bool = False,
                  seq_len: int = 32,
+                 events_ratio: float = 0.07,
                  randomize_seq: bool = False,
                  augment_prob: float = 0.0) -> None:
-        super().__init__(root=root, delta_t=delta_t, train=train, size=size, seq_len=seq_len, randomize_seq=randomize_seq, augment_prob=augment_prob)
+        super().__init__(root=root, delta_t=delta_t, train=train, size=size, 
+                         seq_len=seq_len, randomize_seq=randomize_seq, 
+                         events_ratio=events_ratio, augment_prob=augment_prob)
 
     def __len__(self):
-        return 1
+        return 45
+    
+class PropheseeAutomotiveSmallTrain(obd.dataset.PropheseeAutomotive):
+    def __init__(self,
+                 root: str = './',
+                 delta_t: int = 1, 
+                 size: Tuple[Height, Width] = (448, 448),
+                 train: bool = False,
+                 seq_len: int = 32,
+                 events_ratio: float = 0.07,
+                 randomize_seq: bool = False,
+                 augment_prob: float = 0.0) -> None:
+        super().__init__(root=root, delta_t=delta_t, train=train, size=size, 
+                         seq_len=seq_len, randomize_seq=randomize_seq, 
+                         events_ratio=events_ratio, augment_prob=augment_prob)
+
+    def __len__(self):
+        return 5
 
 
 if __name__ == '__main__':
@@ -62,7 +82,7 @@ if __name__ == '__main__':
     parser.add_argument('-cuba_tau_grad',       type=float, default=0.1, help='gradient clipping limit')
     parser.add_argument('-cuba_scale_grad',       type=float, default=15, help='gradient clipping limit')
     # Pretrained model
-    parser.add_argument('-load', type=str, default='/home/lecampos/Trained_yolo_kp_events/network.pt', help='pretrained model')
+    parser.add_argument('-load', type=str, default='', help='pretrained model')
     # Target generation
     parser.add_argument('-tgt_iou_thr', type=float, default=0.5, help='ignore iou threshold in target generation')
     # YOLO loss
@@ -83,7 +103,10 @@ if __name__ == '__main__':
     # dataset
     parser.add_argument('-dataset',     type=str,   default='PropheseeAutomotive', help='dataset to use [BDD100K, PropheseeAutomotive]')
     parser.add_argument('-subset',      default=False, action='store_true', help='use PropheseeAutomotive12 subset')
-    parser.add_argument('-path',        type=str,   default='/home/lecampos/data/prophesee_small', help='dataset path')
+    parser.add_argument('-seq_len',  type=int, default=32, help='number of time continous frames')
+    parser.add_argument('-delta_t',  type=int, default=1, help='time window for events')
+    parser.add_argument('-event_ratio',  type=float, default=0.07, help='filtering bbox')
+    parser.add_argument('-path',        type=str,   default='/home/lecampos/data/prophesee', help='dataset path')
     parser.add_argument('-output_dir',  type=str,   default='.', help='directory in which to put log folders')
     parser.add_argument('-num_workers', type=int,   default=1, help='number of dataloader workers')
     parser.add_argument('-aug_prob',    type=float, default=0.2, help='training augmentation probability')
@@ -214,52 +237,44 @@ if __name__ == '__main__':
                                  pin_memory=True)        
     elif args.dataset == 'PropheseeAutomotive':
         if args.subset:
-            train_set = PropheseeAutomotive12(root=args.path, train=True, 
-                                                augment_prob=0.0, 
-                                                randomize_seq=False,
-                                                delta_t=1,
-                                                seq_len=50)
+            train_set = PropheseeAutomotiveSmall(root=args.path, train=True, 
+                                                augment_prob=args.aug_prob, 
+                                                randomize_seq=True,
+                                                events_ratio = args.event_ratio,
+                                                delta_t=args.delta_t,
+                                                seq_len=args.seq_len)
             
-            test_set = PropheseeAutomotive12(root=args.path, train=False,
-                                                    randomize_seq=False,
-                                                    delta_t=1,
-                                                    seq_len=50)
-            train_loader = DataLoader(train_set,
-                                    batch_size=args.b,
-                                    shuffle=True,
-                                    collate_fn=yolo_target.collate_fn,
-                                    num_workers=args.num_workers,
-                                    pin_memory=True)
-            test_loader = DataLoader(test_set,
-                                    batch_size=args.b,
-                                    shuffle=True,
-                                    collate_fn=yolo_target.collate_fn,
-                                    num_workers=args.num_workers,
-                                    pin_memory=True)
-            print('Using PropheseeAutomotive12 Dataset')
+            test_set = PropheseeAutomotiveSmallTrain(root=args.path, train=False,
+                                                    randomize_seq=True,
+                                                    events_ratio = args.event_ratio,
+                                                    delta_t=args.delta_t,
+                                                    seq_len=args.seq_len)
+            print('Using PropheseeAutomotiveSmall Dataset')
         else:      
-            train_set = obd.dataset.PropheseeAutomotiveFiltered(root=args.path, train=True, 
+            train_set = obd.dataset.PropheseeAutomotive(root=args.path, train=True, 
                                                         augment_prob=args.aug_prob, 
                                                         randomize_seq=True,
-                                                        #delta_t=1,
-                                                        seq_len=5)
-            test_set = obd.dataset.PropheseeAutomotiveFiltered(root=args.path, train=False,
+                                                        events_ratio = args.event_ratio,
+                                                        delta_t=args.delta_t,
+                                                        seq_len=args.seq_len)
+            test_set = obd.dataset.PropheseeAutomotive(root=args.path, train=False,
                                                     randomize_seq=True,
-                                                    #delta_t=1,
-                                                    seq_len=5)
+                                                    events_ratio = args.event_ratio,
+                                                    delta_t=args.delta_t,
+                                                    seq_len=args.seq_len)
             
-            train_loader = DataLoader(train_set,
-                                    batch_size=args.b,
-                                    shuffle=True,
-                                    collate_fn=yolo_target.collate_fn,
-                                    num_workers=args.num_workers,
-                                    pin_memory=True)
-            test_loader = DataLoader(test_set,
-                                    batch_size=args.b,
-                                    shuffle=True,
-                                    collate_fn=yolo_target.collate_fn,
-                                    num_workers=args.num_workers,
-                                    pin_memory=True)        
+        train_loader = DataLoader(train_set,
+                                batch_size=args.b,
+                                shuffle=True,
+                                collate_fn=yolo_target.collate_fn,
+                                num_workers=args.num_workers,
+                                pin_memory=True)
+        test_loader = DataLoader(test_set,
+                                batch_size=args.b,
+                                shuffle=True,
+                                collate_fn=yolo_target.collate_fn,
+                                num_workers=args.num_workers,
+                                pin_memory=True)        
     else:
         raise RuntimeError(f'Dataset {args.dataset} is not supported.')
 

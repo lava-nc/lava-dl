@@ -26,6 +26,7 @@ class _PropheseeAutomotive(Dataset):
                  root: str = '.',
                  delta_t: int = 1,
                  seq_len: int = 32,
+                 events_ratio: float = 0.07,
                  randomize_seq: bool = False,
                  train: bool = False) -> None:
         super().__init__()
@@ -34,7 +35,7 @@ class _PropheseeAutomotive(Dataset):
         self.delta_t = delta_t * 1000
         self.seq_len = seq_len
         self.randomize_seq = randomize_seq
-        self.events_ratio_threshold = 0.15
+        self.events_ratio_threshold = events_ratio
         
         with open(root + os.sep + 'label_map_dictionary.json') as file:
             data = json.load(file)
@@ -65,14 +66,11 @@ class _PropheseeAutomotive(Dataset):
                 events = video.load_delta_t(self.delta_t)
                 boxes = bbox_video.load_delta_t(self.delta_t)
             except (AssertionError, IndexError):
-                continue
+                pass
             
             min_box_diag = 60
             min_box_side = 20
             boxes = filter_boxes(boxes, int(1e5), min_box_diag, min_box_side)
-            
-            if len(boxes) == 0:
-                continue
             
             frame = np.zeros((height, width, 2), dtype=np.uint8)
             valid = (events['x'] >= 0 ) & (events['x'] < width) & (events['y'] >= 0 ) & (events['y'] < height)
@@ -91,14 +89,20 @@ class _PropheseeAutomotive(Dataset):
                                 'ymax': int(boxes['y'][idx]) + int(boxes['h'][idx])}
                     name = self.idx_map[boxes['class_id'][idx]]
                     if (bndbox['xmax'] < width) and (bndbox['ymax']  < height) and (bndbox['xmin'] > 0) and (bndbox['ymin'] > 0):
-                        
-                        if self.validate_bbox(frame, bndbox):
+                        if len(images) == 0:
+                            if self.validate_bbox(frame, bndbox):
+                                objects.append({'id': boxes['class_id'][idx],
+                                                'name': name,
+                                                'bndbox': bndbox})
+                        else:
                             objects.append({'id': boxes['class_id'][idx],
-                                            'name': name,
-                                            'bndbox': bndbox})
+                                                'name': name,
+                                                'bndbox': bndbox})
             
             if len(objects) == 0:
-                continue
+                if len(annotations) == 0:
+                    continue
+                annotations.append(annotations[-1])
             else:
                 annotation = {'size': size, 'object': objects}
                 annotations.append({'annotation': annotation})
@@ -148,6 +152,7 @@ class PropheseeAutomotive(Dataset):
                  size: Tuple[Height, Width] = (448, 448),
                  train: bool = False,
                  seq_len: int = 32,
+                 events_ratio: float = 0.07,
                  randomize_seq: bool = False,
                  augment_prob: float = 0.0) -> None:
         super().__init__()
@@ -157,26 +162,25 @@ class PropheseeAutomotive(Dataset):
             lambda x: bbutils.resize_bounding_boxes(x, size),
         ])
 
-        self.datasets = [_PropheseeAutomotive(root=root, delta_t=delta_t, train=train,
+        self.datasets = [_PropheseeAutomotive(root=root, delta_t=delta_t, 
+                                              train=train, events_ratio=events_ratio,
                                               seq_len=seq_len, randomize_seq=randomize_seq)]
 
         self.classes = self.datasets[0].cat_name
         self.idx_map = self.datasets[0].idx_map
         self.augment_prob = augment_prob
         self.seq_len = seq_len
-        self.randomize_seq = randomize_seq
 
     def __getitem__(self, index) -> Tuple[torch.tensor, Dict[Any, Any]]:
         
         dataset_idx = index // len(self.datasets[0])
         index = index % len(self.datasets[0])
         
-        
-        while True:
-            images, annotations = self.datasets[dataset_idx][index]
-            if len(images) == self.seq_len and len(annotations) == self.seq_len:
-                break
-            index = random.randint(0, len(self.datasets[0]))
+        #while True:
+        images, annotations = self.datasets[dataset_idx][index]
+            #if len(images) == self.seq_len and len(annotations) == self.seq_len:
+            #    break
+            #index = random.randint(0, len(self.datasets[0]))
 
         # flip left right
         if random.random() < self.augment_prob:

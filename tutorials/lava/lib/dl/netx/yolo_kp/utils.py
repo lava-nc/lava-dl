@@ -119,7 +119,8 @@ class YOLOPredictor(AbstractSeqModule):
 
 class YOLOMonitor(AbstractSeqModule):
     def __init__(self, class_list: List[str],
-                 viz_fx: Optional[Callable] = None) -> None:
+                 viz_fx: Optional[Callable] = None,
+                 events = False) -> None:
         """YOLO output monitor. This module is responsible for displaying
         the output predictions and evaluating the mAP performance of the
         network.
@@ -142,6 +143,7 @@ class YOLOMonitor(AbstractSeqModule):
         self.gt_bbox_buffer = Queue()
         self.pred_bbox_buffer = Queue()
         self.class_list = class_list
+        self.events = events
         self.viz_fx = viz_fx
         self.box_color_map = [(np.random.randint(256),
                                np.random.randint(256),
@@ -168,12 +170,20 @@ class YOLOMonitor(AbstractSeqModule):
         pred_bbox = self.pred_bbox_buffer.get()
         self.ap_stats.update([torch.tensor(pred_bbox)],
                              [torch.tensor(gt_bbox)])
-        annotated_frame = obd.bbox.utils.create_frames(
-            inputs=input_frame[None, ..., None],
-            targets=[[torch.tensor(gt_bbox)]],
-            predictions=[[torch.tensor(pred_bbox)]],
-            classes=self.class_list,
-            box_color_map=self.box_color_map)[0]
+        if self.events:
+            annotated_frame = obd.bbox.utils.create_frames_events(
+                inputs=input_frame[None, ..., None],
+                targets=[[torch.tensor(gt_bbox)]],
+                predictions=[[torch.tensor(pred_bbox)]],
+                classes=self.class_list,
+                box_color_map=self.box_color_map)[0]
+        else:            
+            annotated_frame = obd.bbox.utils.create_frames(
+                inputs=input_frame[None, ..., None],
+                targets=[[torch.tensor(gt_bbox)]],
+                predictions=[[torch.tensor(pred_bbox)]],
+                classes=self.class_list,
+                box_color_map=self.box_color_map)[0]
         if self.viz_fx is not None:
             self.viz_fx(annotated_frame, self.ap_stats[:], self.time_step)
 
