@@ -13,6 +13,7 @@ parser.add_argument('--s4d-is-complex', action='store_true', help='Limit S4D to 
 # parser.add_argument('--s4d-lr', type=float, default=1e-3, help='Learning rate of S4D. Default: 1e-3')
 parser.add_argument('--lstm-dims', type=int, default=1280, help='Num of states per dimension in S4D. Default: 1280')
 parser.add_argument('--readout-hidden-dims', type=int, default=64, help='Size of the hidden layer of the readout MLP. Default: 64')
+parser.add_argument('--efficientnet-activation', type=str, default="silu", help='Activation function used by Efficientnet (relu or silu). Default: silu')
 args = parser.parse_args()
 
 from model import model_registry 
@@ -39,6 +40,7 @@ model_params = {"lstm_num_hidden": args.lstm_dims,
                 "s4d_states": args.s4d_states,
                 "s4d_is_real": args.s4d_is_real,
                 "s4d_lr": 0.0,
+                "efficientnet_activation": args.efficientnet_activation
                 }
 
 test_dataloader = init_dataloader(partition="test",
