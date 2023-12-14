@@ -57,7 +57,7 @@ if __name__ == '__main__':
     parser.add_argument('-epoch',  type=int, default=200, help='number of epochs to run')
     parser.add_argument('-warmup', type=int, default=10,  help='number of epochs to warmup')
     # dataset
-    parser.add_argument('-dataset',     type=str,   default='BDD100K', help='dataset to use [BDD100K]')
+    parser.add_argument('-dataset',     type=str,   default='BDD100K', help='dataset to use [BDD100K, DSIAC]')
     parser.add_argument('-path',        type=str,   default='data/bdd100k', help='dataset path')
     parser.add_argument('-output_dir',  type=str,   default='.', help='directory in which to put log folders')
     parser.add_argument('-num_workers', type=int,   default=16, help='number of dataloader workers')
@@ -89,7 +89,7 @@ if __name__ == '__main__':
     print('Using GPUs {}'.format(args.gpu))
     device = torch.device('cuda:{}'.format(args.gpu[0]))
 
-    classes_output = {'BDD100K': 11}
+    classes_output = {'BDD100K': 11, 'DSIAC': 10}
 
     print('Creating Network')
     if args.model == 'tiny_yolov3_str':
@@ -152,7 +152,7 @@ if __name__ == '__main__':
 
     print('Creating Dataset')
 
-    if args.dataset == 'BDD100K':
+    if args.dataset == 'BDD100K' or args.dataset == 'DSIAC':
         train_set = obd.dataset.BDD(root=args.path, dataset='track',
                                     train=True, augment_prob=args.aug_prob,
                                     randomize_seq=True)
