@@ -425,8 +425,8 @@ class YOLOBase(torch.nn.Module):
                          self.num_anchors,
                          -1, H, W, T).permute(0, 1, 3, 4, 2, 5)
 
-    def init_model(self, input_dim:
-            Tuple[int, int, int] = (448, 448, 3)) -> None:
+    def init_model(self,
+                   input_dim: Tuple[int, int, int] = (448, 448, 3)) -> None:
         """Initialize the network for a given input dimension.
 
         Parameters

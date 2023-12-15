@@ -47,7 +47,11 @@ class Network(YOLOBase):
                  tau_grad: float = 0.1,
                  scale_grad: float = 0.1,
                  clamp_max: float = 5.0,
-                 cuba_params = {'threshold': 0.1,'current_decay': 1, 'voltage_decay': 0.1, 'tau_grad': 0.1, 'scale_grad': 15}) -> None:
+                 cuba_params: dict = {'threshold': 0.1, 
+                                'current_decay': 1, 
+                                'voltage_decay': 0.1, 
+                                'tau_grad': 0.1, 
+                                'scale_grad': 15}) -> None:
         super().__init__(num_classes=num_classes,
                          anchors=anchors,
                          clamp_max=clamp_max)
@@ -63,9 +67,6 @@ class Network(YOLOBase):
             **sigma_params,
             'activation'    : F.relu,      # activation function
         }
-        #self.input_blocks = torch.nn.ModuleList([
-        #    slayer.block.sigma_delta.Input(sdnn_params),
-        #])
 
         def quantize_8bit(x: torch.tensor,
                           scale: int = (1 << 6),
@@ -84,10 +85,6 @@ class Network(YOLOBase):
         block_8_kwargs = dict(weight_norm=True, delay_shift=False, pre_hook_fx=quantize_8bit)
         neuron_kwargs = {**sdnn_params, 'norm': slayer.neuron.norm.MeanOnlyBatchNorm}
         neuron_cuba_kwargs = {**cuba_params, 'norm': slayer.neuron.norm.MeanOnlyBatchNorm}
-
-        #self.input_blocks = torch.nn.ModuleList([
-        #    slayer.block.sigma_delta.Input(sdnn_params),
-        #])
 
         self.blocks = torch.nn.ModuleList([
             slayer.block.cuba.Conv(neuron_cuba_kwargs,   2,  16, 3, padding=1, stride=2, weight_scale=3, **block_8_kwargs),
@@ -138,9 +135,6 @@ class Network(YOLOBase):
         """
         has_sparisty_loss = sparsity_monitor is not None
         count = []
-        #for block in self.input_blocks:
-        #    input = block(input)
-        #    count.append(slayer.utils.event_rate(input))
 
         x = input
         for block in self.blocks:
@@ -209,11 +203,6 @@ class Network(YOLOBase):
         h = h5py.File(filename, 'w')
         layer = h.create_group('layer')
         offset = 0
-        
-        #for i, b in enumerate(self.input_blocks):
-        #    b.export_hdf5(layer.create_group(f'{i + offset}'))
-        
-        #offset += len(self.input_blocks)
         for i, b in enumerate(self.blocks):
             b.export_hdf5(layer.create_group(f'{i + offset}'))
         offset += len(self.blocks)
@@ -262,11 +251,7 @@ class Network(YOLOBase):
         model_keys = {k : False for k in saved_model.keys()}
         device = self.anchors.device
         self.anchors.data = saved_model['anchors'].data.to(device)
-        #self.input_blocks[0].neuron.bias.data = saved_model[f'input_blocks.0.neuron.bias'].data.to(device)
-        #self.input_blocks[0].neuron.delta.threshold.data = saved_model[f'input_blocks.0.neuron.delta.threshold'].data.to(device)
         model_keys[f'anchors'] = True
-        #model_keys[f'input_blocks.0.neuron.bias'] = True
-        #model_keys[f'input_blocks.0.neuron.delta.threshold'] = True
         
         for i in range(2):
             self.blocks[i].neuron.current_decay.data = saved_model[f'blocks.{i}.neuron.current_decay'].data
