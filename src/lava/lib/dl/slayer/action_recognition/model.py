@@ -3,6 +3,9 @@ import torch
 import torch.nn as nn
 from torchvision.models import efficientnet_b0
 from lava.lib.dl.slayer.state_space_models.s4 import S4D
+from lava.lib.dl.slayer.object_detection.models.yolo_kp import Network as YoloKP
+from lava.lib.dl import slayer
+import yaml
 
 class ReLU1(nn.Module):
     def __init__(self):
@@ -352,10 +355,84 @@ class BottleneckS4D(nn.Module):
 
 
 
+class YoloS4D(nn.Module):
+
+    def __init__(self,
+                 s4d_states=64,
+                 s4d_num_hidden=1280,
+                 num_readout_hidden=64,
+                 num_classes=60,
+                 s4d_is_real=True,
+                 s4d_lr=1e-3,
+                 yolo_model_path='network.pt',
+                 yolo_args_path='args.txt',
+                 *args,
+                 **kwargs):
+        super().__init__()
+
+        # Load pre-trained YoloKP and remove last layer
+
+        with open(yolo_args_path, "rt") as f:
+            model_args = slayer.utils.dotdict(yaml.safe_load(f))
+
+        print(model_args)
+
+        self.yolo = YoloKP(threshold=model_args.threshold,
+                           tau_grad=model_args.tau_grad,
+                           scale_grad=model_args.scale_grad,
+                           num_classes=11,
+                           clamp_max=model_args.clamp_max).cuda()
+        self.yolo.init_model((448, 448))
+        self.yolo.load_state_dict(torch.load(yolo_model_path))
+
+        self.yolo.input_blocks[0].neuron.delta.shape = None
+
+        # Remove last layer
+        #self.yolo = nn.Sequential(*list(self.yolo.children())[:-1])
+
+        # S4D Layer 
+        self.s4d = S4D(d_model=s4d_num_hidden,
+                       d_state=s4d_states,
+                       dropout=0.0,
+                       transposed=False,
+                       lr=s4d_lr,
+                       is_real=s4d_is_real)
+
+        # Readout layer
+        self.readout = nn.Sequential(nn.Linear(s4d_num_hidden, num_readout_hidden),
+                                     nn.ReLU(),
+                                     nn.Linear(num_readout_hidden, num_classes))
+
+
+    def forward(self, x):
+
+
+        # Move batch into images dimension for yolo 
+        x = x.movedim(1, -1)
+
+        # Pass input through EfficientNet
+        for block in self.yolo.input_blocks:
+            x = block(x)
+        for block in self.yolo.blocks:
+            x = block(x)
+
+        x = x.movedim(-1, 1).sum(-1).sum(-1)
+
+        # Pass output through S4D layer
+        x = self.s4d(x)[0]
+
+        # Take last step output from S4D and pass through readout layer
+        x = x[:, -1, :]
+        x = self.readout(x)
+
+        return x
+
+
 model_registry = {
     "efficientnet-b0-LSTM": EfficientNetLSTM,
     "efficientnet-b0-S4D": EfficientNetS4D,
     "efficientnet-b0": EfficientNetAblation,
     "CNN-S4D": CNNS4D,
     "raw-S4D": BottleneckS4D,
+    "YoloKP-S4D": YoloS4D, 
 }

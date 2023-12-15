@@ -6,22 +6,26 @@ import numpy as np
 from torch.utils.data import WeightedRandomSampler
 
 
-def init_dataloader(partition="train", batch_size=8, num_frames_per_sample=100):
-    videos_root = os.path.join("/ssd2/users/pweidel/datasets/NTU/data_frames/")
-    annotation_file = os.path.join(videos_root, partition + '.txt')
+def init_dataloader(partition="train",
+                    batch_size=8,
+                    num_frames_per_sample=100,
+                    resolution=224,
+                    data_root=None):
+    # videos_root = os.path.join("/ssd2/users/pweidel/datasets/NTU/data_frames/")
+    annotation_file = os.path.join(data_root, partition + '.txt')
 
     # classify_labels = [5, 6, 8, 9, 14, 15, 43, 51, 23, 27, 48]
     classify_labels = [41, 42, 43, 44, 45, 46, 47, 48, 104]
     
     preprocess = transforms.Compose([
-        transforms.Resize(256, antialias=None),  # image batch, resize smaller edge to 256
-        transforms.CenterCrop(224),  # image batch, center crop to square 224x224
+        transforms.Resize(resolution + 2, antialias=None),  # image batch, resize smaller edge to 256
+        transforms.CenterCrop(resolution),  # image batch, center crop to square 224x224
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
     
     dataset = VideoFrameDataset(
-        root_path=videos_root,
+        root_path=data_root,
         annotationfile_path=annotation_file,
         num_segments=num_frames_per_sample,
         frames_per_segment=1,
