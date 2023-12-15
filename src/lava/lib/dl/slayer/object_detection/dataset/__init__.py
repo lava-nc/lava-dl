@@ -3,9 +3,7 @@
 
 
 from .bdd100k import BDD
-from .prophesee_automotive import PropheseeAutomotive, _PropheseeAutomotive
-from .prophesee_automotive_filtered import PropheseeAutomotiveFiltered
+from .prophesee_automotive import PropheseeAutomotive
 
 
-__all__ = ['BDD', 'PropheseeAutomotive', '_PropheseeAutomotive'
-           'PropheseeAutomotiveFiltered']
+__all__ = ['BDD', 'PropheseeAutomotive']
