@@ -771,7 +771,7 @@ def create_video_events(inputs: torch.tensor,
                         batch: Optional[int] = 0,
                         box_color_map: Optional[List[Tuple[RGB,
                                                            RGB,
-                                                           RGB]]] 
+                                                           RGB]]]
                         = None) -> None:
     """Create video of object detection prediction.
     Note: the prediction is on the left side and the ground truth is on the
