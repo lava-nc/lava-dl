@@ -92,12 +92,12 @@ class _PropheseeAutomotive(Dataset):
             for idx in range(boxes.shape[0]):
                 if (int(boxes['w'][idx]) > 0) and (int(boxes['h'][idx]) > 0):
                     bndbox = {
-                                 'xmin': int(boxes['x'][idx]),
-                                 'ymin': int(boxes['y'][idx]),
-                                 'xmax': int(boxes['x'][idx])
-                                 + int(boxes['w'][idx]),
-                                 'ymax': int(boxes['y'][idx])
-                                 + int(boxes['h'][idx])}
+                        'xmin': int(boxes['x'][idx]),
+                        'ymin': int(boxes['y'][idx]),
+                        'xmax': int(boxes['x'][idx])
+                        + int(boxes['w'][idx]),
+                        'ymax': int(boxes['y'][idx])
+                        + int(boxes['h'][idx])}
                     name = self.idx_map[boxes['class_id'][idx]]
                     if (bndbox['xmax'] < width) and \
                         (bndbox['ymax'] < height) and \
@@ -196,10 +196,10 @@ class PropheseeAutomotive(Dataset):
         while (len(images) != self.seq_len) and \
                 (len(annotations) != self.seq_len):
             images, annotations = self.datasets[dataset_idx][index]
-            index = random.randint(0, len(self.datasets[0]) - 1)
+            index = np.random.randint(0, len(self.datasets[0]) - 1)
 
         # flip left right
-        if random.random() < self.augment_prob:
+        if np.random.random() < self.augment_prob:
             for idx in range(len(images)):
                 images[idx] = fliplr_events(images[idx])
                 annotations[idx] = bbutils.fliplr_bounding_boxes(

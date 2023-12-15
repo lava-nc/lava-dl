@@ -647,12 +647,12 @@ def create_frames(inputs: torch.tensor,
 
 
 def create_frames_events(inputs: torch.tensor,
-                  targets: torch.tensor,
-                  predictions: torch.tensor,
-                  classes: List[str],
-                  batch: Optional[int] = 0,
-                  box_color_map: Optional[
-                      List[Tuple[RGB, RGB, RGB]]] = None) -> List[Image]:
+                         targets: torch.tensor,
+                         predictions: torch.tensor,
+                         classes: List[str],
+                         batch: Optional[int] = 0,
+                         box_color_map: Optional[
+                             List[Tuple[RGB, RGB, RGB]]] = None) -> List[Image]:
     """Create video frames of object detection prediction.
     Note: the prediction is on the left side and the ground truth is on the
     right side.
@@ -683,7 +683,7 @@ def create_frames_events(inputs: torch.tensor,
     frames = []
     b = batch
     for t in range(inputs.shape[-1]):
-        image = render_events_img( inputs[b, :, :, :, t].cpu().data.numpy())
+        image = render_events_img(inputs[b, :, :, :, t].cpu().data.numpy())
         annotation = annotation_from_tensor(predictions[t][b],
                                             {'height': image.height,
                                              'width': image.width},
@@ -696,7 +696,7 @@ def create_frames_events(inputs: torch.tensor,
         draw = ImageDraw.Draw(marked_img)
         draw.text([5, 5], 'Prediction',
                   fill=(255, 255, 255), anchor='lt')
-        image = render_events_img( inputs[b, :, :, :, t].cpu() )
+        image = render_events_img(inputs[b, :, :, :, t].cpu())
         annotation = annotation_from_tensor(targets[t][b],
                                             {'height': image.height,
                                              'width': image.width},
@@ -764,14 +764,15 @@ def create_video(inputs: torch.tensor,
 
 
 def create_video_events(inputs: torch.tensor,
-                 targets: torch.tensor,
-                 predictions: torch.tensor,
-                 output_path: str,
-                 classes: List[str],
-                 batch: Optional[int] = 0,
-                 box_color_map: Optional[List[Tuple[RGB,
-                                                    RGB,
-                                                    RGB]]] = None) -> None:
+                        targets: torch.tensor,
+                        predictions: torch.tensor,
+                        output_path: str,
+                        classes: List[str],
+                        batch: Optional[int] = 0,
+                        box_color_map: Optional[List[Tuple[RGB,
+                                                           RGB,
+                                                           RGB]]] 
+                        = None) -> None:
     """Create video of object detection prediction.
     Note: the prediction is on the left side and the ground truth is on the
     right side.
@@ -797,7 +798,7 @@ def create_video_events(inputs: torch.tensor,
         generated. By default None.
     """
     frames = create_frames_events(inputs, targets, predictions, classes,
-                           batch, box_color_map)
+                                  batch, box_color_map)
     _, _, H, W, _ = inputs.shape
     video_dims = (2 * W, H)
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
@@ -809,13 +810,10 @@ def create_video_events(inputs: torch.tensor,
 
 
 def render_events_img(inputs: np.ndarray) -> Image:
-    
     out = np.zeros((3, inputs.shape[1], inputs.shape[2]))
-    
     out[0, :, :] = 255 * inputs[0, :, :]
     out[2, :, :] = 255 * inputs[1, :, :]
-    
     return Img.fromarray(np.uint8(out).transpose([1, 2, 0]))
-     
-     
+
+
 nms = non_maximum_suppression
