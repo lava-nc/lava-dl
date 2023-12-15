@@ -20,7 +20,6 @@ except ModuleNotFoundError:
     print(" Error! ")
 
 
-
 class _PropheseeAutomotive(Dataset):
     def __init__(self,
                  root: str = '.',
@@ -30,7 +29,6 @@ class _PropheseeAutomotive(Dataset):
                  randomize_seq: bool = False,
                  train: bool = False) -> None:
         super().__init__()
-        
         self.cat_name = []
         self.delta_t = delta_t * 1000
         self.seq_len = seq_len
@@ -46,7 +44,7 @@ class _PropheseeAutomotive(Dataset):
         self.dataset_path = root + os.sep + dataset
         
         td_files = [td_file for td_file in os.listdir(self.dataset_path) 
-                    if td_file.endswith('.dat')]
+                        if td_file.endswith('.dat')]
         self.videos = [PSEELoader(self.dataset_path + os.sep + td_file) 
                        for td_file in td_files]
         self.bbox_videos = [
@@ -61,7 +59,6 @@ class _PropheseeAutomotive(Dataset):
             (bbox['ymax'] - bbox['ymin'])
         events_ratio = np.count_nonzero(events_bbox) / pixels_area
         return events_ratio > self.events_ratio_threshold
-        
     
     def get_seq(self, video, bbox_video): 
         images = []
@@ -80,9 +77,8 @@ class _PropheseeAutomotive(Dataset):
             boxes = filter_boxes(boxes, int(1e5), min_box_diag, min_box_side)
             
             frame = np.zeros((height, width, 2), dtype=np.uint8)
-            valid = (events['x'] >= 0 ) & \
-                (events['x'] < width) & \
-                    (events['y'] >= 0 ) & (events['y'] < height)
+            valid = (events['x'] >= 0 ) & (events['x'] < width) & \
+                        (events['y'] >= 0 ) & (events['y'] < height)
             events = events[valid]
             frame[events['y'][events['p'] == 1], 
                   events['x'][events['p'] == 1], 0] = 1
@@ -101,8 +97,9 @@ class _PropheseeAutomotive(Dataset):
                                 'ymax': int(boxes['y'][idx]) +
                                 int(boxes['h'][idx])}
                     name = self.idx_map[boxes['class_id'][idx]]
-                    if (bndbox['xmax'] < width) and (bndbox['ymax']  < height) \
-                        and (bndbox['xmin'] > 0) and (bndbox['ymin'] > 0):
+                    if (bndbox['xmax'] < width) and \
+                            (bndbox['ymax'] < height) and \
+                                (bndbox['xmin'] > 0) and (bndbox['ymin'] > 0):
                         if len(images) == 0:
                             if self.validate_bbox(frame, bndbox):
                                 objects.append({'id': boxes['class_id'][idx],
@@ -127,19 +124,17 @@ class _PropheseeAutomotive(Dataset):
                 break
         return images, annotations
 
-
     def get_name(self, index):
         video = self.videos[index]
         return video._file.name.split('_td.dat')[0].split('/')[-1]
-    
-    
+
     def __getitem__(self, index: int) -> Tuple[torch.tensor, Dict[Any, Any]]:
         video = self.videos[index]
         bbox_video = self.bbox_videos[index]
        
         if self.randomize_seq:
             skip_time = (video.duration_s - 0.1) - \
-                                ((self.seq_len * self.delta_t) / 1000000)
+                ((self.seq_len * self.delta_t) / 1000000)
             while True:
                 try:
                     video.seek_time(skip_time * np.random.random() * 1000000)
@@ -195,11 +190,9 @@ class PropheseeAutomotive(Dataset):
         
         dataset_idx = index // len(self.datasets[0])
         index = index % len(self.datasets[0])
-        
-        #while True:
         images, annotations = [], []
         while (len(images) != self.seq_len) and \
-            (len(annotations) != self.seq_len):
+                (len(annotations) != self.seq_len):
             images, annotations = self.datasets[dataset_idx][index]
             index = random.randint(0, len(self.datasets[0]) - 1)
 
