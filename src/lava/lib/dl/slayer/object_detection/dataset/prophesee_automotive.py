@@ -43,24 +43,25 @@ class _PropheseeAutomotive(Dataset):
         dataset = 'train' if train else 'val'
         self.dataset_path = root + os.sep + dataset
 
-        td_files = [td_file for td_file in os.listdir(self.dataset_path) 
-                        if td_file.endswith('.dat')]
-        self.videos = [PSEELoader(self.dataset_path + os.sep + td_file) 
+        td_files = [td_file
+                    for td_file in os.listdir(self.dataset_path)
+                    if td_file.endswith('.dat')]
+        self.videos = [PSEELoader(self.dataset_path + os.sep + td_file)
                        for td_file in td_files]
         self.bbox_videos = [
-            PSEELoader(self.dataset_path + os.sep 
-                       + td_file.split('_td.dat')[0] 
+            PSEELoader(self.dataset_path + os.sep
+                       + td_file.split('_td.dat')[0]
                        + '_bbox.npy') for td_file in td_files]    
 
     def validate_bbox(self, events, bbox):
-        events_bbox = events[bbox['ymin']:bbox['ymax'], 
+        events_bbox = events[bbox['ymin']:bbox['ymax'],
                              bbox['xmin']:bbox['xmax']]
         pixels_area = (bbox['xmax'] - bbox['xmin']) * \
             (bbox['ymax'] - bbox['ymin'])
         events_ratio = np.count_nonzero(events_bbox) / pixels_area
         return events_ratio > self.events_ratio_threshold
 
-    def get_seq(self, video, bbox_video): 
+    def get_seq(self, video, bbox_video):
         images = []
         annotations = []
         height, width = video.get_size()
@@ -80,9 +81,9 @@ class _PropheseeAutomotive(Dataset):
             valid = (events['x'] >= 0 ) & (events['x'] < width) & \
                         (events['y'] >= 0 ) & (events['y'] < height)
             events = events[valid]
-            frame[events['y'][events['p'] == 1], 
+            frame[events['y'][events['p'] == 1],
                   events['x'][events['p'] == 1], 0] = 1
-            frame[events['y'][events['p'] == 0], 
+            frame[events['y'][events['p'] == 0],
                   events['x'][events['p'] == 0], 1] = 1
 
             objects = []
@@ -149,7 +150,7 @@ class _PropheseeAutomotive(Dataset):
         if len(images) != self.seq_len or len(annotations) != self.seq_len:
             video.reset()
             bbox_video.reset()
-            images, annotations = self.get_seq(video, bbox_video)    
+            images, annotations = self.get_seq(video, bbox_video)
         return images, annotations
 
     def __len__(self) -> int:
@@ -174,11 +175,11 @@ class PropheseeAutomotive(Dataset):
             lambda x: bbutils.resize_bounding_boxes(x, size),
         ])
 
-        self.datasets = [_PropheseeAutomotive(root=root, 
-                                              delta_t=delta_t, 
-                                              train=train, 
+        self.datasets = [_PropheseeAutomotive(root=root,
+                                              delta_t=delta_t,
+                                              train=train,
                                               events_ratio=events_ratio,
-                                              seq_len=seq_len, 
+                                              seq_len=seq_len,
                                               randomize_seq=randomize_seq)]
 
         self.classes = self.datasets[0].cat_name

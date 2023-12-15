@@ -48,11 +48,11 @@ class Network(YOLOBase):
                  scale_grad: float = 0.1,
                  clamp_max: float = 5.0,
                  cuba_params: dict = {
-                    'threshold': 0.1,
-                    'current_decay': 1,
-                    'voltage_decay': 0.1,
-                    'tau_grad': 0.1,
-                    'scale_grad': 15}) -> None:
+                     'threshold': 0.1,
+                     'current_decay': 1,
+                     'voltage_decay': 0.1,
+                     'tau_grad': 0.1,
+                     'scale_grad': 15}) -> None:
         super().__init__(num_classes=num_classes,
                          anchors=anchors,
                          clamp_max=clamp_max)
