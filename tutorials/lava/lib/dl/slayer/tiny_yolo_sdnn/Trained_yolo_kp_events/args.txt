@@ -24,7 +24,7 @@ lrf : 0.01
 model : yolo_kp_events
 num_workers : 1
 output_dir : .
-path : /home/lecampos/data/prophesee
+path : data/prophesee
 scale_grad : 0.2
 seed : None
 sp_lam : 0.01

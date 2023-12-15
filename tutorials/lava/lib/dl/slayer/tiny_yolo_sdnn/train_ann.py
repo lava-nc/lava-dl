@@ -49,7 +49,7 @@ if __name__ == '__main__':
     parser.add_argument('-warmup', type=int, default=10,  help='number of epochs to warmup')
     # dataset
     parser.add_argument('-dataset',     type=str,   default='BDD100K', help='dataset to use [BDD100K]')
-    parser.add_argument('-path',        type=str,   default='/home/lecampos/data/bdd100k', help='dataset path')
+    parser.add_argument('-path',        type=str,   default='data/bdd100k', help='dataset path')
     parser.add_argument('-output_dir',  type=str,   default='.', help='directory in which to put log folders')
     parser.add_argument('-num_workers', type=int,   default=8, help='number of dataloader workers')
     parser.add_argument('-aug_prob',    type=float, default=0.2, help='training augmentation probability')
