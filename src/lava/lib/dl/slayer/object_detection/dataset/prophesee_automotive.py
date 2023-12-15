@@ -51,7 +51,7 @@ class _PropheseeAutomotive(Dataset):
         self.bbox_videos = [
             PSEELoader(self.dataset_path + os.sep
                        + td_file.split('_td.dat')[0]
-                       + '_bbox.npy') for td_file in td_files]    
+                       + '_bbox.npy') for td_file in td_files]
 
     def validate_bbox(self, events, bbox):
         events_bbox = events[bbox['ymin']:bbox['ymax'],
@@ -78,8 +78,8 @@ class _PropheseeAutomotive(Dataset):
             boxes = filter_boxes(boxes, int(1e5), min_box_diag, min_box_side)
 
             frame = np.zeros((height, width, 2), dtype=np.uint8)
-            valid = (events['x'] >= 0 ) & (events['x'] < width) & \
-                    (events['y'] >= 0 ) & (events['y'] < height)
+            valid = (events['x'] >= 0) & (events['x'] < width) & \
+                    (events['y'] >= 0) & (events['y'] < height)
             events = events[valid]
             frame[events['y'][events['p'] == 1],
                   events['x'][events['p'] == 1], 0] = 1
@@ -92,12 +92,12 @@ class _PropheseeAutomotive(Dataset):
             for idx in range(boxes.shape[0]):
                 if (int(boxes['w'][idx]) > 0) and (int(boxes['h'][idx]) > 0):
                     bndbox = {
-                                'xmin': int(boxes['x'][idx]),
-                                'ymin': int(boxes['y'][idx]),
-                                'xmax': int(boxes['x'][idx])
-                                + int(boxes['w'][idx]),
-                                'ymax': int(boxes['y'][idx])
-                                + int(boxes['h'][idx])}
+                                 'xmin': int(boxes['x'][idx]),
+                                 'ymin': int(boxes['y'][idx]),
+                                 'xmax': int(boxes['x'][idx])
+                                 + int(boxes['w'][idx]),
+                                 'ymax': int(boxes['y'][idx])
+                                 + int(boxes['h'][idx])}
                     name = self.idx_map[boxes['class_id'][idx]]
                     if (bndbox['xmax'] < width) and \
                         (bndbox['ymax'] < height) and \
@@ -109,8 +109,8 @@ class _PropheseeAutomotive(Dataset):
                                                 'bndbox': bndbox})
                         else:
                             objects.append({'id': boxes['class_id'][idx],
-                                                'name': name,
-                                                'bndbox': bndbox})
+                                            'name': name,
+                                            'bndbox': bndbox})
 
             if len(objects) == 0:
                 if len(annotations) == 0:
