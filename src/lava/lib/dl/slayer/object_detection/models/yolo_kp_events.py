@@ -47,11 +47,12 @@ class Network(YOLOBase):
                  tau_grad: float = 0.1,
                  scale_grad: float = 0.1,
                  clamp_max: float = 5.0,
-                 cuba_params: dict = {'threshold': 0.1, 
-                                'current_decay': 1, 
-                                'voltage_decay': 0.1, 
-                                'tau_grad': 0.1, 
-                                'scale_grad': 15}) -> None:
+                 cuba_params: dict = {
+                    'threshold': 0.1,
+                    'current_decay': 1,
+                    'voltage_decay': 0.1,
+                    'tau_grad': 0.1,
+                    'scale_grad': 15}) -> None:
         super().__init__(num_classes=num_classes,
                          anchors=anchors,
                          clamp_max=clamp_max)
@@ -252,14 +253,14 @@ class Network(YOLOBase):
         device = self.anchors.device
         self.anchors.data = saved_model['anchors'].data.to(device)
         model_keys[f'anchors'] = True
-        
+
         for i in range(2):
             self.blocks[i].neuron.current_decay.data = saved_model[f'blocks.{i}.neuron.current_decay'].data
             self.blocks[i].neuron.voltage_decay.data = saved_model[f'blocks.{i}.neuron.voltage_decay'].data
             self.blocks[i].neuron.norm.running_mean.data = saved_model[f'blocks.{i}.neuron.norm.running_mean'].data
             self.blocks[i].synapse.weight_g.data = saved_model[f'blocks.{i}.synapse.weight_g'].data
             self.blocks[i].synapse.weight_v.data = saved_model[f'blocks.{i}.synapse.weight_v'].data
-            
+
             model_keys[f'blocks.{i}.neuron.current_decay'] = True
             model_keys[f'blocks.{i}.neuron.voltage_decay'] = True
             model_keys[f'blocks.{i}.neuron.norm.running_mean'] = True

@@ -34,7 +34,7 @@ class _PropheseeAutomotive(Dataset):
         self.seq_len = seq_len
         self.randomize_seq = randomize_seq
         self.events_ratio_threshold = events_ratio
-        
+
         with open(root + os.sep + 'label_map_dictionary.json') as file:
             data = json.load(file)
             self.idx_map = {int(key) : value for key, value in data.items()}
@@ -42,15 +42,15 @@ class _PropheseeAutomotive(Dataset):
 
         dataset = 'train' if train else 'val'
         self.dataset_path = root + os.sep + dataset
-        
+
         td_files = [td_file for td_file in os.listdir(self.dataset_path) 
                         if td_file.endswith('.dat')]
         self.videos = [PSEELoader(self.dataset_path + os.sep + td_file) 
                        for td_file in td_files]
         self.bbox_videos = [
-            PSEELoader(self.dataset_path + os.sep + 
-                       td_file.split('_td.dat')[0] + '_bbox.npy') 
-            for td_file in td_files]    
+            PSEELoader(self.dataset_path + os.sep 
+                       + td_file.split('_td.dat')[0] 
+                       + '_bbox.npy') for td_file in td_files]    
 
     def validate_bbox(self, events, bbox):
         events_bbox = events[bbox['ymin']:bbox['ymax'], 
@@ -59,23 +59,23 @@ class _PropheseeAutomotive(Dataset):
             (bbox['ymax'] - bbox['ymin'])
         events_ratio = np.count_nonzero(events_bbox) / pixels_area
         return events_ratio > self.events_ratio_threshold
-    
+
     def get_seq(self, video, bbox_video): 
         images = []
         annotations = []
         height, width = video.get_size()
-         
+
         while not video.done:
             try:
                 events = video.load_delta_t(self.delta_t)
                 boxes = bbox_video.load_delta_t(self.delta_t)
             except (AssertionError, IndexError):
                 pass
-            
+
             min_box_diag = 60
             min_box_side = 20
             boxes = filter_boxes(boxes, int(1e5), min_box_diag, min_box_side)
-            
+
             frame = np.zeros((height, width, 2), dtype=np.uint8)
             valid = (events['x'] >= 0 ) & (events['x'] < width) & \
                         (events['y'] >= 0 ) & (events['y'] < height)
@@ -84,18 +84,18 @@ class _PropheseeAutomotive(Dataset):
                   events['x'][events['p'] == 1], 0] = 1
             frame[events['y'][events['p'] == 0], 
                   events['x'][events['p'] == 0], 1] = 1
-            
+
             objects = []
             size = {'height': height, 'width': width}
-            
+
             for idx in range(boxes.shape[0]):
                 if (int(boxes['w'][idx]) > 0) and (int(boxes['h'][idx]) > 0):
                     bndbox = {'xmin': int(boxes['x'][idx]),
                                 'ymin': int(boxes['y'][idx]),
-                                'xmax': int(boxes['x'][idx]) + 
-                                int(boxes['w'][idx]),
-                                'ymax': int(boxes['y'][idx]) +
-                                int(boxes['h'][idx])}
+                                'xmax': int(boxes['x'][idx])
+                                + int(boxes['w'][idx]),
+                                'ymax': int(boxes['y'][idx])
+                                + int(boxes['h'][idx])}
                     name = self.idx_map[boxes['class_id'][idx]]
                     if (bndbox['xmax'] < width) and \
                             (bndbox['ymax'] < height) and \
@@ -109,7 +109,7 @@ class _PropheseeAutomotive(Dataset):
                             objects.append({'id': boxes['class_id'][idx],
                                                 'name': name,
                                                 'bndbox': bndbox})
-            
+
             if len(objects) == 0:
                 if len(annotations) == 0:
                     continue
@@ -117,9 +117,9 @@ class _PropheseeAutomotive(Dataset):
             else:
                 annotation = {'size': size, 'object': objects}
                 annotations.append({'annotation': annotation})
-                
+
             images.append(frame)
-            
+
             if len(images) >= self.seq_len:
                 break
         return images, annotations
@@ -131,21 +131,21 @@ class _PropheseeAutomotive(Dataset):
     def __getitem__(self, index: int) -> Tuple[torch.tensor, Dict[Any, Any]]:
         video = self.videos[index]
         bbox_video = self.bbox_videos[index]
-       
+
         if self.randomize_seq:
             skip_time = (video.duration_s - 0.1) - \
                 ((self.seq_len * self.delta_t) / 1000000)
             while True:
                 try:
                     video.seek_time(skip_time * np.random.random() * 1000000)
-                    bbox_video.seek_time(skip_time * 
-                                         np.random.random() * 1000000)
+                    bbox_video.seek_time(skip_time
+                                         * np.random.random() * 1000000)
                     break
                 except IndexError:
                     continue
-  
+
         images, annotations = self.get_seq(video, bbox_video)
-        
+
         if len(images) != self.seq_len or len(annotations) != self.seq_len:
             video.reset()
             bbox_video.reset()
@@ -159,7 +159,7 @@ class _PropheseeAutomotive(Dataset):
 class PropheseeAutomotive(Dataset):
     def __init__(self,
                  root: str = './',
-                 delta_t: int = 1, 
+                 delta_t: int = 1,
                  size: Tuple[Height, Width] = (448, 448),
                  train: bool = False,
                  seq_len: int = 32,
@@ -187,7 +187,7 @@ class PropheseeAutomotive(Dataset):
         self.seq_len = seq_len
 
     def __getitem__(self, index) -> Tuple[torch.tensor, Dict[Any, Any]]:
-        
+
         dataset_idx = index // len(self.datasets[0])
         index = index % len(self.datasets[0])
         images, annotations = [], []
@@ -202,7 +202,7 @@ class PropheseeAutomotive(Dataset):
                 images[idx] = fliplr_events(images[idx])
                 annotations[idx] = bbutils.fliplr_bounding_boxes(
                     annotations[idx])
-        
+
         image = torch.cat([torch.unsqueeze(self.img_transform(img), -1)
                            for img in images], dim=-1)
         annotations = [self.bb_transform(ann) for ann in annotations]
