@@ -79,7 +79,7 @@ class _PropheseeAutomotive(Dataset):
 
             frame = np.zeros((height, width, 2), dtype=np.uint8)
             valid = (events['x'] >= 0 ) & (events['x'] < width) & \
-                        (events['y'] >= 0 ) & (events['y'] < height)
+                    (events['y'] >= 0 ) & (events['y'] < height)
             events = events[valid]
             frame[events['y'][events['p'] == 1],
                   events['x'][events['p'] == 1], 0] = 1
@@ -91,7 +91,8 @@ class _PropheseeAutomotive(Dataset):
 
             for idx in range(boxes.shape[0]):
                 if (int(boxes['w'][idx]) > 0) and (int(boxes['h'][idx]) > 0):
-                    bndbox = {'xmin': int(boxes['x'][idx]),
+                    bndbox = {
+                                'xmin': int(boxes['x'][idx]),
                                 'ymin': int(boxes['y'][idx]),
                                 'xmax': int(boxes['x'][idx])
                                 + int(boxes['w'][idx]),
@@ -99,8 +100,8 @@ class _PropheseeAutomotive(Dataset):
                                 + int(boxes['h'][idx])}
                     name = self.idx_map[boxes['class_id'][idx]]
                     if (bndbox['xmax'] < width) and \
-                            (bndbox['ymax'] < height) and \
-                                (bndbox['xmin'] > 0) and (bndbox['ymin'] > 0):
+                        (bndbox['ymax'] < height) and \
+                            (bndbox['xmin'] > 0) and (bndbox['ymin'] > 0):
                         if len(images) == 0:
                             if self.validate_bbox(frame, bndbox):
                                 objects.append({'id': boxes['class_id'][idx],
