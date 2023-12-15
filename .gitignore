@@ -131,7 +131,7 @@ dmypy.json
 .pyre/
 
 #Trained log folders
-Trained_*
-Logs_*
-runs
+#Trained_*
+#Logs_*
+#runs
 
