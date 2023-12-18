@@ -21,22 +21,23 @@ Width = int
 Height = int
 
 class temporal_NMS():
-    # implemented the temporal Non Maximum Suppression over two consecutive frames 
+    # implemented the temporal Non Maximum Suppression over two consecutive frames
     """Performs temporal Non-Maximal suppression of the input predictions. First a basic
     filtering of the bounding boxes based on a minimum confidence threshold are
-    eliminated. Subsequently we operate a non-maximal suppression is performed maching 
+    eliminated. Subsequently we operate a non-maximal suppression is performed maching
     bboxes over two successive frames. A non-maximal threshold is used to determine if the
-    two bounding boxes represent the same object, above(below) which the likelihood of the 
+    two bounding boxes represent the same object, above(below) which the likelihood of the
     object is increased(decreased). It supports batch inputs.
-    
+
+
     import temporal_NMS as t_nms
-    ### the class is self initialized!! no need to initialize it. Instances can be accessed 
+    ### the class is self initialized!! no need to initialize it. Instances can be accessed
     ### directly calling class_name.instance
     ### calling the frame predictions to be analyzed, will automatically initialize variables
-    detections = [t_nms.next(predictions[...,t]) for t in T] 
+    detections = [t_nms.next(predictions[...,t]) for t in T]
     ### to reset to zero frame data call:
     t_nms.reset()
-    
+
     Parameters
     ----------
     pred : List[torch.tensor]
@@ -56,79 +57,81 @@ class temporal_NMS():
     scaling_prob: List of two floats [float, float]
         scaling of the keep [0] and remove [1] probabilities of neighboring bboxes
     k_frames: int, optionl - default 2
+
     Returns
     -------
     List[torch.tensor]
         Non-maximal filterered prediction outputs per batch.
-    """    
-
+    """
+    
     init              = 0
     detections        = []
-    dets_             = []    
+    dets_             = []
     k_frames          = 2
     n_batches         = None
-
+    
     def reset():
-        ## initialize buffers                       
+        ## initialize buffers
         __class__.detections        = [[] for _ in range(__class__.n_batches)]
         __class__.dets_             = [deque(maxlen = __class__.k_frames) for _ in range(__class__.n_batches)]
         __class__.init              = 1
 
     def next(pred: List[torch.tensor],
-             conf_threshold = 0.5, 
-             nms_threshold = 0.4, 
-             merge_conf = True, 
+             conf_threshold = 0.5,
+             nms_threshold = 0.4,
+             merge_conf = True,
              max_iterations_temporal = 15,
-             temporal_scaling_threshold = .9, 
+             temporal_scaling_threshold = .9,
              scaling_prob = [1.15, .85]) -> List[torch.tensor]:
         # def __call__(self, pred):
 
-        # initialize to data
-        __class__.n_batches = n_batches = pred.shape[0]
         # housekeeping only on first call
-        if __class__.init==0:
-            __class__.reset() 
+        if __class__.init==0 or __class__.n_batches != pred.shape[0]:
+            __class__.n_batches = n_batches = pred.shape[0]
+            __class__.reset()
 
+        __class__.n_batches = n_batches = pred.shape[0]
         dets_, detections = __class__.dets_, __class__.detections
 
-        for b_n, pred_, in enumerate(pred): #along the batch                    
-            filtered = pred_[pred_[:, 4] > conf_threshold]            
-            obj_conf, labels = torch.max(filtered[:, 5:], dim=1, keepdim=True)            
+        for b_n, pred_, in enumerate(pred): #along the batch
+            filtered = pred_[pred_[:, 4] > conf_threshold]
+            obj_conf, labels = torch.max(filtered[:, 5:], dim=1, keepdim=True)
             if merge_conf:
                 scores = filtered[:, 4:5] * obj_conf
             else:
                 scores = filtered[:, 4:5]
-            boxes = filtered[:, :4]                  
+            boxes = filtered[:, :4]
             #last updated frame in detections0
             dets_[b_n].append(torch.cat([boxes, scores, labels], dim=-1))
-            if len(dets_[b_n])==1: ###loads the first frame NMS components discarding NMS                 
+            if len(dets_[b_n])==1: ###loads the first frame NMS components discarding NMS
                 detections0 = detections1 = dets_[b_n][-1]
             else:
                 detections0, detections1 = dets_[b_n][-1], dets_[b_n][-2] ###best performer
-                # detections0, detections1 = self.dets_[b_n][-1], self.detections[b_n]  ## less good on prev scaled det          
-            for k in range(max_iterations_temporal):                                 
+                # detections0, detections1 = self.dets_[b_n][-1], self.detections[b_n]  ## less good on prev scaled det
+            for k in range(max_iterations_temporal):
                 if k==max_iterations_temporal-1: # last iteration is classic NMS
-                    detections1 = detections0  
+                    detections1 = detections0
                 order0 = torch.argsort(detections0[:,4], descending=True)
                 if order0.shape:
                     detections0 = detections0[order0]
                     order1 = torch.argsort(detections1[:,4], descending=True)
                     if order1.shape:
-                        detections1 = detections1[order1]      
+                        detections1 = detections1[order1]
                         ious = bbox_iou(detections1, detections0)
                         label_match = (detections1[:, 5].reshape(-1, 1) == detections0[:, 5].reshape(1, -1))
                         keep = (
                                 ious * label_match > nms_threshold*temporal_scaling_threshold
                             ).long().triu(1).sum(dim=0, keepdim=True).T.expand_as(detections0) == 0
                     detections01 = detections0[keep].reshape(-1, 6).contiguous()
-                    detections00 = detections0[~keep].reshape(-1, 6).contiguous()                                    
+                    detections00 = detections0[~keep].reshape(-1, 6).contiguous()
                     ### rescaling confidence of bboxes if overlapping and belonging to the same label
-                    detections01[:,4] = torch.minimum(detections01[:,4]*scaling_prob[0], torch.tensor(1.0)) 
-                    detections00[:,4] *= scaling_prob[1]                    
+                    detections01[:,4] = torch.minimum(detections01[:,4]*scaling_prob[0], torch.tensor(1.0))
+                    detections00[:,4] *= scaling_prob[1]
                     # considering also last iteration is classic NMS
-                    detections0 = torch.cat([detections01, detections00], dim=0) if k < max_iterations_temporal-1 else detections01 
+                    detections0 = torch.cat([detections01, detections00], dim=0) if k < max_iterations_temporal-1 else detections01
             detections[b_n] = detections0.clone()
-        return detections[:n_batches]       
+        return detections[:n_batches]
+
 
 def non_maximum_suppression(predictions: List[torch.tensor],
                             conf_threshold: float = 0.5,
