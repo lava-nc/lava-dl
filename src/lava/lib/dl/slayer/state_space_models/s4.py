@@ -1933,7 +1933,7 @@ class S4Block(nn.Module):
 
         if self.transposed: y = rearrange(y, 'b d ... -> b ... d')
 
-        return y, state
+        return y
 
     def setup_step(self, **kwargs):
         self.layer.setup_step(**kwargs)
@@ -1984,13 +1984,13 @@ class S4D(S4Block):
         **layer_args,  # Arguments into inner layer (e.g. FFTConv)
     ):
         layer_args["activation"] = "relu"
-        layer_args['skip'] = False
+        layer_args['skip'] = True
         layer_args['drop_kernel'] = 0.0
         layer_args['bidirectional'] = False
         layer_args['mode'] = 's4d'
 
         kernel_args = {'disc': 'zoh',
-                       'real_transform': 'relu',
+                       'real_transform': 'exp',
                        'imag_transform': 'none',
                        'd_state': d_state,
                        'is_real': is_real}
