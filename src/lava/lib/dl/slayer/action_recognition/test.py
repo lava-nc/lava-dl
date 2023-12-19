@@ -6,6 +6,7 @@ parser.add_argument('--batch-size', type=int, default=8, help='Batch size. Defau
 parser.add_argument('--print-interval', type=int, default=100, help='Print information each N batches. Default: 100')
 # parser.add_argument('--lr', type=float, metavar="LEARNING_RATE", default=1e-3, help='Learning rate. Default: 1e-3')
 parser.add_argument('--frames-per-sample', type=int, default=30, help='Num frames per sample. Default: 30')
+parser.add_argument('--data-root', type=str, help='Path to root folder of NTU data.')
 # model arguments
 parser.add_argument('--s4d-dims', type=int, default=1280, help='Num dimensions in S4D. Should not be changed, as it must match the output dimensions of Efficientnet. Default: 1280')
 parser.add_argument('--s4d-states', type=int, default=1, help='Num of states per dimension in S4D. Default: 1')
@@ -14,6 +15,9 @@ parser.add_argument('--s4d-is-complex', action='store_true', help='Limit S4D to 
 parser.add_argument('--lstm-dims', type=int, default=1280, help='Num of states per dimension in S4D. Default: 1280')
 parser.add_argument('--readout-hidden-dims', type=int, default=64, help='Size of the hidden layer of the readout MLP. Default: 64')
 parser.add_argument('--efficientnet-activation', type=str, default="silu", help='Activation function used by Efficientnet (relu or silu). Default: silu')
+# YoloKP
+parser.add_argument('--yolo-model-path', type=str, default="network.pt", help='Path to network file. (Default: network.py)')
+parser.add_argument('--yolo-args-path', type=str, default="args.txt", help='Path to model arguments file. (Default: args.txt)')
 args = parser.parse_args()
 
 from model import model_registry 
@@ -40,12 +44,19 @@ model_params = {"lstm_num_hidden": args.lstm_dims,
                 "s4d_states": args.s4d_states,
                 "s4d_is_real": args.s4d_is_real,
                 "s4d_lr": 0.0,
-                "efficientnet_activation": args.efficientnet_activation
+                "efficientnet_activation": args.efficientnet_activation,
+                "yolo_model_path": args.yolo_model_path,
+                "yolo_args_path": args.yolo_args_path,
+
                 }
+
+resolution = 448 if args.model == "YoloKP-S4D" else 224
 
 test_dataloader = init_dataloader(partition="test",
                                   batch_size=batch_size,
-                                  num_frames_per_sample=num_frames_per_sample) 
+                                  num_frames_per_sample=num_frames_per_sample,
+                                   resolution=resolution,
+                                   data_root=args.data_root) 
 
 num_classes = len(test_dataloader.dataset.label_map) + 1
 model = model_cls(num_classes=num_classes, **model_params).cuda()
@@ -55,8 +66,6 @@ model.load_state_dict(checkpoint)
 model.eval()
 
 print("start testing")
-
-
 with torch.no_grad():
     test_preds = []
     test_tgts = []
