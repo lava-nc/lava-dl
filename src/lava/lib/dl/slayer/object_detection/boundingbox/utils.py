@@ -636,7 +636,7 @@ def create_frames(inputs: torch.tensor,
                                         thickness=5)
         draw = ImageDraw.Draw(marked_gt)
         draw.text([5, 5], 'Ground Truth',
-                  fill=(255, 255, 255), anchor='rt')
+                  fill=(255, 255, 255), anchor='lt')
         marked_images = Img.new('RGB',
                                 (marked_img.width + marked_gt.width,
                                  marked_img.height))
