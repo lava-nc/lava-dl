@@ -425,7 +425,8 @@ class YOLOBase(torch.nn.Module):
                          self.num_anchors,
                          -1, H, W, T).permute(0, 1, 3, 4, 2, 5)
 
-    def init_model(self, input_dim: Tuple[int, int] = (448, 448)) -> None:
+    def init_model(self,
+                   input_dim: Tuple[int, int, int] = (448, 448, 3)) -> None:
         """Initialize the network for a given input dimension.
 
         Parameters
@@ -433,8 +434,8 @@ class YOLOBase(torch.nn.Module):
         input_dim : Tuple[int, int], optional
             Desired input dimension, by default (448, 448)
         """
-        H, W = input_dim
-        N, C, T = 1, 3, 1
+        H, W, C = input_dim
+        N, T = 1, 1
         input = torch.rand(N, C, H, W, T).to(self.anchors.device)
         outputs = self.forward(input)[0]
         self.scale = [o.shape[2:4][::-1] for o in outputs]
