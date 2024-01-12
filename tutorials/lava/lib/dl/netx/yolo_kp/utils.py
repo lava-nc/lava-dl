@@ -28,43 +28,6 @@ class DataGenerator(AbstractSeqModule):
     std : Optional[np.ndarray], optional
         Normalization standard deviation, by default None.
     """
-    # def __init__(self,
-    #              dataset: Iterable,
-    #              start_idx: int = 0,
-    #              mean: Optional[np.ndarray] = None,
-    #              std: Optional[np.ndarray] = None) -> None:
-    #     super().__init__()
-    #     self.dataset = dataset
-    #     self.sample_idx = start_idx
-    #     self.frame_idx = 0
-    #     frames, annotations = dataset[self.sample_idx]
-    #     self.frames = frames
-    #     self.annotations = annotations
-    #     self.sample_idx += 1
-    #     self.mean = mean
-    #     self.std = std
-    #     self.normalize = mean is not None
-
-    # def __call__(self) -> None:
-    #     return super().__call__()
-
-    # def forward(self) -> None:
-    #     raw_frame = self.frames[..., self.frame_idx]
-    #     frame = raw_frame.clone().permute([2, 1, 0])  # CHW to XYZ
-    #     annotation = self.annotations[self.frame_idx]
-    #     self.frame_idx += 1
-    #     if self.normalize:
-    #         frame = (frame - self.mean) / self.std
-    #     return frame, annotation, raw_frame
-
-    # def post_forward(self) -> None:
-    #     if self.frame_idx >= len(self.annotations):
-    #         self.frame_idx = 0
-    #         frames, annotations = self.dataset[self.sample_idx]
-    #         self.frames = frames
-    #         self.annotations = annotations
-    #         self.sample_idx += 1
-
     def __init__(self,
                  dataset: Iterable,
                  start_idx: int = 0,
@@ -79,11 +42,14 @@ class DataGenerator(AbstractSeqModule):
         
         self.frame_idx = 0
         frames, annotations = dataset[self.sample_idx]
-        self.raw_frames = [frames[..., t].clone() for t in range(frames.shape[-1])]
+        self.raw_frames = [frames[..., t].clone()
+                           for t in range(frames.shape[-1])]
         temp_frames = frames.clone().permute([2, 1, 0, 3]) # CHWT to XYZT
         if self.normalize:
-            temp_frames = (temp_frames - self.mean[None, None, :, None]) / self.std[None, None, :, None]
-        self.frames = [temp_frames[..., t].cpu().data.numpy() for t in range(frames.shape[-1])]
+            temp_frames = (temp_frames - self.mean[None, None, :, None]
+                           ) / self.std[None, None, :, None]
+        self.frames = [temp_frames[..., t].cpu().data.numpy()
+                       for t in range(frames.shape[-1])]
         self.annotations = annotations
         self.sample_idx += 1
         
@@ -102,11 +68,14 @@ class DataGenerator(AbstractSeqModule):
         if self.frame_idx >= len(self.annotations):
             self.frame_idx = 0
             frames, annotations = self.dataset[self.sample_idx]
-            self.raw_frames = [frames[..., t].clone() for t in range(frames.shape[-1])]
+            self.raw_frames = [frames[..., t].clone()
+                               for t in range(frames.shape[-1])]
             temp_frames = frames.clone().permute([2, 1, 0, 3]) # CHWT to XYZT
             if self.normalize:
-                temp_frames = (temp_frames - self.mean[None, None, :, None]) / self.std[None, None, :, None]
-            self.frames = [temp_frames[..., t].cpu().data.numpy() for t in range(frames.shape[-1])]
+                temp_frames = (temp_frames - self.mean[None, None, :, None]
+                               ) / self.std[None, None, :, None]
+            self.frames = [temp_frames[..., t].cpu().data.numpy()
+                           for t in range(frames.shape[-1])]
             self.annotations = annotations
             self.sample_idx += 1
 
