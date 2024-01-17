@@ -1,7 +1,7 @@
 # Copyright (C) 2023 Intel Corporation
 # SPDX-License-Identifier:  BSD-3-Clause
 
-from typing import Iterable, Optional, List, Callable
+from typing import Iterable, Optional, List, Callable, Union
 from queue import Queue
 import numpy as np
 import torch
@@ -36,32 +36,46 @@ class DataGenerator(AbstractSeqModule):
         super().__init__()
         self.dataset = dataset
         self.sample_idx = start_idx
-        self.frame_idx = 0
-        frames, annotations = dataset[self.sample_idx]
-        self.frames = frames
-        self.annotations = annotations
-        self.sample_idx += 1
         self.mean = mean
         self.std = std
         self.normalize = mean is not None
+        
+        self.frame_idx = 0
+        frames, annotations = dataset[self.sample_idx]
+        self.raw_frames = [frames[..., t].clone()
+                           for t in range(frames.shape[-1])]
+        temp_frames = frames.clone().permute([2, 1, 0, 3]) # CHWT to XYZT
+        if self.normalize:
+            temp_frames = (temp_frames - self.mean[None, None, :, None]
+                           ) / self.std[None, None, :, None]
+        self.frames = [temp_frames[..., t].cpu().data.numpy()
+                       for t in range(frames.shape[-1])]
+        self.annotations = annotations
+        self.sample_idx += 1
+        
 
     def __call__(self) -> None:
         return super().__call__()
 
     def forward(self) -> None:
-        raw_frame = self.frames[..., self.frame_idx]
-        frame = raw_frame.clone().permute([2, 1, 0])  # CHW to XYZ
+        raw_frame = self.raw_frames[self.frame_idx]
+        frame = self.frames[self.frame_idx]
         annotation = self.annotations[self.frame_idx]
         self.frame_idx += 1
-        if self.normalize:
-            frame = (frame - self.mean) / self.std
         return frame, annotation, raw_frame
 
     def post_forward(self) -> None:
         if self.frame_idx >= len(self.annotations):
             self.frame_idx = 0
             frames, annotations = self.dataset[self.sample_idx]
-            self.frames = frames
+            self.raw_frames = [frames[..., t].clone()
+                               for t in range(frames.shape[-1])]
+            temp_frames = frames.clone().permute([2, 1, 0, 3]) # CHWT to XYZT
+            if self.normalize:
+                temp_frames = (temp_frames - self.mean[None, None, :, None]
+                               ) / self.std[None, None, :, None]
+            self.frames = [temp_frames[..., t].cpu().data.numpy()
+                           for t in range(frames.shape[-1])]
             self.annotations = annotations
             self.sample_idx += 1
 
@@ -188,6 +202,38 @@ class YOLOMonitor(AbstractSeqModule):
                 box_color_map=self.box_color_map)[0]
         if self.viz_fx is not None:
             self.viz_fx(annotated_frame, self.ap_stats[:], self.time_step)
+
+
+class DeltaEncoder(AbstractSeqModule):
+    def __init__(self,
+                 vth: Union[int, float],
+                 spike_exp: Optional[int] = 0,
+                 num_bits: Optional[int] = None) -> None:
+        super().__init__()
+        self.vth = vth * (1 << (spike_exp))
+        self.spike_exp = spike_exp
+        self.residue = 0
+        self.act = 0
+        if num_bits is not None:
+            a_min = -(1 << (num_bits - 1)) << spike_exp
+            a_max = ((1 << (num_bits - 1)) - 1) << spike_exp
+        else:
+            a_min = a_max = -1
+        self.a_min = a_min
+        self.a_max = a_max
+
+    def encode_delta(self, act_new):
+        delta = act_new - self.act + self.residue
+        s_out = np.where(np.abs(delta) >= self.vth, delta, 0)
+        if self.a_max > 0:
+            s_out = np.clip(s_out, a_min=self.a_min, a_max=self.a_max)
+        self.residue = delta - s_out
+        self.act = act_new
+        return s_out
+
+    def forward(self, a_in: np.ndarray) -> np.ndarray:
+        a_in_data = np.left_shift(a_in, self.spike_exp)
+        return self.encode_delta(a_in_data)
 
 
 # Wrapped function calls
