@@ -17,7 +17,10 @@ try:
     from src.io.psee_loader import PSEELoader
     from src.io.box_filtering import filter_boxes
 except ModuleNotFoundError:
-    print(" Error! ")
+    src = 'https://github.com/prophesee-ai/prophesee-automotive-dataset-toolbox'
+    print("WARNING: Prophesee Dataset Toolbox could not be found!")
+    print("         Only Prophesee DVS demo will not run properly.")
+    print(f"         Please install it from {src}")
 
 
 class _PropheseeAutomotive(Dataset):
