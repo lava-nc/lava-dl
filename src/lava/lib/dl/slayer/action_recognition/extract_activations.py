@@ -15,7 +15,7 @@ parser.add_argument('--s4d-is-complex', action='store_true', help='Limit S4D to 
 parser.add_argument('--lstm-dims', type=int, default=1280, help='Num of states per dimension in S4D. Default: 1280')
 parser.add_argument('--readout-hidden-dims', type=int, default=64, help='Size of the hidden layer of the readout MLP. Default: 64')
 parser.add_argument('--readout-no-bias', action='store_true', help='Do not use bias in readout.')
-
+parser.add_argument('--efficientnet-activation', type=str, default="silu", help='Activation function used by Efficientnet (relu or silu). Default: silu')
 # YoloKP
 parser.add_argument('--yolo-model-path', type=str, default="network.pt", help='Path to network file. (Default: network.py)')
 parser.add_argument('--yolo-args-path', type=str, default="args.txt", help='Path to model arguments file. (Default: args.txt)')
@@ -47,8 +47,10 @@ model_params = {"lstm_num_hidden": args.lstm_dims,
                 "s4d_states": args.s4d_states,
                 "s4d_is_real": args.s4d_is_real,
                 "s4d_lr": 0.0,
+                "efficientnet_activation": args.efficientnet_activation,
                 "yolo_model_path": args.yolo_model_path,
                 "yolo_args_path": args.yolo_args_path,
+
                 }
 
 resolution = 448 if args.model == "YoloKP-S4D" else 224
@@ -60,7 +62,41 @@ test_dataloader = init_dataloader(partition="test",
                                   data_root=args.data_root) 
 
 num_classes = len(test_dataloader.dataset.label_map) + 1
-model = model_cls(num_classes=num_classes, **model_params).cuda()
+model = model_cls(num_classes=num_classes, **model_params)#.cuda()
+
+def extract_forward(self, x):
+
+        inp_shape = x.shape
+
+        # Move batch into images dimension for efficientnet
+        if len(inp_shape) == 5:
+            x = x.reshape(inp_shape[0] * inp_shape[1], *inp_shape[2:])
+        else:
+            x = x.squeeze(0)
+
+        # Pass input through EfficientNet
+        x = self.efficientnet(x)
+
+        if len(inp_shape) == 5:
+            x = x.reshape(inp_shape[0], inp_shape[1], *x.shape[1:]) # Get to dimension (B, T, C) 
+        else:
+            raise NotImplementedError("Not implement for unbatched data")
+            x = x.reshape(inp_shape[0], -1)
+
+        eff_activations = x.clone()
+
+        # Pass output through S4D layer
+        x = self.s4d(x)[0]
+
+        s4d_activations = x.clone()
+
+        # Take last step output from S4D and pass through readout layer
+        # x = x[:, -1, :]
+        x = self.readout(x)
+
+        return x, eff_activations, s4d_activations
+
+model_cls.forward = extract_forward
 
 checkpoint = torch.load(f"{args.model}.pth")
 model.load_state_dict(checkpoint)
@@ -73,15 +109,16 @@ with torch.no_grad():
 
     for batch_idx, (inputs, targets) in enumerate(test_dataloader):
         # Forward pass
-        outputs = model(inputs.cuda())
+        outputs, eff_act, s4d_act = model(inputs)
 
-        pred = torch.argmax(outputs, dim=1).detach().cpu().numpy().tolist()
+        pred = torch.argmax(outputs[:, -1], dim=1).detach().cpu().numpy().tolist()
         test_preds += pred
         tgt = targets.cpu().numpy().tolist()
         test_tgts += tgt
         if batch_idx % print_interval == 0:
             print(f'Batch [{batch_idx+1}/{len(test_dataloader)}]')
             print(f'pred {pred}, targets {tgt} acc {accuracy_score(test_tgts, test_preds)}')
+        break
 
 
     cm = ConfusionMatrixDisplay.from_predictions(test_tgts, test_preds)
@@ -91,5 +128,26 @@ with torch.no_grad():
     print(cm.confusion_matrix)
     print(cm_norm.confusion_matrix)
 
+print(outputs.shape, eff_act.shape, s4d_act.shape)
 
+np.save("class_act.dat", outputs.numpy())
+np.save("eff_act.dat", eff_act.numpy())
+np.save("s4d_act.dat", s4d_act.numpy())
 
+model.s4d.setup_step()
+A = model.s4d.layer.kernel.dA.detach()
+B = model.s4d.layer.kernel.dB.detach()
+C = model.s4d.layer.kernel.dC.detach()
+
+np.save("s4d_A.dat", A)
+np.save("s4d_B.dat", B)
+np.save("s4d_C.dat", C) 
+
+class_state_dict = model.readout.state_dict()
+torch.save(class_state_dict, "classifier_params.pt")
+
+s4d_state_dict = model.s4d.state_dict()
+torch.save(s4d_state_dict, "s4d_params.pt")
+
+np.save("ground_truth.dat", tgt)
+np.save("predictions.dat", pred)

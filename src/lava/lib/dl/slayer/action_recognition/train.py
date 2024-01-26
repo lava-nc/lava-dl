@@ -20,9 +20,7 @@ parser.add_argument('--lstm-dims', type=int, default=1280, help='Num of states p
 
 # Readout
 parser.add_argument('--readout-hidden-dims', type=int, default=64, help='Size of the hidden layer of the readout MLP. Default: 64')
-
-# Efficientnet
-parser.add_argument('--efficientnet-activation', type=str, default="silu", help='Activation function used by Efficientnet (relu or silu). Default: silu')
+parser.add_argument('--readout-no-bias', action='store_true', help='Do not use bias in readout.')
 
 # YoloKP
 parser.add_argument('--yolo-model-path', type=str, default="network.pt", help='Path to network file. (Default: network.py)')
@@ -53,14 +51,15 @@ print_interval = args.print_interval
 batch_size = args.batch_size
 num_frames_per_sample = args.frames_per_sample
 args.s4d_is_real = False if args.s4d_is_complex else True
+args.readout_use_bias = False if args.readout_no_bias else True
 model_cls = model_registry[args.model] 
 model_params = {"lstm_num_hidden": args.lstm_dims,
                 "num_readout_hidden": args.readout_hidden_dims,
+                "readout_bias": args.readout_use_bias,
                 "s4d_num_hidden": args.s4d_dims,
                 "s4d_states": args.s4d_states,
                 "s4d_is_real": args.s4d_is_real,
                 "s4d_lr": args.s4d_lr,
-                "efficientnet_activation": args.efficientnet_activation,
                 "yolo_model_path": args.yolo_model_path,
                 "yolo_args_path": args.yolo_args_path,
                 }
@@ -96,6 +95,7 @@ print("start training")
 epoch_loss = []
 val_loss = []
 min_val_loss = np.inf
+best_val_acc = 0
 # Training loop
 for epoch in range(num_epochs):
     model.train()
@@ -166,8 +166,13 @@ for epoch in range(num_epochs):
     writer.add_figure("Val Confusion matrix (normalized)", cm_norm.figure_, epoch)
 
     
-    if val_loss[-1] < min_val_loss:
-        min_val_loss = val_loss[-1]
+    # if val_loss[-1] < min_val_loss:  
+    #     min_val_loss = val_loss[-1]    
+    #     # Save the trained model (optional)
+    #     torch.save(model.state_dict(), f'{args.model}.pth')
+
+    if np.mean(val_acc) > best_val_acc:  
+        best_val_acc = np.mean(val_acc)
         # Save the trained model (optional)
         torch.save(model.state_dict(), f'{args.model}.pth')
 
