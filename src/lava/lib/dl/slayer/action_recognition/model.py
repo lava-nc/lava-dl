@@ -190,7 +190,7 @@ class EfficientNetS4D(nn.Module):
             x = x.reshape(inp_shape[0], -1)
 
         # Pass output through S4D layer
-        x = self.s4d(x)[0]
+        x = self.s4d(x)
 
         # Take last step output from S4D and pass through readout layer
         x = x[:, -1, :]
@@ -270,7 +270,7 @@ class CNNS4D(nn.Module):
             x = x.reshape(inp_shape[0], -1)
 
         # Pass output through S4D layer
-        x = self.s4d(x)[0]
+        x = self.s4d(x)
 
         # Take last step output from S4D and pass through readout layer
         x = x[:, -1, :]
@@ -322,7 +322,7 @@ class BottleneckS4D(nn.Module):
         x = self.bottleneck(x)
 
         # Pass output through S4D layer
-        x = self.s4d(x)[0]
+        x = self.s4d(x)
 
         # Take last step output from S4D and pass through readout layer
         x = x[:, -1, :]
@@ -396,7 +396,7 @@ class YoloS4D(nn.Module):
         x = x.movedim(-1, 1).sum(-1).sum(-1)
 
         # Pass output through S4D layer
-        x = self.s4d(x)[0]
+        x = self.s4d(x)
 
         # Take last step output from S4D and pass through readout layer
         x = x[:, -1, :]
@@ -459,7 +459,7 @@ class EfficientNetSlayerS4D(nn.Module):
         x = x.movedim(-1, 1).sum(-1).sum(-1)
 
         # Pass output through S4D layer
-        x = self.s4d(x)[0]
+        x = self.s4d(x)
 
         # Take last step output from S4D and pass through readout layer
         x = x[:, -1, :]
@@ -526,7 +526,7 @@ class PlSiLUEfficientNetS4D(nn.Module):
             x = x.reshape(inp_shape[0], -1)
 
         # Pass output through S4D layer
-        x = self.s4d(x)[0]
+        x = self.s4d(x)
 
         # Take last step output from S4D and pass through readout layer
         x = x[:, -1, :]
@@ -592,7 +592,7 @@ class MiniEfficientNetS4D(nn.Module):
         x = x.sum(-1).sum(-1)
 
         # Pass output through S4D layer
-        x = self.s4d(x)[0]
+        x = self.s4d(x)
 
         # Take last step output from S4D and pass through readout layer
         x = x[:, -1, :]

@@ -5,7 +5,6 @@ from PIL import Image
 from torchvision import transforms
 import torch
 from typing import List, Union, Tuple, Any
-import glob2 as glob
 
 class VideoRecord(object):
     """
@@ -36,13 +35,13 @@ class VideoRecord(object):
 
     @property
     def end_frame(self) -> int:
-        return len(self._imgs)
+        return len(self._imgs) - 1
 
     @property
     def label(self) -> int:
-        return int(self._path.split('/')[-3].split('_')[1])
+        return int(self._path.split('/')[-3].split('_')[1]) - 1
 
-class VideoFrameDataset(torch.utils.data.Dataset):
+class HARDVSDataset(torch.utils.data.Dataset):
     r"""
     A highly efficient and adaptable dataset class for videos.
     Instead of loading every frame of a video,
@@ -102,24 +101,29 @@ class VideoFrameDataset(torch.utils.data.Dataset):
 
     """
     def __init__(self,
-                 root_path: str,
+                 annotationfile_path: str,
                  num_segments: int = 3,
                  frames_per_segment: int = 1,
                  transform = None,
                  test_mode: bool = False,
                  classify_labels: list = []):
-        super(VideoFrameDataset, self).__init__()
+        super().__init__()
 
-        self.root_path = root_path
+        self.annotation_file_path = annotationfile_path
         self.num_segments = num_segments
         self.frames_per_segment = frames_per_segment
         self.transform = transform
         self.test_mode = test_mode
-        self.label_list = []
         self.label_map = {v: i+1 for i, v in enumerate(classify_labels)}
-        self.fns = glob.glob(self.root_path + "/**/*.npz")
-        self.dt = 1000000 / 60 # 60 FPS
-        self.tau = self.dt * 2
+
+        with open(self.annotation_file_path, "r") as f:
+            self.fns = [fn[:-1] for fn in f.readlines()]
+
+        self.label_list = [self.label_map.get(VideoRecord([], path).label, 0) for path in self.fns]
+
+        # TODO offer those as parameters 
+        self.dt = 1000000 / 150
+        self.tau = self.dt * 5
 
     def _load_image(self, base_path: str, frame_index: int) -> Image.Image:
         path = os.path.join(base_path, 
@@ -177,7 +181,7 @@ class VideoFrameDataset(torch.utils.data.Dataset):
         events['p'] = data['p'] * 2 - 1
 
         imgs = []
-        img = np.zeros([346, 260])
+        img = np.zeros([346, 260, 1])
         t_last = None
 
         for e in events:
@@ -185,20 +189,20 @@ class VideoFrameDataset(torch.utils.data.Dataset):
                 t_last = e[2]
                 t_next = e[2] + self.dt
 
-            img[e[0], e[1]] += e['p']
+            img[e[0], e[1], 0] += e['p']
 
             if e[2] - t_last >= self.dt:
-                imgs.append(np.repeat(img.copy().reshape(1, *img.shape), 3, 0))
+                imgs.append(np.repeat(img.copy(), 3, -1))
                 t_next += self.dt
                 img *= np.exp(-(self.dt / self.tau))
                 t_last = e[2]
-                
+        
         record: VideoRecord = VideoRecord(imgs, fn)
-        label = record.label
+        label = self.label_map.get(record.label, 0)
 
         frame_start_indices: 'np.ndarray[int]' = self._get_start_indices(record)
 
-        return self._get(record, frame_start_indices), label
+        return self._get(record, frame_start_indices).float(), label
 
     def _get(self, record: VideoRecord, frame_start_indices: 'np.ndarray[int]') -> Union[
         Tuple[List[Image.Image], Union[int, List[int]]],
@@ -221,8 +225,6 @@ class VideoFrameDataset(torch.utils.data.Dataset):
             3) or anything else if a custom transform is used.
         """
 
-        # frame_start_indices = np.array(frame_start_indices + record.start_frame)
-
         images = []
         # from each start_index, load self.frames_per_segment
         # consecutive frames
@@ -231,7 +233,7 @@ class VideoFrameDataset(torch.utils.data.Dataset):
 
             # load self.frames_per_segment consecutive frames
             for _ in range(self.frames_per_segment):
-                image = self.transform(record.imgs[frame_index])
+                image = self.transform(record._imgs[frame_index])
                 images.append(image)
 
                 if frame_index < record.end_frame:

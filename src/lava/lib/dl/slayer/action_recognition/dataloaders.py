@@ -1,4 +1,5 @@
 from video_dataset import VideoFrameDataset
+from hardvs_dataset import HARDVSDataset
 import os
 from torchvision import transforms
 import torch
@@ -6,7 +7,7 @@ import numpy as np
 from torch.utils.data import WeightedRandomSampler
 
 
-def init_dataloader(partition="train",
+def init_NTU_dataloader(partition="train",
                     batch_size=8,
                     num_frames_per_sample=100,
                     resolution=224,
@@ -63,3 +64,62 @@ def init_dataloader(partition="train",
     )
 
     return dataloader
+
+
+
+
+def init_HARDVS_dataloader(partition="train",
+                           batch_size=8,
+                           num_frames_per_sample=100,
+                           resolution=224,
+                           data_root=None):
+    annotation_file = os.path.join(data_root, partition + '.txt')
+
+    preprocess = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Resize(resolution + 2, antialias=None),  # image batch, resize smaller edge to 256
+        transforms.CenterCrop(resolution),  # image batch, center crop to square 224x224
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+
+    classify_labels = list(range(1, 301))
+    
+    dataset = HARDVSDataset(
+        annotationfile_path=annotation_file,
+        num_segments=num_frames_per_sample,
+        frames_per_segment=1,
+        transform=preprocess,
+        test_mode=False if partition == "train" else True,
+        classify_labels = classify_labels,
+    )
+
+    # example using inverse class frequencies
+    sample_labels = dataset.label_list # list/array of labels
+    class_counts = np.bincount(sample_labels)
+    num_classes = len(class_counts)
+    samples_per_class = np.min(class_counts)
+    class_weights = 1. / class_counts   # assuming labels are class indices
+    sample_weights = class_weights[sample_labels]
+
+    
+    sampler = WeightedRandomSampler(sample_weights,
+                                    num_samples=int(samples_per_class * num_classes),
+                                    replacement=True)
+
+    
+    dataloader = torch.utils.data.DataLoader(
+        dataset=dataset,
+        batch_size=batch_size,
+        num_workers=batch_size*2,
+        pin_memory=True,
+        sampler=sampler if partition == 'train' else None,
+        shuffle=False if partition == 'train' else True,
+    )
+
+    return dataloader
+
+dataset_registry = {
+    "NTU": init_NTU_dataloader,
+    "HARDVS": init_HARDVS_dataloader, 
+}
+

@@ -5,8 +5,11 @@ parser.add_argument('--batch-size', type=int, default=8, help='Batch size. Defau
 parser.add_argument('--epochs', type=int, default=100, help='Num epochs. Default: 100')
 parser.add_argument('--print-interval', type=int, default=100, help='Print information each N batches. Default: 100')
 parser.add_argument('--lr', type=float, metavar="LEARNING_RATE", default=1e-3, help='Learning rate. Default: 1e-3')
+
+# Dataset
+parser.add_argument('--dataset', type=str, default="NTU", help='NTU or HARDVS. Default: NTU')
 parser.add_argument('--frames-per-sample', type=int, default=30, help='Num frames per sample. Default: 30')
-parser.add_argument('--data-root', type=str, help='Path to root folder of NTU data.')
+parser.add_argument('--data-root', type=str, help='Path to root folder of the data.')
 
 # model arguments
 # S4D
@@ -31,14 +34,13 @@ args = parser.parse_args()
 import matplotlib
 matplotlib.use('Agg')
 from model import model_registry 
-from video_dataset import VideoFrameDataset, ImglistToTensor
 import os
 import torch
 from torch import nn
 from torch import optim
 import time
 import numpy as np
-from dataloaders import init_dataloader
+from dataloaders import dataset_registry 
 from torch.utils.tensorboard import SummaryWriter
 from sklearn.metrics import ConfusionMatrixDisplay, accuracy_score
 from datetime import datetime
@@ -66,6 +68,10 @@ model_params = {"lstm_num_hidden": args.lstm_dims,
 
 
 resolution = 448 if args.model == "YoloKP-S4D" else 224
+
+# Dataset
+init_dataloader = dataset_registry[args.dataset] 
+
 
 train_dataloader = init_dataloader(partition="train",
                                    batch_size=batch_size,

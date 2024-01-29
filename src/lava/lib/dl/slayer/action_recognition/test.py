@@ -5,8 +5,12 @@ parser.add_argument('--batch-size', type=int, default=8, help='Batch size. Defau
 # parser.add_argument('--epochs', type=int, default=100, help='Num epochs. Default: 100')
 parser.add_argument('--print-interval', type=int, default=100, help='Print information each N batches. Default: 100')
 # parser.add_argument('--lr', type=float, metavar="LEARNING_RATE", default=1e-3, help='Learning rate. Default: 1e-3')
+
+# Dataset
+parser.add_argument('--dataset', type=str, default="NTU", help='NTU or HARDVS. Default: NTU')
 parser.add_argument('--frames-per-sample', type=int, default=30, help='Num frames per sample. Default: 30')
-parser.add_argument('--data-root', type=str, help='Path to root folder of NTU data.')
+parser.add_argument('--data-root', type=str, help='Path to root folder of the data.')
+
 # model arguments
 parser.add_argument('--s4d-dims', type=int, default=1280, help='Num dimensions in S4D. Should not be changed, as it must match the output dimensions of Efficientnet. Default: 1280')
 parser.add_argument('--s4d-states', type=int, default=1, help='Num of states per dimension in S4D. Default: 1')
@@ -29,8 +33,8 @@ from torch import nn
 from torch import optim
 import time
 import numpy as np
-from dataloaders import init_dataloader
 from sklearn.metrics import ConfusionMatrixDisplay, accuracy_score
+from dataloaders import dataset_registry 
 
 # Params
 learning_rate = 0.0 
@@ -52,6 +56,9 @@ model_params = {"lstm_num_hidden": args.lstm_dims,
                 }
 
 resolution = 448 if args.model == "YoloKP-S4D" else 224
+
+# Dataset
+init_dataloader = dataset_registry[args.dataset] 
 
 test_dataloader = init_dataloader(partition="test",
                                   batch_size=batch_size,
