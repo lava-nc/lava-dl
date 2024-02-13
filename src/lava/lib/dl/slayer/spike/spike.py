@@ -19,7 +19,7 @@ def _spike_backward(
         )
 
     return scale_rho * torch.exp(
-        -torch.clamp(voltage - threshold, max=0) / tau_rho
+        torch.clamp(voltage - threshold, max=0) / tau_rho
     )
 
 
