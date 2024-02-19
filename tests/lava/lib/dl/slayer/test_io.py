@@ -75,8 +75,21 @@ class TestTensorToEventWithTorchInput(unittest.TestCase):
         fill_from_tensor = event_tensor.fill_tensor(torch.zeros(2, 10, 10, 5))
         fill_from_numpy = event_numpy.fill_tensor(torch.zeros(2, 10, 10, 5))
         self.assertTrue((fill_from_tensor - fill_from_numpy).sum().item()
-                        < epsilon, msg='fill_tensor() does not return same data'
-                        )
+                        < epsilon, msg='fill_tensor() does not return same data' )
+
+    def test_fill_tensor_binning_mode(self):
+        if verbose is True:
+            print("Testing fill_tensor() binning mode SUM/OR")
+ 
+        tensor = torch.ones(2, 10, 10, 5) 
+        event_tensor_copy_or = slayer.io.tensor_to_event(tensor) 
+        event_tensor_copy_sum = slayer.io.tensor_to_event(tensor) 
+ 
+        binning_or = event_tensor_copy_or.fill_tensor(torch.ones(2, 10, 10, 5), binning_mode="OR")  
+        binning_sum = event_tensor_copy_sum.fill_tensor(torch.ones(2, 10, 10, 5), binning_mode="SUM")  
+
+        self.assertTrue((binning_or == 1).all(), msg='fill_tensor(binning_mode="OR") does not return correct data' )
+        self.assertTrue((binning_sum == 2).all(), msg='fill_tensor(binning_mode="SUM") does not return correct data' )
 
 
 if __name__ == '__main__':
