@@ -54,5 +54,18 @@ jobs:
         repository: 'Lava-DL'    
 
     - name: Run unit tests
-      run: poetry run pytest
+      run: poetry run pytest --ignore=tests/lava/tutorials
+
+  tutorial-tests:
+    name: Unit Test Tutorials
+    runs-on: ncl-gpu04
+
+    steps:
+    - name: Setup CI
+      uses: lava-nc/ci-setup-composite-action@v1.1
+      with:
+        repository: 'Lava-DL'    
+
+    - name: Run unit tests
+      run: poetry run pytest tests/lava/tutorials
       
