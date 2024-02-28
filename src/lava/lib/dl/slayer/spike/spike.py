@@ -124,3 +124,32 @@ class Spike(torch.autograd.Function):
             ) * grad_spikes,
             None, None, None, None, None, None
         )
+
+def _hoyer_spike_backward(
+    voltage, threshold, tau_rho, scale_rho,
+    graded_spike=False
+):
+    """
+    """
+    grad_inp = torch.zeros_like(voltage).cuda()
+
+    grad_inp[voltage > 0] = 1.0
+    grad_inp[voltage > 2.0] = 0.0
+
+    return 0.5 * grad_inp
+
+class HoyerSpike(Spike):
+    derivative = None
+    @staticmethod
+    def backward(ctx, grad_spikes):
+        """
+        """
+        voltage, threshold, tau_rho, scale_rho, graded_spike \
+            = ctx.saved_tensors
+        graded_spike = True if graded_spike > 0.5 else False
+        return (
+            _hoyer_spike_backward(
+                voltage, threshold, tau_rho, scale_rho, graded_spike
+            ) * grad_spikes,
+            None, None, None, None, None, None
+        )
