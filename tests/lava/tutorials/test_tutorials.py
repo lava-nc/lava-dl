@@ -161,11 +161,14 @@ class TestTutorials(unittest.TestCase):
         tutorials_directory = ""
 
         if netx:
-            tutorials_temp_directory = tutorials_temp_directory + "lava/lib/dl/netx"
+            tutorials_temp_directory = tutorials_temp_directory
+            + "lava/lib/dl/netx"
         elif slayer: 
-            tutorials_temp_directory = tutorials_temp_directory + "lava/lib/dl/slayer"
+            tutorials_temp_directory = tutorials_temp_directory
+            + "lava/lib/dl/slayer"
         else:
-            tutorials_temp_directory = tutorials_temp_directory + "lava/lib/dl/bootstrap/mnist"
+            tutorials_temp_directory = tutorials_temp_directory
+            + "lava/lib/dl/bootstrap/mnist"
 
         tutorials_directory = os.path.realpath(tutorials_temp_directory)
         os.chdir(tutorials_directory)
