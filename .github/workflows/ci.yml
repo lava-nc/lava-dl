@@ -21,7 +21,7 @@ jobs:
         repository: 'Lava-DL'
 
     - name: Run flakeheaven (flake8)
-      run: poetry run flakeheaven lint src/lava tests/
+      run: pipx run poetry run flakeheaven lint src/lava tests/
 
   security-lint:
     name: Security Lint Code
@@ -54,7 +54,7 @@ jobs:
         repository: 'Lava-DL'    
 
     - name: Run unit tests
-      run: poetry run pytest --ignore=tests/lava/tutorials
+      run: pipx run poetry run pytest --ignore=tests/lava/tutorials
 
   tutorial-tests:
     name: Unit Test Tutorials
@@ -67,5 +67,5 @@ jobs:
         repository: 'Lava-DL'    
 
     - name: Run unit tests
-      run: poetry run pytest tests/lava/tutorials
+      run: pipx run poetry run pytest tests/lava/tutorials
       
