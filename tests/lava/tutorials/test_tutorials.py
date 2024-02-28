@@ -216,6 +216,35 @@ class TestTutorials(unittest.TestCase):
             "oxford/run.ipynb", netx=True
         )
 
+    def test_pilotnet_sdnn_benchmark(self):
+        """Test pilotnet_sdnn/benchmark.ipynb"."""
+        self._run_notebook(
+            "pilotnet_sdnn/benchmark.ipynb", netx=True
+        )
+
+    def test_pilotnet_sdnn_run(self):
+        """Test pilotnet_sdnn/run.ipynb."""
+        self._run_notebook(
+            "pilotnet_sdnn/run.ipynb", netx=True
+        )
+
+    def test_pilotnet_snn_benchmark(self):
+        """Test pilotnet_snn/benchmark.ipynb."""
+        self._run_notebook(
+            "pilotnet_snn/benchmark.ipynb", netx=True
+        )
+
+    def test_pilotnet_snn_run(self):
+        """Test pilotnet_snn/run.ipynb."""
+        self._run_notebook(
+            "pilotnet_snn/run.ipynb", netx=True
+        )
+
+    def test_yolo_kp_run(self):
+        """Test yolo_kp/run.ipynb."""
+        self._run_notebook(
+            "yolo_kp/run.ipynb", netx=True
+        )
 
 if __name__ == "__main__":
     support.run_unittest(TestTutorials)
