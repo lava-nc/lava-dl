@@ -146,7 +146,9 @@ class TestTutorials(unittest.TestCase):
                         errors.append(output)
         return errors
 
-    def _run_notebook(self, notebook: str, netx: bool = False, slayer: bool = False):
+    def _run_notebook(self, notebook: str,
+                      netx: bool = False,
+                      slayer: bool = False):
         """Run a specific notebook
 
         Parameters
@@ -163,7 +165,7 @@ class TestTutorials(unittest.TestCase):
         if netx:
             tutorials_temp_directory = tutorials_temp_directory
             + "lava/lib/dl/netx"
-        elif slayer: 
+        elif slayer:
             tutorials_temp_directory = tutorials_temp_directory
             + "lava/lib/dl/slayer"
         else:
