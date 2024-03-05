@@ -232,7 +232,9 @@ class Delta(torch.nn.Module):
     def clamp(self):
         """Clamps the threshold value to
         :math:`[\\verb~1/scale~, \\infty)`."""
-        self.threshold.data.clamp_(1 / self.scale)
+        #self.threshold.data.clamp_(1 / self.scale)
+        pass
+        # skipped
 
     @property
     def device(self):

@@ -1697,7 +1697,7 @@ class FFTConv(nn.Module):
             **kernel_args,
         )
 
-        dropout_fn = DropoutNd if tie_dropout else nn.Dropout
+        dropout_fn = DropoutNd #if tie_dropout else nn.Dropout
         self.drop = dropout_fn(dropout) if dropout > 0.0 else nn.Identity()
         self.drop_kernel = nn.Dropout(drop_kernel) if drop_kernel > 0.0 else nn.Identity()
 
@@ -1892,8 +1892,6 @@ class S4Block(nn.Module):
                 activate=True,
             )
 
-
-
     def forward(self, x, lengths=None, **kwargs): # absorbs return_output and transformer src mask
         """
         x: (B H L) if self.transposed else (B L H)
@@ -1981,10 +1979,13 @@ class S4D(S4Block):
         is_real=False,
         transposed=False,
         bottleneck=None,
+        skip = True,
+        final_act = None,
+        activation = "relu",
         **layer_args,  # Arguments into inner layer (e.g. FFTConv)
     ):
-        layer_args["activation"] = "relu"
-        layer_args['skip'] = True
+        layer_args["activation"] = activation
+        layer_args['skip'] = skip
         layer_args['drop_kernel'] = 0.0
         layer_args['bidirectional'] = False
         layer_args['mode'] = 's4d'
@@ -2001,7 +2002,7 @@ class S4D(S4Block):
                          gate=None,
                          gate_act=None,
                          mult_act=None,
-                         final_act=None,
+                         final_act=final_act,
                          postact=None,
                          initializer=None,
                          weight_norm=False,

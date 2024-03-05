@@ -147,10 +147,20 @@ class Neuron(base.Neuron):
     @property
     def device_params(self):
         """Dictionary of device parameters."""
-        return {
-            'type': 'SDNN',
-            'activation': self.activation.__name__,
-            'vThMant': self.v_th_mant,
+        if self.activation.__name__ == "S4D":
+            return {
+                'type': 'S4D',
+                'activation': self.activation.__name__,
+                'vThMant': self.v_th_mant,
+                'a' : self.activation.layer.kernel.dA.detach().numpy().flatten(),
+                'b' : self.activation.layer.kernel.dB.detach().numpy().flatten(),
+                'c' : self.activation.layer.kernel.dC.detach().numpy().flatten(),
+                }
+        else: 
+            return {
+                'type': 'SDNN',
+                'activation': self.activation.__name__,
+                'vThMant': self.v_th_mant,
         }
 
     def set_bias(self, bias):
