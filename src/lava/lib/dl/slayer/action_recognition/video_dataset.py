@@ -130,15 +130,27 @@ class VideoFrameDataset(torch.utils.data.Dataset):
         self.transform = transform
         self.test_mode = test_mode
         self.label_list = []
-        self.label_map = {v: i+1 for i, v in enumerate(classify_labels)}
+        self.classify_labels = classify_labels
+        if self.classify_labels == 'all':
+            self.label_map = {i: i for i in range(300)}
+        else:
+            self.label_map = {v: i+1 for i, v in enumerate(classify_labels)}
 
         self._parse_annotationfile()
         self._sanity_check_samples()
+ 
+    @property
+    def num_classes(self):
+        if self.classify_labels == 'all':
+            return len(self.label_map)
+        else:
+            # When we specify a subset of labels, the 0 class implicitly includes the remaining classes
+            return len(self.label_map) + 1
 
 
     def balance_by_random_drop(self, force_min=None):
         """
-        Balances the dataset by droping random samples.
+        Balances the dataset by dropping random samples.
         """
 
         class_counts = np.bincount(self.label_list)

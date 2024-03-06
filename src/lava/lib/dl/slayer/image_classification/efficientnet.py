@@ -73,7 +73,7 @@ class SqueezeExcitation(torch.nn.Module):
         if self.scale:
             return scale * input
         else:
-            return scale
+            return scale + input
 
 
 

@@ -5,6 +5,9 @@ parser.add_argument('--batch-size', type=int, default=8, help='Batch size. Defau
 parser.add_argument('--epochs', type=int, default=100, help='Num epochs. Default: 100')
 parser.add_argument('--print-interval', type=int, default=100, help='Print information each N batches. Default: 100')
 parser.add_argument('--lr', type=float, metavar="LEARNING_RATE", default=1e-3, help='Learning rate. Default: 1e-3')
+parser.add_argument('--no-train-backbone', action='store_true', help='Train backbone.')
+parser.add_argument('--continue-training', action='store_true', help='Load last checkpoint and continue training.')
+
 
 # Dataset
 parser.add_argument('--dataset', type=str, default="NTU", help='NTU or HARDVS. Default: NTU')
@@ -47,21 +50,24 @@ from datetime import datetime
 
 
 # Params
-learning_rate = args.lr 
 num_epochs = args.epochs 
 print_interval = args.print_interval 
 batch_size = args.batch_size
 num_frames_per_sample = args.frames_per_sample
 args.s4d_is_real = False if args.s4d_is_complex else True
 args.readout_use_bias = False if args.readout_no_bias else True
+args.train_backbone = False if args.no_train_backbone else True
+if not args.train_backbone:
+    print("WARNING, no backbone training might be faulty")
 model_cls = model_registry[args.model] 
 model_params = {"lstm_num_hidden": args.lstm_dims,
+                "train_backbone": args.train_backbone,
                 "num_readout_hidden": args.readout_hidden_dims,
                 "readout_bias": args.readout_use_bias,
                 "s4d_num_hidden": args.s4d_dims,
                 "s4d_states": args.s4d_states,
                 "s4d_is_real": args.s4d_is_real,
-                "s4d_lr": args.s4d_lr,
+                "s4d_lr": args.s4d_lr, # Not used
                 "yolo_model_path": args.yolo_model_path,
                 "yolo_args_path": args.yolo_args_path,
                 }
@@ -85,15 +91,33 @@ val_dataloader = init_dataloader(partition="val",
                                  data_root=args.data_root) 
 
 
-num_classes = len(train_dataloader.dataset.label_map) + 1
+num_classes = train_dataloader.dataset.num_classes
 model = model_cls(num_classes=num_classes, **model_params).cuda()
+
+if args.continue_training:
+    print("Continue training.")
+    checkpoint = torch.load(f'{args.model}-{args.dataset}.pth')
+    model.load_state_dict(checkpoint)
+    model.train()
+
 
 
 # Define your loss function
 criterion = nn.CrossEntropyLoss()
 # Define your optimizer
-optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-writer = SummaryWriter(f'runs/NTU/{args.model}/{datetime.today().strftime("%Y-%m-%d %H:%M:%S")}')
+
+if args.lr != args.s4d_lr:
+    print(f"Set {args.s4d_lr} lr for S4D")
+    optimizer = optim.Adam([
+                               {'params': model.efficientnet.parameters()},
+                               {'params': model.readout.parameters()},
+                               {'params': model.s4d.parameters(), 'lr': args.s4d_lr}
+                           ], lr=args.lr)
+
+else:
+    optimizer = optim.Adam(model.parameters(), lr=args.lr)
+
+writer = SummaryWriter(f'runs/{args.dataset}/{args.model}/{datetime.today().strftime("%Y-%m-%d %H:%M:%S")}')
 writer.add_hparams(model_params, {"lr": args.lr})
 
 print("start training")
@@ -180,7 +204,7 @@ for epoch in range(num_epochs):
     if np.mean(val_acc) > best_val_acc:  
         best_val_acc = np.mean(val_acc)
         # Save the trained model (optional)
-        torch.save(model.state_dict(), f'{args.model}.pth')
+        torch.save(model.state_dict(), f'{args.model}-{args.dataset}.pth')
 
     
     print(f"Avg validation loss on epoch {epoch}: {np.array(val_loss) / len(val_dataloader)}")

@@ -82,7 +82,7 @@ def init_HARDVS_dataloader(partition="train",
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 
-    classify_labels = list(range(1, 301))
+    # classify_labels = list(range(1, 301))
     
     dataset = HARDVSDataset(
         annotationfile_path=annotation_file,
@@ -90,8 +90,11 @@ def init_HARDVS_dataloader(partition="train",
         frames_per_segment=1,
         transform=preprocess,
         test_mode=False if partition == "train" else True,
-        classify_labels = classify_labels,
+        classify_labels = 'all',
     )
+
+    if not partition == 'train':
+        dataset.balance_by_random_drop()
 
     # example using inverse class frequencies
     sample_labels = dataset.label_list # list/array of labels
@@ -110,7 +113,7 @@ def init_HARDVS_dataloader(partition="train",
     dataloader = torch.utils.data.DataLoader(
         dataset=dataset,
         batch_size=batch_size,
-        num_workers=batch_size*2,
+        num_workers=batch_size,
         pin_memory=True,
         sampler=sampler if partition == 'train' else None,
         shuffle=False if partition == 'train' else True,

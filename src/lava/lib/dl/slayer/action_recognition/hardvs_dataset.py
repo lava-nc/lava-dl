@@ -106,7 +106,7 @@ class HARDVSDataset(torch.utils.data.Dataset):
                  frames_per_segment: int = 1,
                  transform = None,
                  test_mode: bool = False,
-                 classify_labels: list = []):
+                 classify_labels: Union[list, str] = []):
         super().__init__()
 
         self.annotation_file_path = annotationfile_path
@@ -114,7 +114,11 @@ class HARDVSDataset(torch.utils.data.Dataset):
         self.frames_per_segment = frames_per_segment
         self.transform = transform
         self.test_mode = test_mode
-        self.label_map = {v: i+1 for i, v in enumerate(classify_labels)}
+        self.classify_labels = classify_labels
+        if self.classify_labels == 'all':
+            self.label_map = {i: i for i in range(300)}
+        else:
+            self.label_map = {v: i+1 for i, v in enumerate(self.classify_labels)}
 
         with open(self.annotation_file_path, "r") as f:
             self.fns = [fn[:-1] for fn in f.readlines()]
@@ -124,6 +128,33 @@ class HARDVSDataset(torch.utils.data.Dataset):
         # TODO offer those as parameters 
         self.dt = 1000000 / 150
         self.tau = self.dt * 5
+    
+    @property
+    def num_classes(self):
+        if self.classify_labels == 'all':
+            return len(self.label_map)
+        else:
+            # When we specify a subset of labels, the 0 class implicitly includes the remaining classes
+            return len(self.label_map) + 1
+
+    def balance_by_random_drop(self, force_min=None):
+        """
+        Balances the dataset by dropping random samples.
+        """
+
+        class_counts = np.bincount(self.label_list)
+        if force_min:
+            min_class_count = force_min
+        else:
+            min_class_count = np.min(class_counts)
+
+        num_samples_to_drop = [np.max([0, cc - min_class_count]) for cc in class_counts]
+
+        for class_id, to_drop in enumerate(num_samples_to_drop):
+            ids = np.where(np.array(self.label_list) == class_id)[0]
+            ids_to_drop = np.random.choice(ids, to_drop, replace=False)
+            self.label_list = [label for id, label in enumerate(self.label_list) if id not in ids_to_drop]
+            self.fns = [fn for id, fn in enumerate(self.fns) if id not in ids_to_drop]
 
     def _load_image(self, base_path: str, frame_index: int) -> Image.Image:
         path = os.path.join(base_path, 
@@ -173,6 +204,7 @@ class HARDVSDataset(torch.utils.data.Dataset):
         """
 
         fn = self.fns[idx]
+
         data = np.load(fn, allow_pickle=True)
         events = np.zeros(len(data['t']), dtype=np.dtype([("x", int), ("y", int), ("t", int), ("p", int)]))
         events['t'] = data['t']
@@ -183,26 +215,31 @@ class HARDVSDataset(torch.utils.data.Dataset):
         imgs = []
         img = np.zeros([346, 260, 1])
         t_last = None
-
-        for e in events:
+        for i, e in enumerate(events):
             if not t_last:
-                t_last = e[2]
-                t_next = e[2] + self.dt
+                t_last = e['t']
+                t_next = e['t'] + self.dt
 
-            img[e[0], e[1], 0] += e['p']
+            img[e['x'], e['y'], 0] += e['p']
 
-            if e[2] - t_last >= self.dt:
+            if e['t'] - t_last >= self.dt:
                 imgs.append(np.repeat(img.copy(), 3, -1))
                 t_next += self.dt
                 img *= np.exp(-(self.dt / self.tau))
-                t_last = e[2]
+                t_last = e['t']
         
         record: VideoRecord = VideoRecord(imgs, fn)
         label = self.label_map.get(record.label, 0)
 
         frame_start_indices: 'np.ndarray[int]' = self._get_start_indices(record)
 
-        return self._get(record, frame_start_indices).float(), label
+        frames = self._get(record, frame_start_indices).float()
+
+        # clear memory
+        del record._imgs
+        del record
+        
+        return frames, label
 
     def _get(self, record: VideoRecord, frame_start_indices: 'np.ndarray[int]') -> Union[
         Tuple[List[Image.Image], Union[int, List[int]]],

@@ -468,7 +468,7 @@ class EfficientNetSlayerS4D(nn.Module):
         return x
 
 
-class PlSiLUEfficientNetS4D(nn.Module):
+class PlSiLUNoScaleEfficientNetS4D(nn.Module):
 
     def __init__(self,
                  s4d_states=64,
@@ -478,14 +478,22 @@ class PlSiLUEfficientNetS4D(nn.Module):
                  num_classes=60,
                  s4d_is_real=True,
                  s4d_lr=1e-3,
+                 train_backbone=True,
                  *args,
                  **kwargs):
         super().__init__()
 
+        self.train_backbone = train_backbone
+
         # Load pre-trained EfficientNet and remove last layer
-        self.efficientnet = my_efficientnet_b0(weights='IMAGENET1K_V1', activation=PiecewiseLinearSiLU, scale_act=ReLU1)
-        checkpoint = torch.load("EffSiLU.pt")
+        self.efficientnet = my_efficientnet_b0(weights='IMAGENET1K_V1', activation=PiecewiseLinearSiLU, scale=False)
+        checkpoint = torch.load("EffSiLUNoScale.pt")
         self.efficientnet.load_state_dict(checkpoint)
+
+        if self.train_backbone:
+            self.efficientnet.train()
+        else:
+            self.efficientnet.eval()
 
         # Use Efficientnet backbone but remove last layer
         self.efficientnet = nn.Sequential(*list(self.efficientnet.children())[:-1],
@@ -517,7 +525,88 @@ class PlSiLUEfficientNetS4D(nn.Module):
             x = x.squeeze(0)
 
         # Pass input through EfficientNet
-        x = self.efficientnet(x)
+        if self.train_backbone:
+            x = self.efficientnet(x)
+        else:
+            with torch.no_grad():
+                x = self.efficientnet(x)
+
+        if len(inp_shape) == 5:
+            x = x.reshape(inp_shape[0], inp_shape[1], *x.shape[1:]) # Get to dimension (B, T, C) 
+        else:
+            raise NotImplementedError("Not implement for unbatched data")
+            x = x.reshape(inp_shape[0], -1)
+
+        # Pass output through S4D layer
+        x = self.s4d(x)
+
+        # Take last step output from S4D and pass through readout layer
+        x = x[:, -1, :]
+        x = self.readout(x)
+
+        return x
+
+class PlSiLUEfficientNetS4D(nn.Module):
+
+    def __init__(self,
+                 s4d_states=64,
+                 s4d_num_hidden=1280,
+                 num_readout_hidden=64,
+                 readout_bias=True,
+                 num_classes=60,
+                 s4d_is_real=True,
+                 s4d_lr=1e-3,
+                 train_backbone=True,
+                 *args,
+                 **kwargs):
+        super().__init__()
+
+        self.train_backbone = train_backbone
+
+        # Load pre-trained EfficientNet and remove last layer
+        self.efficientnet = my_efficientnet_b0(weights='IMAGENET1K_V1', activation=PiecewiseLinearSiLU, scale_act=ReLU1)
+        checkpoint = torch.load("EffSiLU.pt")
+        self.efficientnet.load_state_dict(checkpoint)
+
+        # Use Efficientnet backbone but remove last layer
+        self.efficientnet = nn.Sequential(*list(self.efficientnet.children())[:-1],
+                                          nn.Flatten())
+        if self.train_backbone:
+            self.efficientnet.train()
+        else:
+            self.efficientnet.eval()
+
+        # S4D Layer 
+        self.s4d = S4D(d_model=s4d_num_hidden,
+                       d_state=s4d_states,
+                       dropout=0.0,
+                       transposed=False,
+                       lr=s4d_lr,
+                       is_real=s4d_is_real)
+
+        # Readout layer
+        self.readout = nn.Sequential(nn.Linear(s4d_num_hidden, num_readout_hidden, bias=readout_bias),
+                                     nn.ReLU(),
+                                     nn.Linear(num_readout_hidden, num_classes, bias=readout_bias))
+
+    
+    def forward(self, x):
+
+
+        inp_shape = x.shape
+
+        # Move batch into images dimension for efficientnet
+        if len(inp_shape) == 5:
+            x = x.reshape(inp_shape[0] * inp_shape[1], *inp_shape[2:])
+        else:
+            x = x.squeeze(0)
+
+        # Pass input through EfficientNet
+        if self.train_backbone:
+            x = self.efficientnet(x)
+        else:
+            with torch.no_grad():
+                x = self.efficientnet(x)
 
         if len(inp_shape) == 5:
             x = x.reshape(inp_shape[0], inp_shape[1], *x.shape[1:]) # Get to dimension (B, T, C) 
@@ -604,6 +693,7 @@ model_registry = {
     "efficientnet-b0-LSTM": EfficientNetLSTM,
     "efficientnet-b0-S4D": EfficientNetS4D,
     "efficientnet-b0-pl-silu-S4D": PlSiLUEfficientNetS4D,
+    "efficientnet-b0-pl-silu-noscale-S4D": PlSiLUNoScaleEfficientNetS4D,
     "mini-efficientnet-b0-S4D": MiniEfficientNetS4D,
     "efficientnet-b0-Slayer-S4D": EfficientNetSlayerS4D,
     "efficientnet-b0": EfficientNetAblation,

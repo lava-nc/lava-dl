@@ -66,10 +66,10 @@ test_dataloader = init_dataloader(partition="test",
                                   resolution=resolution,
                                   data_root=args.data_root) 
 
-num_classes = len(test_dataloader.dataset.label_map) + 1
+num_classes = test_dataloader.dataset.num_classes
 model = model_cls(num_classes=num_classes, **model_params).cuda()
 
-checkpoint = torch.load(f"{args.model}.pth")
+checkpoint = torch.load(f"{args.model}-{args.dataset}.pth")
 model.load_state_dict(checkpoint)
 model.eval()
 
