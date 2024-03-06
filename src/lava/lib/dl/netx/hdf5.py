@@ -16,6 +16,7 @@ from lava.magma.core.process.process import AbstractProcess
 from lava.magma.core.process.ports.ports import InPort, OutPort
 from lava.proc.lif.process import LIF, LIFReset
 from lava.proc.sdn.process import Sigma, Delta, SigmaDelta
+from lava.proc.s4d.process import SigmaS4dDelta
 from lava.lib.dl.slayer.neuron.rf import neuron_params as get_rf_params
 from lava.lib.dl.netx.utils import NetDict
 from lava.lib.dl.netx.utils import optimize_weight_bits
@@ -75,7 +76,6 @@ class Network(AbstractProcess):
                          input_message_bits=input_message_bits)
         self.filename = net_config
         self.net_config = NetDict(self.filename)
-
         self.num_layers = num_layers
         self.skip_layers = skip_layers
         self.input_message_bits = input_message_bits
@@ -184,8 +184,21 @@ class Network(AbstractProcess):
                                  'vth': neuron_config['vThMant'],
                                  'spike_exp': spike_exp,
                                  'state_exp': 6,
-                                 'num_message_bits': num_message_bits}
+                                 'num_message_bits': num_message_bits}                
             return neuron_params
+        
+        elif neuron_type in ["S4D"]:
+                if num_message_bits is None:
+                    num_message_bits = 16  # default value
+                neuron_process = SigmaS4dDelta
+                neuron_params = {'neuron_proc': neuron_process,
+                'vth': neuron_config['vThMant'],
+                'a' : neuron_config['a'],
+                'b' : neuron_config['b'],
+                'c' : neuron_config['c'],
+                'num_message_bits': num_message_bits}
+                return neuron_params
+        
         elif "RF" in neuron_type:
             if num_message_bits is None:
                 num_message_bits = 0  # default value
