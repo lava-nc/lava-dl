@@ -5,6 +5,8 @@ from PIL import Image
 from torchvision import transforms
 import torch
 from typing import List, Union, Tuple, Any
+from metavision_core.event_io.py_reader import EventDatReader
+from metavision_ml.preprocessing import histo_quantized
 
 class VideoRecord(object):
     """
@@ -37,11 +39,7 @@ class VideoRecord(object):
     def end_frame(self) -> int:
         return len(self._imgs) - 1
 
-    @property
-    def label(self) -> int:
-        return int(self._path.split('/')[-3].split('_')[1]) - 1
-
-class HARDVSDataset(torch.utils.data.Dataset):
+class SpikingNTUDataset(torch.utils.data.Dataset):
     r"""
     A highly efficient and adaptable dataset class for videos.
     Instead of loading every frame of a video,
@@ -82,8 +80,6 @@ class HARDVSDataset(torch.utils.data.Dataset):
         might be ``jumping\0052\`` or ``sample1\`` or ``00053\``.
 
     Args:
-        root_path: The root path in which video folders lie.
-                   this is ROOT_DATA from the description above.
         annotationfile_path: The .txt annotation file containing
                              one row per video sample as described above.
         num_segments: The number of segments the video should
@@ -102,31 +98,35 @@ class HARDVSDataset(torch.utils.data.Dataset):
     """
     def __init__(self,
                  annotationfile_path: str,
-                 num_segments: int = 3,
+                 num_segments: int = 30,
                  frames_per_segment: int = 1,
                  transform = None,
                  test_mode: bool = False,
-                 classify_labels: Union[list, str] = []):
+                 classify_labels: Union[list, str] = "all"):
         super().__init__()
 
         self.annotation_file_path = annotationfile_path
         self.num_segments = num_segments
         self.frames_per_segment = frames_per_segment
+        self.num_frames = self.num_segments * self.frames_per_segment
         self.transform = transform
         self.test_mode = test_mode
         self.classify_labels = classify_labels
         if self.classify_labels == 'all':
-            self.label_map = {i: i for i in range(300)}
+            self.label_map = {i+1: i for i in range(120)}
         else:
             self.label_map = {v: i+1 for i, v in enumerate(self.classify_labels)}
 
+        self.fns = []
+        self.label_list = []
         with open(self.annotation_file_path, "r") as f:
-            self.fns = [fn[:-1] for fn in f.readlines()]
-
-        self.label_list = [self.label_map.get(VideoRecord([], path).label, 0) for path in self.fns]
+            for entry in f:
+                fn, label = entry.split(" ")
+                self.fns.append(fn)
+                self.label_list.append(self.label_map.get(int(label), 0))
 
         # TODO offer those as parameters 
-        self.dt = 1000000 / 150
+        self.dt = 10**6 / 150
         self.tau = self.dt * 5
     
     @property
@@ -198,32 +198,27 @@ class HARDVSDataset(torch.utils.data.Dataset):
         """
 
         fn = self.fns[idx]
+        label = self.label_list[idx]
 
-        data = np.load(fn, allow_pickle=True)
-        events = np.zeros(len(data['t']), dtype=np.dtype([("x", int), ("y", int), ("t", int), ("p", int)]))
-        events['t'] = data['t']
-        events['x'] = data['x']
-        events['y'] = data['y']
-        events['p'] = data['p'] * 2 - 1
+        record_dat = EventDatReader(fn)
+        if record_dat.event_count() == 0:
+            print("EMPTY", fn)
+        height, width = record_dat.get_size()
+        tbins=1
+        img = np.zeros([3, width, height])
+        imgs = [img.T]
 
-        imgs = []
-        img = np.zeros([346, 260, 1])
-        t_last = None
-        for i, e in enumerate(events):
-            if not t_last:
-                t_last = e['t']
-                t_next = e['t'] + self.dt
+        while record_dat.current_time / 10**6 < record_dat.duration_s:
+            events = record_dat.load_delta_t(self.dt)
+            volume = np.zeros((1, 2, height, width), dtype=np.uint8)
 
-            img[e['x'], e['y'], 0] += e['p']
+            histo_quantized(events, volume, self.dt)
+            img[:] += volume[0, 0].astype(np.int32).T - volume[0, 1].astype(np.int32).T
+            imgs.append(img.copy().T)
+            img *= np.exp(-(self.dt / self.tau))
 
-            if e['t'] - t_last >= self.dt:
-                imgs.append(np.repeat(img.copy(), 3, -1))
-                t_next += self.dt
-                img *= np.exp(-(self.dt / self.tau))
-                t_last = e['t']
         
         record: VideoRecord = VideoRecord(imgs, fn)
-        label = self.label_map.get(record.label, 0)
 
         frame_start_indices: 'np.ndarray[int]' = self._get_start_indices(record)
 
@@ -264,7 +259,17 @@ class HARDVSDataset(torch.utils.data.Dataset):
 
             # load self.frames_per_segment consecutive frames
             for _ in range(self.frames_per_segment):
-                image = self.transform(record._imgs[frame_index])
+                # deal with short movies by zero padding in front 
+                if len(record._imgs) < self.num_frames:
+                    frame_index -= self.num_frames - len(record._imgs) 
+                if frame_index < 0:
+                    image = np.zeros_like(record._imgs[0])
+                else:
+                    image = record._imgs[frame_index]
+                if self.transform:
+                    image = self.transform(image)
+                else:
+                    image = torch.from_numpy(image)
                 images.append(image)
 
                 if frame_index < record.end_frame:
