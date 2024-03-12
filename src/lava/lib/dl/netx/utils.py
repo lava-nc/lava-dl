@@ -41,7 +41,7 @@ class NetDict:
         f: Union[h5py.File, h5py.Group] = None,
     ) -> None:
         self.f = h5py.File(filename, mode) if f is None else f
-        self.str_keys = ['type']
+        self.str_keys = ['type', 'activation']
         self.array_keys = [
             'shape', 'stride', 'padding', 'dilation', 'groups', 'delay',
             'iDecay', 'refDelay', 'scaleRho', 'tauRho', 'theta', 'vDecay',

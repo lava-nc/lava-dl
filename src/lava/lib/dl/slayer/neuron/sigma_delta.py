@@ -147,7 +147,11 @@ class Neuron(base.Neuron):
     @property
     def device_params(self):
         """Dictionary of device parameters."""
+        print("hiiiiii")
+        print("name")
+        print(self.activation.__name__)
         if self.activation.__name__ == "S4D":
+            print("wieder hi")
             return {
                 'type': 'S4D',
                 'activation': self.activation.__name__,
@@ -156,7 +160,9 @@ class Neuron(base.Neuron):
                 'b' : self.activation.layer.kernel.dB.detach().numpy().flatten(),
                 'c' : self.activation.layer.kernel.dC.detach().numpy().flatten(),
                 }
-        else: 
+        else:
+            print("name")
+            print(self.activation.__name__)
             return {
                 'type': 'SDNN',
                 'activation': self.activation.__name__,

@@ -11,7 +11,7 @@ from lava.proc.rf.process import RF
 from lava.proc.rf_iz.process import RF_IZ
 import numpy as np
 import h5py
-
+from lava.proc.sdn.process import ActivationMode
 from lava.magma.core.process.process import AbstractProcess
 from lava.magma.core.process.ports.ports import InPort, OutPort
 from lava.proc.lif.process import LIF, LIFReset
@@ -69,7 +69,7 @@ class Network(AbstractProcess):
                  input_shape: Optional[Tuple[int, ...]] = None,
                  reset_interval: Optional[int] = None,
                  reset_offset: int = 0,
-                 spike_exp: int = 6,
+                 spike_exp: int = 0,
                  sparse_fc_layer: bool = False) -> None:
         super().__init__(net_config=net_config,
                          num_layers=num_layers,
@@ -184,12 +184,20 @@ class Network(AbstractProcess):
                                  'vth': neuron_config['vThMant'],
                                  'spike_exp': spike_exp,
                                  'state_exp': 6,
-                                 'num_message_bits': num_message_bits}                
+                                 'num_message_bits': num_message_bits}
+                print("the activation")
+                print(neuron_config["activation"] )
+                if neuron_config["activation"] == "relu":
+                    neuron_params["act_mode"] = ActivationMode.RELU
+                elif  neuron_config["activation"] == "identity":
+                    neuron_params["act_mode"] = ActivationMode.UNIT
+                else: 
+                    raise(NotImplementedError)
             return neuron_params
         
         elif neuron_type in ["S4D"]:
                 if num_message_bits is None:
-                    num_message_bits = 16  # default value
+                    num_message_bits = 24  # default value
                 neuron_process = SigmaS4dDelta
                 neuron_params = {'neuron_proc': neuron_process,
                 'vth': neuron_config['vThMant'],
@@ -416,15 +424,15 @@ class Network(AbstractProcess):
                 
     
             opt_weights = optimize_weight_bits(weight)
-            weight, num_weight_bits, weight_exponent, sign_mode = opt_weights
+            #weight, num_weight_bits, weight_exponent, sign_mode = opt_weights
 
             # arguments for dense block
             params = {'shape': shape,  # this shape is the number of neurons in the layer after dense, overwritten for s4d expansion
                       'neuron_params': neuron_params,
                       'weight': weight,
-                      'num_weight_bits': num_weight_bits,
-                      'weight_exponent': weight_exponent,
-                      'sign_mode': sign_mode,
+                      'num_weight_bits': 8, #num_weight_bits,
+                      'weight_exponent': 0, #weight_exponent,
+                      'sign_mode': 0, #sign_mode,
                       'input_message_bits': input_message_bits,
                       "sparse_synapse": sparse_synapse}
 
