@@ -329,7 +329,10 @@ class Network(AbstractProcess):
                      reset_interval: Optional[int] = None,
                      reset_offset: int = 0,
                      spike_exp: int = 6,
-                     sparse_synapse: bool = 0) -> Tuple[Dense, str]:
+                     sparse_synapse: bool = 0,
+                     needs_s4d_expansion = False,
+                     needs_s4d_reduction = False,
+                     d_states = None) -> Tuple[Dense, str]:
         """Creates dense layer from layer configuration
 
         Parameters
@@ -404,12 +407,19 @@ class Network(AbstractProcess):
             weight = layer_config['weight']
             if weight.ndim == 1:
                 weight = weight.reshape(shape[0], -1)
-
+            if needs_s4d_expansion:
+                # compute number of d_states and d_model:
+                weight = np.kron(weight, np.ones(d_states)).T
+                shape = (shape[0] * d_states,)
+            elif needs_s4d_reduction:
+                weight = np.kron(weight, np.ones(d_states))
+                
+    
             opt_weights = optimize_weight_bits(weight)
             weight, num_weight_bits, weight_exponent, sign_mode = opt_weights
 
             # arguments for dense block
-            params = {'shape': shape,
+            params = {'shape': shape,  # this shape is the number of neurons in the layer after dense, overwritten for s4d expansion
                       'neuron_params': neuron_params,
                       'weight': weight,
                       'num_weight_bits': num_weight_bits,
@@ -417,6 +427,7 @@ class Network(AbstractProcess):
                       'sign_mode': sign_mode,
                       'input_message_bits': input_message_bits,
                       "sparse_synapse": sparse_synapse}
+
 
             if 'delay' in layer_config.keys():
                 delay = layer_config['delay']
@@ -629,13 +640,30 @@ class Network(AbstractProcess):
                 table = None
 
             elif layer_type == 'dense':
+                # check if we need S4d expansion or reduction 
+                needs_s4d_expansion = False
+                needs_s4d_reduction = False
+                d_states = None
+                if 'neuron' in layer_config[i].keys() and layer_config[i]['neuron']['type'] == "S4D":
+                    neuron_params = layer_config[i]['neuron']
+                    needs_s4d_expansion = True
+                    print(20 * "*")
+                    print(layer_config[i]["shape"][0])
+                    d_states = len(neuron_params["a"]) // layer_config[i]["shape"][0] 
+                elif i > 0 and 'neuron' in layer_config[i-1].keys() and layer_config[i-1]['neuron']['type'] == "S4D":
+                    neuron_params = layer_config[i-1]['neuron']
+                    needs_s4d_reduction = True
+                    d_states = len(neuron_params["a"]) // layer_config[i-1]["shape"][0] 
                 layer, table = self.create_dense(
                     layer_config=layer_config[i],
                     input_message_bits=input_message_bits,
                     reset_interval=reset_interval,
                     reset_offset=reset_offset,
                     spike_exp=self.spike_exp,
-                    sparse_synapse=self.sparse_fc_layer)
+                    sparse_synapse=self.sparse_fc_layer,
+                    needs_s4d_expansion=needs_s4d_expansion,
+                    needs_s4d_reduction=needs_s4d_reduction,
+                    d_states=d_states)
                 if i >= self.skip_layers:
                     layers.append(layer)
                     reset_offset += 1
