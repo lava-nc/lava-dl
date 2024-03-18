@@ -69,6 +69,6 @@ def event_rate(x: torch.tensor) -> float:
         Average event rate.
     """
     if x.shape[-1] == 1:
-        return torch.mean(torch.abs((x) > 0).to(x.dtype)).item()
+        return torch.mean((torch.abs(x) > 0).to(x.dtype)).item()
     else:
-        return torch.mean(torch.abs((x[..., 1:]) > 0).to(x.dtype)).item()
+        return torch.mean((torch.abs(x[..., 1:]) > 0).to(x.dtype)).item()
