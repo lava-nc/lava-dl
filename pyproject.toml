@@ -84,7 +84,7 @@ flakeheaven = "^3.2.1"
 pep8-naming = "^0.11.1"
 poetry = "^1.1.13"
 pytest-cov = "^3.0.0"
-black = "^22.1.0"
+black = "^24.3.0"
 
 [tool.black]
 line-length = 80
