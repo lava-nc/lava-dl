@@ -24,7 +24,7 @@ import torch.nn.functional as F
 import lava.lib.dl.slayer as slayer
 import utils
 import torch
-from torch.utils.tensorboard import SummaryWriter
+#from torch.utils.tensorboard import SummaryWriter
 
 lam = None
 
@@ -122,11 +122,6 @@ parser.add_argument('--add_dropout', action='store_true')
 
 
 args = parser.parse_args()
-
-run_name =  "skip_" + str(args.skip) + "_loihi_comp_"+ str(args.loihi) + "_disable_quantize_"+ str(args.disable_quantize)+ "_early_mean" + str(args.early_mean) + "_add_dropout_" + str(args.add_dropout)+"weight_scaling"
-+ "_clamp_deactivated"
-
-writer = SummaryWriter("runs/" + run_name)
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -290,16 +285,16 @@ assistant = slayer.utils.Assistant(
 for epoch in range(args.epochs):        
     for i, (input, ground_truth) in enumerate(train_loader): # training loop
         input, ground_truth = input.to(device), ground_truth.to(device)
+        print(f"{input=}")
         assistant.train(input, ground_truth)
         print(f'\r[Epoch {epoch:3d}/{args.epochs}] {stats}', end='')
-        writer.add_scalar("Accuracy/train", stats.training.accuracy, epoch)
-        writer.add_scalar("Loss/train", stats.training.loss, epoch)
+        #writer.add_scalar("Accuracy/train", stats.training.accuracy, epoch)
+        #writer.add_scalar("Loss/train", stats.training.loss, epoch)
     
     for i, (input, ground_truth) in enumerate(test_loader): # testing loop
         assistant.test(input, ground_truth)
         print(f'\r[Epoch {epoch:3d}/{args.epochs}] {stats}', end='')
-        writer.add_scalar("Accuracy/testing", stats.testing.accuracy, epoch)
-        writer.add_scalar("Loss/testing", stats.testing.loss, epoch)
+       
      
     if stats.testing.best_loss:  
         torch.save(net.state_dict(), trained_folder + '/network.pt')
@@ -312,5 +307,4 @@ for epoch in range(args.epochs):
     # checkpoint saves
     if epoch%10 == 0:
         torch.save({'net': net.state_dict(), 'optimizer': optimizer.state_dict()}, logs_folder + f'/checkpoint{epoch}.pt')    
-    writer.flush()
-    writer.close()
+    
