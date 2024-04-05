@@ -69,7 +69,7 @@ class Network(AbstractProcess):
                  input_shape: Optional[Tuple[int, ...]] = None,
                  reset_interval: Optional[int] = None,
                  reset_offset: int = 0,
-                 spike_exp: int = 0,
+                 spike_exp: int = 6,
                  sparse_fc_layer: bool = False) -> None:
         super().__init__(net_config=net_config,
                          num_layers=num_layers,
@@ -185,8 +185,6 @@ class Network(AbstractProcess):
                                  'spike_exp': spike_exp,
                                  'state_exp': 6,
                                  'num_message_bits': num_message_bits}
-                print("the activation")
-                print(neuron_config["activation"] )
                 if neuron_config["activation"] == "relu":
                     neuron_params["act_mode"] = ActivationMode.RELU
                 elif  neuron_config["activation"] == "identity":
@@ -196,16 +194,18 @@ class Network(AbstractProcess):
             return neuron_params
         
         elif neuron_type in ["S4D"]:
-                if num_message_bits is None:
-                    num_message_bits = 24  # default value
-                neuron_process = SigmaS4dDelta
-                neuron_params = {'neuron_proc': neuron_process,
-                'vth': neuron_config['vThMant'],
-                'a' : neuron_config['a'],
-                'b' : neuron_config['b'],
-                'c' : neuron_config['c'],
-                'num_message_bits': num_message_bits}
-                return neuron_params
+            if num_message_bits is None:
+                num_message_bits = 24  # default value
+            neuron_process = SigmaS4dDelta
+            neuron_params = {'neuron_proc': neuron_process,
+            'vth': neuron_config['vThMant'],
+            'a' : neuron_config['a'],
+            'b' : neuron_config['b'],
+            'c' : neuron_config['c'],
+            'state_exp' : 6,
+            's4_exp' : 12,
+            'num_message_bits': num_message_bits}
+            return neuron_params
         
         elif "RF" in neuron_type:
             if num_message_bits is None:
@@ -413,26 +413,27 @@ class Network(AbstractProcess):
 
         else:
             weight = layer_config['weight']
+            standard_kron = np.kron(np.eye(shape[0]), np.ones(d_states))
             if weight.ndim == 1:
                 weight = weight.reshape(shape[0], -1)
             if needs_s4d_expansion:
                 # compute number of d_states and d_model:
-                weight = np.kron(weight, np.ones(d_states)).T
+                weight = np.dot(standard_kron.T, weight)
                 shape = (shape[0] * d_states,)
             elif needs_s4d_reduction:
-                weight = np.kron(weight, np.ones(d_states))
+                weight = np.dot(weight, standard_kron)
                 
     
             opt_weights = optimize_weight_bits(weight)
-            #weight, num_weight_bits, weight_exponent, sign_mode = opt_weights
-
+            weight, num_weight_bits, weight_exponent, sign_mode = opt_weights
+            #weight_exponent = 5
             # arguments for dense block
             params = {'shape': shape,  # this shape is the number of neurons in the layer after dense, overwritten for s4d expansion
                       'neuron_params': neuron_params,
                       'weight': weight,
-                      'num_weight_bits': 8, #num_weight_bits,
-                      'weight_exponent': 0, #weight_exponent,
-                      'sign_mode': 0, #sign_mode,
+                      'num_weight_bits': num_weight_bits,
+                      'weight_exponent': weight_exponent,
+                      'sign_mode': sign_mode, #sign_mode,
                       'input_message_bits': input_message_bits,
                       "sparse_synapse": sparse_synapse}
 
@@ -655,8 +656,6 @@ class Network(AbstractProcess):
                 if 'neuron' in layer_config[i].keys() and layer_config[i]['neuron']['type'] == "S4D":
                     neuron_params = layer_config[i]['neuron']
                     needs_s4d_expansion = True
-                    print(20 * "*")
-                    print(layer_config[i]["shape"][0])
                     d_states = len(neuron_params["a"]) // layer_config[i]["shape"][0] 
                 elif i > 0 and 'neuron' in layer_config[i-1].keys() and layer_config[i-1]['neuron']['type'] == "S4D":
                     neuron_params = layer_config[i-1]['neuron']
