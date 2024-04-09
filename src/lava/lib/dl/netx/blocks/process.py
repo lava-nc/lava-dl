@@ -178,6 +178,8 @@ class Dense(AbstractBlock):
                 num_message_bits=self.input_message_bits,
             )
 
+        # Check doesn't work anymore with S4D hack; migth actually work 
+        #    -> we overwrite this in create()
         if self.shape != self.synapse.a_out.shape:
             raise RuntimeError(
                 f'Expected synapse output shape to be {self.shape[-1]}, '
