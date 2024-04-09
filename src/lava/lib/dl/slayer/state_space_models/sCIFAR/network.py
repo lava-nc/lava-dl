@@ -44,7 +44,7 @@ class SCIFARNetwork(torch.nn.Module):
         identity = nn.Identity()
         identity.__name__ = "identity"
         sdnn_params = { # sigma-delta neuron parameters
-                'threshold'     : 1,    # delta unit   #1/64
+                'threshold'     : 0,    # delta unit   #1/64
                 'tau_grad'      : 0.5,    # delta unit surrogate gradient relaxation parameter
                 'scale_grad'    : 1,      # delta unit surrogate gradient scale parameter
                 'requires_grad' : False,   # trainable threshold
@@ -56,6 +56,7 @@ class SCIFARNetwork(torch.nn.Module):
         s4d_params = [{**sdnn_params, "activation" : model} for model in self.s4dmodels]
         standard_params ={**sdnn_params, "activation" : identity}
         final_act_params = {**sdnn_params, "activation" : F.relu}
+        # final_act_params = {**sdnn_params, "activation" : identity}
         
         self.blocks = torch.nn.ModuleList(
             [# sequential network blocks 

@@ -195,7 +195,7 @@ class Network(AbstractProcess):
         
         elif neuron_type in ["S4D"]:
             if num_message_bits is None:
-                num_message_bits = 24  # default value
+                num_message_bits = 16#24  # default value
             neuron_process = SigmaS4dDelta
             neuron_params = {'neuron_proc': neuron_process,
             'vth': neuron_config['vThMant'],
