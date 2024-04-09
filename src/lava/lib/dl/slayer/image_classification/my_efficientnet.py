@@ -11,15 +11,8 @@ import copy
 from torch import Tensor
 
 from torch.nn.utils.weight_norm import WeightNorm
-
-class PiecewiseLinearSiLU(nn.Module):
-    def __init__(self):
-        super(PiecewiseLinearSiLU, self).__init__()
-
-    def forward(self, x):
-        x = x.clamp(-5., x.max().item())
-        x[x<-1] = (x[x<-1] + 5) * -0.2
-        return x
+from lava.lib.dl.slayer.image_classification.piecewise_linear_silu import PiecewiseLinearSiLU
+from lava.lib.dl.slayer.image_classification.relu1 import ReLU1 
 
 
 class Clamp6(nn.Module):
@@ -29,12 +22,7 @@ class Clamp6(nn.Module):
     def forward(self, x):
         return torch.clamp(x, min=-6, max=6)
 
-class ReLU1(nn.Module):
-    def __init__(self):
-        super().__init__()
 
-    def forward(self, x):
-        return torch.clamp(x, min=0, max=1)
 
 class Ind(nn.Module):
     def __init__(self):

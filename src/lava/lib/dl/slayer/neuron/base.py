@@ -108,7 +108,7 @@ class Neuron(torch.nn.Module):
         self, threshold,
         tau_grad=1, scale_grad=1,
         p_scale=1, w_scale=1, s_scale=1,
-        norm=None, dropout=None,
+        norm=None, dropout=None, num_neurons=None,
         persistent_state=False, shared_param=True,
         requires_grad=True,
         complex=False
@@ -119,7 +119,7 @@ class Neuron(torch.nn.Module):
         # shape and num_neurons should be initialized only when shared_param is
         # true and during the first forward pass
         # They should be trivially immutable
-        self.num_neurons = None
+        self.num_neurons = num_neurons 
         self.shape = None
         self.p_scale = p_scale
         self.w_scale = int(w_scale)
@@ -143,7 +143,7 @@ class Neuron(torch.nn.Module):
 
         if norm is not None:
             if self.complex is False:
-                self.norm = norm()
+                self.norm = norm(num_features=num_neurons)
                 if hasattr(self.norm, 'pre_hook_fx'):
                     self.norm.pre_hook_fx = self.quantize_8bit
             else:

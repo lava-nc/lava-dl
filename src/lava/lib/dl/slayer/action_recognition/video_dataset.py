@@ -132,7 +132,7 @@ class VideoFrameDataset(torch.utils.data.Dataset):
         self.label_list = []
         self.classify_labels = classify_labels
         if self.classify_labels == 'all':
-            self.label_map = {i: i for i in range(300)}
+            self.label_map = {i: i for i in range(120)}
         else:
             self.label_map = {v: i+1 for i, v in enumerate(classify_labels)}
 

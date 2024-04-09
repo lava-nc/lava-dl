@@ -81,12 +81,13 @@ class Neuron(base.Neuron):
     def __init__(
         self, threshold, activation,
         tau_grad=1, scale_grad=1,
-        scale=1 << 6, cum_error=False,
+        scale=1 << 6, num_neurons=None, cum_error=False,
         norm=None, dropout=None,
         shared_param=True, persistent_state=False, requires_grad=False
     ):
         """ """
         super(Neuron, self).__init__(
+            num_neurons=num_neurons,
             threshold=threshold,
             w_scale=scale,
             s_scale=scale * (1 << 6),

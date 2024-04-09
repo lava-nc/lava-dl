@@ -6,26 +6,11 @@ from lava.lib.dl.slayer.state_space_models.s4 import S4D
 from lava.lib.dl.slayer.object_detection.models.yolo_kp import Network as YoloKP
 from lava.lib.dl import slayer
 import lava.lib.dl.slayer.image_classification.my_efficientnet as my_efficientnet
-from lava.lib.dl.slayer.image_classification.efficientnet import MyEfficientNet, my_efficientnet_b0, ReLU1
+from lava.lib.dl.slayer.image_classification.efficientnet import MyEfficientNet, my_efficientnet_b0
 import yaml
 from lava.lib.dl.slayer.image_classification.piecewise_linear_silu import PiecewiseLinearSiLU
+from lava.lib.dl.slayer.image_classification.relu1 import ReLU1 
 
-# class ReLU1(nn.Module):
-#     def __init__(self):
-#         super().__init__()
-
-#     def forward(self, x):
-#         return torch.clamp(x, min=0, max=1)
-
-# def efficientnet_replace_activation(model, activation_fn):
-#     for child_name, child in model.named_children():
-#         if isinstance(child, nn.SiLU):
-#             setattr(model, child_name, activation_fn())
-#         elif  isinstance(child, nn.Sigmoid):
-#             setattr(model, child_name, ReLU1())
-#         elif len(list(child.children())) > 0:
-#             # Recursively apply the function to child modules
-#             efficientnet_replace_activation(child, activation_fn)
 
 class EfficientNetLSTM(nn.Module):
 
@@ -42,8 +27,7 @@ class EfficientNetLSTM(nn.Module):
         self.efficientnet.train()
 
         # Use Efficientnet backbone but remove last layer
-        self.efficientnet = nn.Sequential(*list(self.efficientnet.children())[:-2],
-                                          nn.Conv2d(1280, 1280, kernel_size=(7,7)),
+        self.efficientnet = nn.Sequential(*list(self.efficientnet.children())[:-1],
                                           nn.Flatten())
 
         # LSTM layer
@@ -98,7 +82,6 @@ class EfficientNetAblation(nn.Module):
 
         # Use Efficientnet backbone but remove last layer
         self.efficientnet = nn.Sequential(*list(self.efficientnet.children())[:-1],
-                                          nn.Conv2d(1280, 1280, kernel_size=(7,7)),
                                           nn.Flatten())
 
         # Readout layer
@@ -689,6 +672,274 @@ class MiniEfficientNetS4D(nn.Module):
 
         return x
 
+
+class SlayerMBConv(nn.Module):
+
+    def __init__(self,
+                 in_features: int,
+                 hidden_features: int,
+                 squeeze_features: int,
+                 out_features: int,
+                 kernel_size: int = 3,
+                 stride: int = 1,
+                 padding: int = 1):
+        super().__init__()
+        
+        self.in_features = in_features
+
+        sigma_params = {  # sigma-delta neuron parameters
+            'threshold'     : 0.0,   # delta unit threshold
+            'tau_grad'      : 0.1,    # delta unit surrogate gradient relaxation parameter
+            'scale_grad'    : 0.1,  # delta unit surrogate gradient scale parameter
+            'requires_grad' : False,       # trainable threshold
+            'shared_param'  : True,        # layer wise threshold
+        }
+        sdnn_params = {
+            **sigma_params,
+            'activation'    : PiecewiseLinearSiLU(),      # activation function
+        }
+        def quantize_8bit(x: torch.tensor,
+                          scale: int = (1 << 6),
+                          descale: bool = False) -> torch.tensor:
+            return slayer.utils.quantize_hook_fx(x, scale=scale,
+                                                 num_bits=8, descale=descale)
+
+        block_8_kwargs = dict(weight_norm=True, delay_shift=False, pre_hook_fx=quantize_8bit)
+        neuron_kwargs = {**sdnn_params, 'norm': slayer.neuron.norm.MeanOnlyBatchNorm}
+        if self.in_features:
+            self.in_layer = slayer.block.sigma_delta.Conv(neuron_kwargs,
+                                                             in_features=in_features,
+                                                             out_features=hidden_features,
+                                                             kernel_size=1, 
+                                                             stride=1,
+                                                             padding=0,
+                                                             weight_scale=1,
+                                                             **block_8_kwargs)
+
+        self.se = []
+        self.se.append(slayer.block.sigma_delta.Conv(neuron_kwargs,
+                                                         in_features=hidden_features,
+                                                         out_features=hidden_features,
+                                                         kernel_size=kernel_size, 
+                                                         stride=1,
+                                                         padding=padding,
+                                                         weight_scale=1,
+                                                         groups=hidden_features,
+                                                         **block_8_kwargs))
+
+        self.se.append(slayer.block.sigma_delta.Conv(neuron_kwargs,
+                                                         in_features=hidden_features,
+                                                         out_features=squeeze_features,
+                                                         kernel_size=1, 
+                                                         stride=1,
+                                                         padding=0,
+                                                         weight_scale=1,
+                                                         **block_8_kwargs))
+
+        self.se.append(slayer.block.sigma_delta.Conv(neuron_kwargs,
+                                                         in_features=squeeze_features,
+                                                         out_features=hidden_features,
+                                                         kernel_size=1, 
+                                                         stride=1,
+                                                         padding=0,
+                                                         weight_scale=1,
+                                                         **block_8_kwargs))
+        self.se = nn.Sequential(*self.se)
+
+        self.out_layer = slayer.block.sigma_delta.Conv(neuron_kwargs,
+                                                         in_features=hidden_features,
+                                                         out_features=out_features,
+                                                         kernel_size=1, 
+                                                         stride=stride,
+                                                         padding=0,
+                                                         weight_scale=1,
+                                                         **block_8_kwargs)
+
+
+    def forward(self, x):
+
+            
+        if self.in_features:
+            x = self.in_layer(x)
+
+        res = x
+
+        x = self.se(x)
+
+        x = x + res
+
+        x = self.out_layer(x)
+
+        return x 
+
+
+class SlayerCNN(nn.Module):
+
+    def __init__(self,
+                 num_classes=1000,
+                 *args,
+                 **kwargs):
+        super().__init__()
+
+        sigma_params = {  # sigma-delta neuron parameters
+            'threshold'     : 0.0,   # delta unit threshold
+            'tau_grad'      : 0.1,    # delta unit surrogate gradient relaxation parameter
+            'scale_grad'    : 0.1,  # delta unit surrogate gradient scale parameter
+            'requires_grad' : False,       # trainable threshold
+            'shared_param'  : True,        # layer wise threshold
+        }
+        sdnn_params = {
+            **sigma_params,
+            'activation'    : PiecewiseLinearSiLU(),      # activation function
+        }
+        def quantize_8bit(x: torch.tensor,
+                          scale: int = (1 << 6),
+                          descale: bool = False) -> torch.tensor:
+            return slayer.utils.quantize_hook_fx(x, scale=scale,
+                                                 num_bits=8, descale=descale)
+
+        block_8_kwargs = dict(weight_norm=True, delay_shift=False, pre_hook_fx=quantize_8bit)
+        neuron_kwargs = {**sdnn_params, 'norm': slayer.neuron.norm.MeanOnlyBatchNorm}
+
+        # Feature extraction
+        layers: List[nn.Module] = []
+
+        layers.append(
+            slayer.block.sigma_delta.Conv(neuron_kwargs,
+                                          in_features=3,
+                                          out_features=32,
+                                          kernel_size=5, 
+                                          stride=2,
+                                          padding=2,
+                                          weight_scale=1,
+                                          **block_8_kwargs),
+        )
+
+        layers.append(SlayerMBConv(in_features=None,
+                                   hidden_features=32,
+                                   squeeze_features=8, 
+                                   out_features=32,
+                                   stride=2,
+                                   padding=1,
+                                   kernel_size=3))
+
+        layers.append(SlayerMBConv(in_features=None,
+                                   hidden_features=32,
+                                   squeeze_features=8, 
+                                   out_features=128,
+                                   stride=2,
+                                   padding=1,
+                                   kernel_size=3))
+
+        layers.append(SlayerMBConv(in_features=None,
+                                   hidden_features=128,
+                                   squeeze_features=32, 
+                                   out_features=320,
+                                   stride=2,
+                                   padding=1,
+                                   kernel_size=3))
+
+        layers.append(SlayerMBConv(in_features=None,
+                                   hidden_features=320,
+                                   squeeze_features=64, 
+                                   out_features=1280,
+                                   stride=2,
+                                   padding=0,
+                                   kernel_size=1))
+
+                                   
+        self.features = nn.Sequential(*layers)
+
+        # Readout layer
+        self.readout = nn.Linear(1280, num_classes)
+
+    def forward(self, x):
+
+        # Pass input through EfficientNet
+        x = self.features(x.unsqueeze(-1)).squeeze(-1) 
+
+        x = x.sum(-1).sum(-1)
+
+        x = self.readout(x)
+
+        return x
+
+class SlayerCNNS4D(nn.Module):
+
+    def __init__(self,
+                 s4d_states=64,
+                 s4d_num_hidden=1280,
+                 num_readout_hidden=128,
+                 num_classes=10,
+                 s4d_is_real=True,
+                 s4d_lr=1e-3,
+                 readout_bias=True,
+                 *args,
+                 **kwargs):
+        super().__init__()
+
+        sigma_params = {  # sigma-delta neuron parameters
+            'threshold'     : 0.0,   # delta unit threshold
+            'tau_grad'      : 0.1,    # delta unit surrogate gradient relaxation parameter
+            'scale_grad'    : 0.1,  # delta unit surrogate gradient scale parameter
+            'requires_grad' : False,       # trainable threshold
+            'shared_param'  : True,        # layer wise threshold
+        }
+        sdnn_params = {
+            **sigma_params,
+            'activation'    : PiecewiseLinearSiLU(),      # activation function
+        }
+        def quantize_8bit(x: torch.tensor,
+                          scale: int = (1 << 6),
+                          descale: bool = False) -> torch.tensor:
+            return slayer.utils.quantize_hook_fx(x, scale=scale,
+                                                 num_bits=8, descale=descale)
+
+        block_8_kwargs = dict(weight_norm=True, delay_shift=False, pre_hook_fx=quantize_8bit)
+        neuron_kwargs = {**sdnn_params, 'norm': slayer.neuron.norm.MeanOnlyBatchNorm}
+
+        cnn = SlayerCNN(num_classes=1000)
+        # TODO use best model
+        cnn.load_state_dict(torch.load("../image_classification/checkpoint.pth"))
+        # Use cnn backbone but remove last layer
+        self.features = nn.Sequential(*list(cnn.children())[:-1])
+
+
+        # S4D Layer 
+        self.s4d = S4D(d_model=s4d_num_hidden,
+                       d_state=s4d_states,
+                       dropout=0.0,
+                       transposed=False,
+                       lr=s4d_lr,
+                       is_real=s4d_is_real)
+
+        # Readout layer
+        self.readout = nn.Sequential(nn.Linear(s4d_num_hidden, num_readout_hidden, bias=readout_bias),
+                                     nn.ReLU(),
+                                     nn.Linear(num_readout_hidden, num_classes, bias=readout_bias))
+
+    def forward(self, x):
+
+        # Move batch into images dimension for slayer
+        x = x.movedim(1, -1)
+
+        # Pass input through backbone 
+        x = self.features(x.unsqueeze(-1)).squeeze(-1) 
+
+        x = x.sum(-1).sum(-1)
+
+        x = x.movedim(-1, 1).sum(-1).sum(-1)
+
+        # Pass output through S4D layer
+        x = self.s4d(x)
+
+        # Take last step output from S4D and pass through readout layer
+        x = x[:, -1, :]
+        x = self.readout(x)
+
+        return x
+
+
 model_registry = {
     "efficientnet-b0-LSTM": EfficientNetLSTM,
     "efficientnet-b0-S4D": EfficientNetS4D,
@@ -700,4 +951,6 @@ model_registry = {
     "CNN-S4D": CNNS4D,
     "raw-S4D": BottleneckS4D,
     "YoloKP-S4D": YoloS4D, 
+    "SlayerCNN": SlayerCNN,
+    "SlayerCNNS4D": SlayerCNNS4D,
 }

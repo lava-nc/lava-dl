@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Set the path to your ImageNet data directory
-IMAGENET_DIR="/nas-data/pweidel/datasets/imagenet/train"
+IMAGENET_DIR="/nas-data/pweidel/datasets/imagenet/val"
 
 # Set the output file name
 INDEX_FILE="index_file.txt"

@@ -673,6 +673,7 @@ class AbstractConv(torch.nn.Module):
     ):
         super(AbstractConv, self).__init__()
         # neuron parameters
+        neuron_params["num_neurons"] = out_features
         self.neuron_params = neuron_params
         # synapse parameters
         self.synapse_params = {
