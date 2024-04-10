@@ -9,7 +9,6 @@ import torchvision.transforms as transforms
 import os
 import argparse
 
-from s4 import S4D
 from tqdm.auto import tqdm
 import sys, os
 import numpy as np
@@ -24,6 +23,7 @@ import torch.nn.functional as F
 import lava.lib.dl.slayer as slayer
 import utils
 import torch
+from network import SCIFARNetwork
 #from torch.utils.tensorboard import SummaryWriter
 
 lam = None
@@ -102,14 +102,14 @@ def setup_optimizer(model, lr, weight_decay, epochs):
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
 # Optimizer
 parser.add_argument('--lr', default=0.01, type=float, help='Learning rate')
-parser.add_argument('--weight_decay', default=0.01, type=float, help='Weight decay')
+parser.add_argument('--weight_decay', default=0.0001, type=float, help='Weight decay')
 parser.add_argument('--lam', default=0.0000001, type=float, help='Lagrangian for event rate loss')
 # Scheduler
 parser.add_argument('--epochs', default=100, type=float, help='Training epochs')
 parser.add_argument('--old_optimizer', action='store_true')
 # Dataloader
 parser.add_argument('--num_workers', default=4, type=int, help='Number of workers to use for dataloader')
-parser.add_argument('--batch_size', default=64, type=int, help='Batch size')
+parser.add_argument('--batch_size', default=512, type=int, help='Batch size')
 # Model
 parser.add_argument('--n_layers', default=4, type=int, help='Number of layers')
 parser.add_argument('--d_model', default=128, type=int, help='Model dimension')
@@ -154,115 +154,117 @@ test_loader  = torch.utils.data.DataLoader(dataset=testset , batch_size=args.bat
 
 
 
-class Network(torch.nn.Module):
-    def __init__(self):
-        super(Network, self).__init__()
+# class Network(torch.nn.Module):
+#     def __init__(self):
+#         super(Network, self).__init__()
 
-        if args.loihi:
-            self.s4dmodel = S4D(args.d_model, activation="relu", final_act = None, dropout=args.dropout, transposed=True, lr=min(0.001, args.lr))
-        else:
-            self.s4dmodel = S4D(args.d_model, activation="gelu", final_act = None, dropout=args.dropout, transposed=True, lr=min(0.001, args.lr))
+#         if args.loihi:
+#             self.s4dmodel = S4D(args.d_model, activation="relu", final_act = None, dropout=args.dropout, transposed=True, lr=min(0.001, args.lr))
+#         else:
+#             self.s4dmodel = S4D(args.d_model, activation="gelu", final_act = None, dropout=args.dropout, transposed=True, lr=min(0.001, args.lr))
         
 
-        if args.loihi: 
-            self.final_act = F.relu
-        else:
-            self.final_act = nn.Sequential(
-                nn.Conv1d(args.d_model, 2*args.d_model, kernel_size=1),
-                nn.GLU(dim=-2),
-                )
+#         if args.loihi: 
+#             self.final_act = F.relu
+#         else:
+#             self.final_act = nn.Sequential(
+#                 nn.Conv1d(args.d_model, 2*args.d_model, kernel_size=1),
+#                 nn.GLU(dim=-2),
+#                 )
 
 
-        sdnn_params = { # sigma-delta neuron parameters
-                'threshold'     : 0,    # delta unit   #1/64
-                'tau_grad'      : 0.5,    # delta unit surrogate gradient relaxation parameter
-                'scale_grad'    : 1,      # delta unit surrogate gradient scale parameter
-                'requires_grad' : False,   # trainable threshold
-                'shared_param'  : True,   # layer wise threshold
-                'norm'    : None,
-                "dropout" : None  # SHOULD WE HAVE ADDITIONAL DROPOUT?
-            }
+#         sdnn_params = { # sigma-delta neuron parameters
+#                 'threshold'     : 0,    # delta unit   #1/64
+#                 'tau_grad'      : 0.5,    # delta unit surrogate gradient relaxation parameter
+#                 'scale_grad'    : 1,      # delta unit surrogate gradient scale parameter
+#                 'requires_grad' : False,   # trainable threshold
+#                 'shared_param'  : True,   # layer wise threshold
+#                 'norm'    : None,
+#                 "dropout" : None  # SHOULD WE HAVE ADDITIONAL DROPOUT?
+#             }
 
-        if args.add_dropout: 
-            sdnn_params['dropout'] = slayer.neuron.Dropout(p=float(args.dropout))
+#         if args.add_dropout: 
+#             sdnn_params['dropout'] = slayer.neuron.Dropout(p=float(args.dropout))
 
-        final_act_params = {**sdnn_params, "activation" : self.final_act}
-        s4d_params = {**sdnn_params, "activation" : self.s4dmodel}
-        standard_params ={**sdnn_params, "activation" : nn.Identity()}  # uses relu as activation - is that a problem?
+#         final_act_params = {**sdnn_params, "activation" : self.final_act}
+#         s4d_params = {**sdnn_params, "activation" : self.s4dmodel}
+#         standard_params ={**sdnn_params, "activation" : nn.Identity()}  # uses relu as activation - is that a problem?
         
-        if args.disable_quantize:
-            kwargs = dict(pre_hook_fx = None)
-        else:
-            kwargs = dict()
+#         if args.disable_quantize:
+#             kwargs = dict(pre_hook_fx = None)
+#         else:
+#             kwargs = dict()
        
         
-        self.blocks = torch.nn.ModuleList(
-            [# sequential network blocks 
-                slayer.block.sigma_delta.Input(standard_params),
-                slayer.block.sigma_delta.Dense(standard_params, 3, args.d_model, weight_scale = 6, **kwargs),                        
+#         self.blocks = torch.nn.ModuleList(
+#             [# sequential network blocks 
+#                 slayer.block.sigma_delta.Input(standard_params),
+#                 slayer.block.sigma_delta.Dense(standard_params, 3, args.d_model, weight_scale = 6, **kwargs),                        
 
-                slayer.block.sigma_delta.Dense(s4d_params, args.d_model, args.d_model, weight_scale = 6, **kwargs),
-                slayer.block.sigma_delta.Dense(final_act_params, args.d_model, args.d_model, weight_scale = 6, **kwargs),
+#                 slayer.block.sigma_delta.Dense(s4d_params, args.d_model, args.d_model, weight_scale = 6, **kwargs),
+#                 slayer.block.sigma_delta.Dense(final_act_params, args.d_model, args.d_model, weight_scale = 6, **kwargs),
 
-                slayer.block.sigma_delta.Dense(s4d_params, args.d_model, args.d_model, weight_scale = 6, **kwargs),
-                slayer.block.sigma_delta.Dense(final_act_params, args.d_model, args.d_model, weight_scale = 6,**kwargs),
+#                 slayer.block.sigma_delta.Dense(s4d_params, args.d_model, args.d_model, weight_scale = 6, **kwargs),
+#                 slayer.block.sigma_delta.Dense(final_act_params, args.d_model, args.d_model, weight_scale = 6,**kwargs),
 
-                slayer.block.sigma_delta.Dense(s4d_params, args.d_model, args.d_model, weight_scale = 6, **kwargs),
-                slayer.block.sigma_delta.Dense(final_act_params, args.d_model, args.d_model, weight_scale = 6,**kwargs),
+#                 slayer.block.sigma_delta.Dense(s4d_params, args.d_model, args.d_model, weight_scale = 6, **kwargs),
+#                 slayer.block.sigma_delta.Dense(final_act_params, args.d_model, args.d_model, weight_scale = 6,**kwargs),
 
-                slayer.block.sigma_delta.Dense(s4d_params, args.d_model, args.d_model, weight_scale = 6, **kwargs),
-                slayer.block.sigma_delta.Dense(final_act_params, args.d_model, args.d_model, weight_scale = 6, **kwargs),
+#                 slayer.block.sigma_delta.Dense(s4d_params, args.d_model, args.d_model, weight_scale = 6, **kwargs),
+#                 slayer.block.sigma_delta.Dense(final_act_params, args.d_model, args.d_model, weight_scale = 6, **kwargs),
 
-                slayer.block.sigma_delta.Output(standard_params, args.d_model, 10, weight_scale = 6)
-            ])
+#                 slayer.block.sigma_delta.Output(standard_params, args.d_model, 10, weight_scale = 6)
+#             ])
         
 
-        self.target_weights = torch.eye(args.d_model).reshape((args.d_model, args.d_model,1,1,1))
-        self.blocks[2].synapse.weight.data = self.target_weights
-        self.blocks[2].synapse.weight.requires_grad = False
-        self.blocks[4].synapse.weight.data = self.target_weights
-        self.blocks[4].synapse.weight.requires_grad = False
-        self.blocks[6].synapse.weight.data = self.target_weights
-        self.blocks[6].synapse.weight.requires_grad = False
-        self.blocks[8].synapse.weight.data = self.target_weights
-        self.blocks[8].synapse.weight.requires_grad = False
+#         self.target_weights = torch.eye(args.d_model).reshape((args.d_model, args.d_model,1,1,1))
+#         self.blocks[2].synapse.weight.data = self.target_weights
+#         self.blocks[2].synapse.weight.requires_grad = False
+#         self.blocks[4].synapse.weight.data = self.target_weights
+#         self.blocks[4].synapse.weight.requires_grad = False
+#         self.blocks[6].synapse.weight.data = self.target_weights
+#         self.blocks[6].synapse.weight.requires_grad = False
+#         self.blocks[8].synapse.weight.data = self.target_weights
+#         self.blocks[8].synapse.weight.requires_grad = False
         
 
-    def forward(self, x):
-        x = x.transpose(-1, -2)
-        x = x * 2**6
-        for i, block in enumerate(self.blocks): 
-            if args.skip and  i != 0 and i % 2 == 0: # describes s4d layer
-                z = x
-            # forward computation is as simple as calling the blocks in a loop
-            x = block(x)
+#     def forward(self, x):
+#         x = x.transpose(-1, -2)
+#         x = x * 2**6
+#         for i, block in enumerate(self.blocks): 
+#             if args.skip and  i != 0 and i % 2 == 0: # describes s4d layer
+#                 z = x
+#             # forward computation is as simple as calling the blocks in a loop
+#             x = block(x)
 
-            if args.skip and i != 1 and i%2 == 1: # final act layer add skip connection 
-                x = z + x
-            if args.early_mean and i == 9:
-                    x = x.mean(dim=2).unsqueeze(2)
+#             if args.skip and i != 1 and i%2 == 1: # final act layer add skip connection 
+#                 x = z + x
+#             if args.early_mean and i == 9:
+#                     x = x.mean(dim=2).unsqueeze(2)
                     
         
-        if args.early_mean: 
-            x = torch.squeeze(x)
-        else:
-            x = x.mean(dim=2)
-        return x
+#         if args.early_mean: 
+#             x = torch.squeeze(x)
+#         else:
+#             x = x.mean(dim=2)
+#         return x
         
 
-    def grad_flow(self, path):
-        # helps monitor the gradient flow
-        grad = [b.synapse.grad_norm for b in self.blocks if hasattr(b, 'synapse')]
+    # def grad_flow(self, path):
+    #     # helps monitor the gradient flow
+    #     grad = [b.synapse.grad_norm for b in self.blocks if hasattr(b, 'synapse')]
 
-        plt.figure()
-        plt.semilogy(grad)
-        plt.savefig(path + 'gradFlow.png')
-        plt.close()
+    #     plt.figure()
+    #     plt.semilogy(grad)
+    #     plt.savefig(path + 'gradFlow.png')
+    #     plt.close()
 
-        return grad
+    #     return grad
 
 device = torch.device('cuda')
-net = Network().to(device)
+#net = Network().to(device)
+net = SCIFARNetwork().to(device)
+
 
 if args.old_optimizer:
     optimizer = torch.optim.RAdam(net.parameters(), lr=args.lr, weight_decay=1e-5)
@@ -285,13 +287,13 @@ assistant = slayer.utils.Assistant(
 for epoch in range(args.epochs):        
     for i, (input, ground_truth) in enumerate(train_loader): # training loop
         input, ground_truth = input.to(device), ground_truth.to(device)
-        print(f"{input=}")
         assistant.train(input, ground_truth)
         print(f'\r[Epoch {epoch:3d}/{args.epochs}] {stats}', end='')
         #writer.add_scalar("Accuracy/train", stats.training.accuracy, epoch)
         #writer.add_scalar("Loss/train", stats.training.loss, epoch)
     
     for i, (input, ground_truth) in enumerate(test_loader): # testing loop
+        input, ground_truth = input.to(device), ground_truth.to(device)
         assistant.test(input, ground_truth)
         print(f'\r[Epoch {epoch:3d}/{args.epochs}] {stats}', end='')
        

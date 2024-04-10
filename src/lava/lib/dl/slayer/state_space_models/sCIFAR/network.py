@@ -27,6 +27,7 @@ class SCIFARNetwork(torch.nn.Module):
         else:
             self.activation = None
 
+        num_layers = 4
         # We need four different instances of the S4D model 
         self.s4dmodels = [S4D(self.d_model, 
                             activation=None,
@@ -36,7 +37,7 @@ class SCIFARNetwork(torch.nn.Module):
                             final_act=None,
                             is_real = True,
                             skip=False,
-                            lr=min(0.001, self.s4d_learning_rate))] * 4
+                            lr=min(0.001, self.s4d_learning_rate)) for _ in range(num_layers)] 
         for model in self.s4dmodels:
             model.__name__ = "S4D"
             model.setup_step()
@@ -56,38 +57,37 @@ class SCIFARNetwork(torch.nn.Module):
         s4d_params = [{**sdnn_params, "activation" : model} for model in self.s4dmodels]
         standard_params ={**sdnn_params, "activation" : identity}
         final_act_params = {**sdnn_params, "activation" : F.relu}
+        mlp_params = {**sdnn_params, "activation" : F.relu}
         # final_act_params = {**sdnn_params, "activation" : identity}
         
-        self.blocks = torch.nn.ModuleList(
-            [# sequential network blocks 
-                
-                #Expand to model_dim
-                slayer.block.sigma_delta.Dense(standard_params, 3, self.d_model),                        
+        self.blocks = [slayer.block.sigma_delta.Input(standard_params),
+                       slayer.block.sigma_delta.Dense(standard_params, 3, self.d_model), # Expand model dim
+                      ]
 
-                slayer.block.sigma_delta.Dense(s4d_params[0], self.d_model, self.d_model),
-                slayer.block.sigma_delta.Dense(final_act_params, self.d_model, self.d_model),
+        for i in range(num_layers):
+            s4d = slayer.block.sigma_delta.Dense(s4d_params[i], self.d_model, self.d_model)
+            s4d_reduction = slayer.block.sigma_delta.Dense(final_act_params, self.d_model, self.d_model)
+            ff = slayer.block.sigma_delta.Dense(final_act_params, self.d_model, self.d_model)
 
-                slayer.block.sigma_delta.Dense(s4d_params[1], self.d_model, self.d_model),
-                slayer.block.sigma_delta.Dense(final_act_params, self.d_model, self.d_model),
+            s4d.synapse.weight.data = torch.eye(self.d_model).reshape((self.d_model, self.d_model,1,1,1))
+            s4d.synapse.weight.requires_grad = False
 
-                slayer.block.sigma_delta.Dense(s4d_params[2], self.d_model, self.d_model),
-                slayer.block.sigma_delta.Dense(final_act_params, self.d_model, self.d_model),
+            s4d_reduction.synapse.weight.data = torch.eye(self.d_model).reshape((self.d_model, self.d_model,1,1,1))
+            s4d_reduction.synapse.weight.requires_grad = False
 
-                slayer.block.sigma_delta.Dense(s4d_params[3], self.d_model, self.d_model),
-                slayer.block.sigma_delta.Dense(final_act_params, self.d_model, self.d_model),
+            self.blocks.append(s4d)
+            self.blocks.append(s4d_reduction)
+            self.blocks.append(ff)
 
-                #slayer.block.sigma_delta.Output(standard_params, self.d_model, 10)
-            ])
+        self.blocks.append(slayer.block.sigma_delta.Output(standard_params, self.d_model, 10))
+        self.blocks = torch.nn.ModuleList(self.blocks)
                  
-        for i in range(1,9):
-            self.blocks[i].synapse.weight.data = torch.eye(self.d_model).reshape((self.d_model, self.d_model,1,1,1))
-            self.blocks[i].synapse.weight.requires_grad = False
-
     def forward(self, x):
+        x = x.transpose(-1, -2)
         for _, block in enumerate(self.blocks): 
             # forward computation is as simple as calling the blocks in a loop
             x = block(x)
-        return x
+        return x.mean(-1)
         
     def grad_flow(self, path):
         # helps monitor the gradient flow
