@@ -112,7 +112,8 @@ class Network(AbstractProcess):
                           input: bool = False,
                           reset_interval: Optional[int] = None,
                           reset_offset: int = 0,
-                          spike_exp: int = 6) -> AbstractProcess:
+                          spike_exp: int = 6,
+                          num_message_bits: int = 16) -> AbstractProcess:
         """Provides the correct neuron configuration process and parameters
         from the neuron description in hdf5 config.
 
@@ -137,7 +138,7 @@ class Network(AbstractProcess):
             The Lava process that implements the neuron described.
         """
         neuron_type = neuron_config['type']
-        num_message_bits = None
+        # num_message_bits = None
         if 'messageBits' in neuron_config.keys():
             num_message_bits = neuron_config['messageBits']
         if neuron_type in ['LOIHI', 'CUBA']:
@@ -165,7 +166,7 @@ class Network(AbstractProcess):
                 warnings.warn("Reset is not supported with Sigma Delta "
                               "neurons. It will be ignored.")
             if num_message_bits is None:
-                num_message_bits = 16  # default value
+                num_message_bits = 16# default value
             if input is True:
                 # Use delta process.
                 neuron_process = Delta
@@ -195,7 +196,7 @@ class Network(AbstractProcess):
         
         elif neuron_type in ["S4D"]:
             if num_message_bits is None:
-                num_message_bits = 16#24  # default value
+                num_message_bits = 24  # default value
             neuron_process = SigmaS4dDelta
             neuron_params = {'neuron_proc': neuron_process,
             'vth': neuron_config['vThMant'],
@@ -267,7 +268,8 @@ class Network(AbstractProcess):
     def create_input(layer_config: h5py.Group,
                      reset_interval: Optional[int] = None,
                      reset_offset: int = 0,
-                     spike_exp: int = 6) -> Tuple[Input, str]:
+                     spike_exp: int = 6,
+                     num_message_bits: int = 16) -> Tuple[Input, str]:
         """Creates input layer from layer configuration.
 
         Parameters
@@ -294,7 +296,8 @@ class Network(AbstractProcess):
                                                   reset_interval=reset_interval,
                                                   reset_offset=reset_offset,
                                                   input=True,
-                                                  spike_exp=spike_exp)
+                                                  spike_exp=spike_exp,
+                                                  num_message_bits=num_message_bits)
 
         if 'weight' in layer_config.keys():
             weight = int(layer_config['weight'])
@@ -380,7 +383,8 @@ class Network(AbstractProcess):
         neuron_params = Network.get_neuron_params(neuron_config,
                                                   reset_interval=reset_interval,
                                                   reset_offset=reset_offset,
-                                                  spike_exp=spike_exp)
+                                                  spike_exp=spike_exp,
+                                                  num_message_bits=input_message_bits)
         if "weight/imag" in layer_config.f:
             weight_real = layer_config['weight/real']
             weight_imag = layer_config['weight/imag']
@@ -413,6 +417,7 @@ class Network(AbstractProcess):
 
         else:
             weight = layer_config['weight']
+            
             standard_kron = np.kron(np.eye(shape[0]), np.ones(d_states))
             if weight.ndim == 1:
                 weight = weight.reshape(shape[0], -1)
@@ -424,16 +429,16 @@ class Network(AbstractProcess):
                 weight = np.dot(weight, standard_kron)
                 
     
-            opt_weights = optimize_weight_bits(weight)
-            weight, num_weight_bits, weight_exponent, sign_mode = opt_weights
+            # opt_weights = optimize_weight_bits(weight)
+            # weight, num_weight_bits, weight_exponent, sign_mode = opt_weights
             #weight_exponent = 5
             # arguments for dense block
             params = {'shape': shape,  # this shape is the number of neurons in the layer after dense, overwritten for s4d expansion
                       'neuron_params': neuron_params,
                       'weight': weight,
-                      'num_weight_bits': num_weight_bits,
-                      'weight_exponent': weight_exponent,
-                      'sign_mode': sign_mode, #sign_mode,
+                      # 'num_weight_bits': num_weight_bits,
+                      # 'weight_exponent': weight_exponent,
+                      # 'sign_mode': sign_mode, #sign_mode,
                       'input_message_bits': input_message_bits,
                       "sparse_synapse": sparse_synapse}
 
@@ -514,7 +519,8 @@ class Network(AbstractProcess):
         neuron_params = Network.get_neuron_params(layer_config['neuron'],
                                                   reset_interval=reset_interval,
                                                   reset_offset=reset_offset,
-                                                  spike_exp=spike_exp)
+                                                  spike_exp=spike_exp,
+                                                  num_message_bits=input_message_bits)
         weight = layer_config['weight'][:, :, ::-1, ::-1]
         weight = weight.reshape(weight.shape[:4]).transpose((0, 3, 2, 1))
         stride = expand(layer_config['stride'])
@@ -599,7 +605,8 @@ class Network(AbstractProcess):
                         layer_config[i],
                         reset_interval=reset_interval,
                         reset_offset=reset_offset,
-                        spike_exp=self.spike_exp)
+                        spike_exp=self.spike_exp,
+                        num_message_bits=input_message_bits)
                     if i >= self.skip_layers:
                         layers.append(layer)
                         reset_offset += 1

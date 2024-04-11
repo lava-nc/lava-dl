@@ -57,8 +57,6 @@ class SCIFARNetwork(torch.nn.Module):
         s4d_params = [{**sdnn_params, "activation" : model} for model in self.s4dmodels]
         standard_params ={**sdnn_params, "activation" : identity}
         final_act_params = {**sdnn_params, "activation" : F.relu}
-        mlp_params = {**sdnn_params, "activation" : F.relu}
-        # final_act_params = {**sdnn_params, "activation" : identity}
         
         self.blocks = [slayer.block.sigma_delta.Input(standard_params),
                        slayer.block.sigma_delta.Dense(standard_params, 3, self.d_model), # Expand model dim
@@ -68,17 +66,19 @@ class SCIFARNetwork(torch.nn.Module):
             s4d = slayer.block.sigma_delta.Dense(s4d_params[i], self.d_model, self.d_model)
             s4d_reduction = slayer.block.sigma_delta.Dense(final_act_params, self.d_model, self.d_model)
             ff = slayer.block.sigma_delta.Dense(final_act_params, self.d_model, self.d_model)
-
+            
             s4d.synapse.weight.data = torch.eye(self.d_model).reshape((self.d_model, self.d_model,1,1,1))
             s4d.synapse.weight.requires_grad = False
 
             s4d_reduction.synapse.weight.data = torch.eye(self.d_model).reshape((self.d_model, self.d_model,1,1,1))
             s4d_reduction.synapse.weight.requires_grad = False
 
+            ff.synapse.weight.data = torch.eye(self.d_model).reshape((self.d_model, self.d_model,1,1,1))
+
             self.blocks.append(s4d)
             self.blocks.append(s4d_reduction)
             self.blocks.append(ff)
-
+            
         self.blocks.append(slayer.block.sigma_delta.Output(standard_params, self.d_model, 10))
         self.blocks = torch.nn.ModuleList(self.blocks)
                  
