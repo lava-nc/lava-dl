@@ -158,8 +158,8 @@ class Dense(AbstractBlock):
 
             self.synapse = Synapse(
                 weights=weight,
-                # weight_exp=weight_exponent,
-                # num_weight_bits=num_weight_bits,
+                weight_exp=weight_exponent,
+                num_weight_bits=num_weight_bits,
                 num_message_bits=self.input_message_bits,
             )
         else:
@@ -176,8 +176,8 @@ class Dense(AbstractBlock):
                 weights=weight,
                 delays=delay.astype(int),
                 max_delay=62,
-                # weight_exp=weight_exponent,
-                # num_weight_bits=num_weight_bits,
+                weight_exp=weight_exponent,
+                num_weight_bits=num_weight_bits,
                 num_message_bits=self.input_message_bits,
             )
 
@@ -255,14 +255,14 @@ class ComplexDense(AbstractBlock):
 
         self.real_synapse = Synapse(
             weights=weight_real,
-            # weight_exp=weight_exponent_real,
-            # num_weight_bits=num_weight_bits_real,
+            weight_exp=weight_exponent_real,
+            num_weight_bits=num_weight_bits_real,
             num_message_bits=self.input_message_bits,
         )
         self.imag_synapse = Synapse(
             weights=weight_imag,
-            # weight_exp=weight_exponent_imag,
-            # num_weight_bits=num_weight_bits_imag,
+            #weight_exp=weight_exponent_imag,
+            num_weight_bits=num_weight_bits_imag,
             num_message_bits=self.input_message_bits,
         )
 
