@@ -66,7 +66,7 @@ class SCIFARNetwork(torch.nn.Module):
         final_act_params = {**sdnn_params, "activation" : F.relu}
         
         self.blocks = [slayer.block.sigma_delta.Input(standard_params),
-                       slayer.block.sigma_delta.Dense(standard_params, 3, self.d_model), # Expand model dim
+                       slayer.block.sigma_delta.Dense(standard_params, 3, self.d_model, weight_scale=3, weight_norm=True, pre_hook_fx=quantize_8bit), # Expand model dim
                       ]
 
 
@@ -87,7 +87,7 @@ class SCIFARNetwork(torch.nn.Module):
             self.blocks.append(s4d_reduction)
             self.blocks.append(ff)
             
-        self.blocks.append(slayer.block.sigma_delta.Output(standard_params, self.d_model, 10))
+        self.blocks.append(slayer.block.sigma_delta.Output(standard_params, self.d_model, 10, weight_scale=3, weight_norm=True))
         self.blocks = torch.nn.ModuleList(self.blocks)
                  
     def forward(self, x):
