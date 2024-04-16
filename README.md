@@ -159,6 +159,7 @@ $ pip install lava-dl-0.2.0.tar.gz
 * [PilotNet SDNN Inference](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/pilotnet_sdnn/run.ipynb)
 * [PilotNet SDNN Benchmarking](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/pilotnet_sdnn/benchmark.ipynb)
 * [YOLO-KP SDNN Inference](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/yolo_kp/run.ipynb)
+* [MNIST Inference]()
 
 ## __`lava.lib.dl.slayer`__ 
 
