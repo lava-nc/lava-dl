@@ -57,7 +57,7 @@ class SCIFARNetwork(torch.nn.Module):
                 'requires_grad' : False,   # trainable threshold
                 'shared_param'  : True,   # layer wise threshold
                 'dropout' : slayer.neuron.Dropout(p=self.dropout), # neuron dropout
-                'norm' : slayer.neuron.norm.MeanOnlyBatchNorm, # mean only quantized batch normalizaton
+                # 'norm' : slayer.neuron.norm.MeanOnlyBatchNorm, # mean only quantized batch normalizaton
             }
 
 
@@ -66,7 +66,7 @@ class SCIFARNetwork(torch.nn.Module):
         final_act_params = {**sdnn_params, "activation" : F.relu}
         
         self.blocks = [slayer.block.sigma_delta.Input(standard_params),
-                       slayer.block.sigma_delta.Dense(standard_params, 3, self.d_model, weight_scale=3, weight_norm=True, pre_hook_fx=quantize_8bit), # Expand model dim
+                       slayer.block.sigma_delta.Dense(standard_params, 3, self.d_model)#, weight_scale=3, weight_norm=True, pre_hook_fx=quantize_8bit), # Expand model dim
                       ]
 
 
