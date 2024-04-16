@@ -11,7 +11,7 @@ class SCIFARNetwork(torch.nn.Module):
     # Loihi compatible network for sCIFAR classification
     # To-Do before Training
         # Classification is based on mean of last S4D + Activiation layer!
-    def __init__(self, d_model=128, n_states=64, dropout=0, s4d_learning_rate=0.01, relu_in_s4d=False, skip=False):
+    def __init__(self, d_model=128, n_states=64, dropout=0, s4d_learning_rate=0.01, relu_in_s4d=False, skip=False, num_layers: int = 1):
         super(SCIFARNetwork, self).__init__()
         if skip: 
             raise(NotImplementedError, "Skip connection currently not enabled.")
@@ -27,7 +27,6 @@ class SCIFARNetwork(torch.nn.Module):
         else:
             self.activation = None
 
-        num_layers = 4
         # We need four different instances of the S4D model 
         self.s4dmodels = [S4D(self.d_model, 
                             activation=None,
@@ -35,7 +34,7 @@ class SCIFARNetwork(torch.nn.Module):
                             transposed=True,
                             d_state=self.n_states,
                             final_act=None,
-                            is_real = True,
+                            is_real = False,
                             skip=False,
                             lr=min(0.001, self.s4d_learning_rate)) for _ in range(num_layers)] 
         for model in self.s4dmodels:
@@ -44,6 +43,13 @@ class SCIFARNetwork(torch.nn.Module):
        
         identity = nn.Identity()
         identity.__name__ = "identity"
+
+        def quantize_8bit(x: torch.tensor,
+                          scale: int = (1 << 6),
+                          descale: bool = False) -> torch.tensor:
+            return slayer.utils.quantize_hook_fx(x, scale=scale,
+                                                 num_bits=8, descale=descale)
+
         sdnn_params = { # sigma-delta neuron parameters
                 'threshold'     : 0,    # delta unit   #1/64
                 'tau_grad'      : 0.5,    # delta unit surrogate gradient relaxation parameter
@@ -51,8 +57,10 @@ class SCIFARNetwork(torch.nn.Module):
                 'requires_grad' : False,   # trainable threshold
                 'shared_param'  : True,   # layer wise threshold
                 'norm'    : None,
-                "dropout" : None  # SHOULD WE HAVE ADDITIONAL DROPOUT?
+                'dropout' : slayer.neuron.Dropout(p=self.dropout), # neuron dropout
+                'norm' : slayer.neuron.norm.MeanOnlyBatchNorm, # mean only quantized batch normalizaton
             }
+
 
         s4d_params = [{**sdnn_params, "activation" : model} for model in self.s4dmodels]
         standard_params ={**sdnn_params, "activation" : identity}
@@ -62,10 +70,11 @@ class SCIFARNetwork(torch.nn.Module):
                        slayer.block.sigma_delta.Dense(standard_params, 3, self.d_model), # Expand model dim
                       ]
 
+
         for i in range(num_layers):
-            s4d = slayer.block.sigma_delta.Dense(s4d_params[i], self.d_model, self.d_model)
-            s4d_reduction = slayer.block.sigma_delta.Dense(final_act_params, self.d_model, self.d_model)
-            ff = slayer.block.sigma_delta.Dense(final_act_params, self.d_model, self.d_model)
+            s4d = slayer.block.sigma_delta.Dense(s4d_params[i], self.d_model, self.d_model, pre_hook_fx=quantize_8bit)
+            s4d_reduction = slayer.block.sigma_delta.Dense(final_act_params, self.d_model, self.d_model, pre_hook_fx=quantize_8bit)
+            ff = slayer.block.sigma_delta.Dense(final_act_params, self.d_model, self.d_model, weight_scale=2, weight_norm=True, pre_hook_fx=quantize_8bit)
             
             s4d.synapse.weight.data = torch.eye(self.d_model).reshape((self.d_model, self.d_model,1,1,1))
             s4d.synapse.weight.requires_grad = False
@@ -73,7 +82,7 @@ class SCIFARNetwork(torch.nn.Module):
             s4d_reduction.synapse.weight.data = torch.eye(self.d_model).reshape((self.d_model, self.d_model,1,1,1))
             s4d_reduction.synapse.weight.requires_grad = False
 
-            ff.synapse.weight.data = torch.eye(self.d_model).reshape((self.d_model, self.d_model,1,1,1))
+            # ff.synapse.weight.data = torch.eye(self.d_model).reshape((self.d_model, self.d_model,1,1,1))
 
             self.blocks.append(s4d)
             self.blocks.append(s4d_reduction)
