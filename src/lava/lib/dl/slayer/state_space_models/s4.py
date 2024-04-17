@@ -992,6 +992,7 @@ class SSMKernelDiag(SSMKernel):
 
     def __init__(
         self,
+        s4d_exp: int,
         disc: str = 'zoh',  # Change to 'bilinear' to match S4, but should make little difference either way
         dt_fast: bool = False,
         real_transform: str = 'exp',
@@ -1012,6 +1013,7 @@ class SSMKernelDiag(SSMKernel):
         self.bandlimit = bandlimit
         self.backend = backend
         self.is_real = is_real
+        self.s4d_exp = s4d_exp
 
         # Initialize dt, A, B, C
         inv_dt = self.init_dt()
@@ -1107,8 +1109,12 @@ class SSMKernelDiag(SSMKernel):
 
     def forward(self, L, state=None, rate=1.0):
         """See Kernel.forward() for argument documentation."""
-
+        print("S$D exp", self.s4d_exp)
+        exp = 2**self.s4d_exp
         dt, A, B, C = self._get_params(rate)
+        A = ((A * exp).int() / exp).float()
+        B = ((B * exp).int() / exp).float()
+        C = ((C * exp).int() / exp).float()
         dtA = dt * A
 
         # Augment B with state
@@ -1899,6 +1905,7 @@ class S4Block(nn.Module):
 
         Returns: same shape as x
         """
+
         if self.transposed: x = rearrange(x, 'b d ... -> b ... d')
         L = x.size(1)
 
@@ -1975,6 +1982,7 @@ class S4D(S4Block):
         self,
         d_model,
         d_state=64,
+        s4d_exp=12,
         dropout=0.0,
         is_real=False,
         transposed=False,
@@ -1994,7 +2002,8 @@ class S4D(S4Block):
                        'real_transform': 'exp',
                        'imag_transform': 'none',
                        'd_state': d_state,
-                       'is_real': is_real}
+                       'is_real': is_real,
+                       's4d_exp': s4d_exp}
         layer_args.update(kernel_args)
 
         super().__init__(d_model,

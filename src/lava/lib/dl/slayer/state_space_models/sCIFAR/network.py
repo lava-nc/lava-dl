@@ -36,6 +36,7 @@ class SCIFARNetwork(torch.nn.Module):
                             final_act=None,
                             is_real = True,
                             skip=False,
+                            s4d_exp=12,
                             lr=min(0.001, self.s4d_learning_rate)) for _ in range(num_layers)] 
         for model in self.s4dmodels:
             model.__name__ = "S4D"
@@ -57,7 +58,8 @@ class SCIFARNetwork(torch.nn.Module):
                 'requires_grad' : False,   # trainable threshold
                 'shared_param'  : True,   # layer wise threshold
                 'dropout' : slayer.neuron.Dropout(p=self.dropout), # neuron dropout
-                'norm' : slayer.neuron.norm.MeanOnlyBatchNorm, # mean only quantized batch normalizaton
+                'norm': None,
+                #'norm' : slayer.neuron.norm.MeanOnlyBatchNorm, # mean only quantized batch normalizaton
             }
 
 
@@ -66,14 +68,14 @@ class SCIFARNetwork(torch.nn.Module):
         final_act_params = {**sdnn_params, "activation" : F.relu}
         
         self.blocks = [slayer.block.sigma_delta.Input(standard_params),
-                       slayer.block.sigma_delta.Dense(standard_params, 3, self.d_model, weight_scale=3, weight_norm=True, pre_hook_fx=quantize_8bit), # Expand model dim
+                       slayer.block.sigma_delta.Dense(standard_params, 3, self.d_model)#, weight_scale=3, weight_norm=True, pre_hook_fx=quantize_8bit), # Expand model dim
                       ]
 
 
         for i in range(num_layers):
             s4d = slayer.block.sigma_delta.Dense(s4d_params[i], self.d_model, self.d_model, pre_hook_fx=quantize_8bit)
             s4d_reduction = slayer.block.sigma_delta.Dense(final_act_params, self.d_model, self.d_model, pre_hook_fx=quantize_8bit)
-            ff = slayer.block.sigma_delta.Dense(final_act_params, self.d_model, self.d_model, weight_scale=3, weight_norm=True, pre_hook_fx=quantize_8bit)
+            ff = slayer.block.sigma_delta.Dense(final_act_params, self.d_model, self.d_model, weight_scale=3, pre_hook_fx=quantize_8bit)
             
             s4d.synapse.weight.data = torch.eye(self.d_model).reshape((self.d_model, self.d_model,1,1,1))
             s4d.synapse.weight.requires_grad = False
@@ -86,6 +88,7 @@ class SCIFARNetwork(torch.nn.Module):
             self.blocks.append(s4d)
             self.blocks.append(s4d_reduction)
             self.blocks.append(ff)
+        
             
         self.blocks.append(slayer.block.sigma_delta.Output(standard_params, self.d_model, 10, weight_scale=3, weight_norm=True))
         self.blocks = torch.nn.ModuleList(self.blocks)
@@ -95,7 +98,7 @@ class SCIFARNetwork(torch.nn.Module):
         for _, block in enumerate(self.blocks): 
             # forward computation is as simple as calling the blocks in a loop
             x = block(x)
-        return x.mean(-1)
+        return x[:, :, -1]
         
     def grad_flow(self, path):
         # helps monitor the gradient flow
