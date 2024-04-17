@@ -59,7 +59,6 @@ class SCIFARNetwork(torch.nn.Module):
                 'shared_param'  : True,   # layer wise threshold
                 'dropout' : slayer.neuron.Dropout(p=self.dropout), # neuron dropout
                 'norm': None,
-                #'norm' : slayer.neuron.norm.MeanOnlyBatchNorm, # mean only quantized batch normalizaton
             }
 
 
