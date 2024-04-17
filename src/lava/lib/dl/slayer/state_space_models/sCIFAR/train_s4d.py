@@ -187,6 +187,11 @@ for epoch in range(args.epochs):
         print(f'\r[Epoch {epoch:3d}/{args.epochs}] {stats}', end='')
         #writer.add_scalar("Accuracy/train", stats.training.accuracy, epoch)
         #writer.add_scalar("Loss/train", stats.training.loss, epoch)
+        with torch.no_grad():
+            # clap weights to abs 1
+            for param in net.named_parameters():
+                if 'weight' in param[0]:
+                    param[1].data = torch.clamp(param[1].data, -1, 1)
     
     net.eval()
     for i, (input, ground_truth) in enumerate(test_loader): # testing loop

@@ -89,7 +89,7 @@ class SCIFARNetwork(torch.nn.Module):
             self.blocks.append(ff)
         
             
-        self.blocks.append(slayer.block.sigma_delta.Output(standard_params, self.d_model, 10, weight_scale=3, weight_norm=True))
+        self.blocks.append(slayer.block.sigma_delta.Output(standard_params, self.d_model, 10, weight_scale=3))
         self.blocks = torch.nn.ModuleList(self.blocks)
                  
     def forward(self, x):

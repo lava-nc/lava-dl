@@ -1109,7 +1109,6 @@ class SSMKernelDiag(SSMKernel):
 
     def forward(self, L, state=None, rate=1.0):
         """See Kernel.forward() for argument documentation."""
-        print("S$D exp", self.s4d_exp)
         exp = 2**self.s4d_exp
         dt, A, B, C = self._get_params(rate)
         A = ((A * exp).int() / exp).float()
