@@ -7,11 +7,9 @@ from lava.magma.core.model.sub.model import AbstractSubProcessModel
 from lava.magma.core.model.py.type import LavaPyType
 from lava.magma.core.model.py.ports import PyInPort, PyOutPort
 from lava.magma.core.process.process import AbstractProcess
-from lava.magma.core.process.variable import Var
 from lava.magma.core.process.ports.ports import InPort, OutPort
 from lava.magma.core.sync.protocols.loihi_protocol import LoihiProtocol
 from lava.magma.core.resources import CPU, Loihi2NeuroCore
-from lava.utils.dataloader.mnist import MnistDataset
 
 from lava.utils.system import Loihi2
 if Loihi2.is_loihi2_available:
