@@ -148,6 +148,7 @@ class Neuron(base.Neuron):
     def device_params(self):
         """Dictionary of device parameters."""
         if self.activation.__name__ == "S4D":
+            self.activation.setup_step()
             return {
                 'type': 'S4D',
                 'activation': self.activation.__name__,

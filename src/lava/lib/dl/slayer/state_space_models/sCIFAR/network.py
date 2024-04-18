@@ -110,6 +110,9 @@ class SCIFARNetwork(torch.nn.Module):
         return grad
         
     def export_hdf5(self, filename):
+        for model in self.s4dmodels:
+            model.__name__ = "S4D"
+            model.setup_step()
         # network export to hdf5 format
         h = h5py.File(filename, 'w')
         layer = h.create_group('layer')
