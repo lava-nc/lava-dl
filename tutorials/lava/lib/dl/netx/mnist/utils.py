@@ -99,38 +99,3 @@ class NxOutputAdapter(AbstractSubProcessModel):
     self.adapter = eio.spike.NxToPyAdapter(shape=shape)
     proc.inp.connect(self.adapter.inp)
     self.adapter.out.connect(proc.out)
-
-###############################################################################
-############## R U N     C O N F I G     F O R     L O I H I ##################
-###############################################################################
-
-def get_run_config(self, backend):
-  """
-  Returns the run-time config corresponding to the `backend`.
-
-  Args:
-    backend <str>: Either "L2Sim" or "L2Hw" for Loihi2SimCfg or Loihi2HwCfg.
-  """
-  assert backend in ["L2Sim", "L2Hw"]
-
-  if backend == "L2Sim": # Run on the Loihi-2 Simulation Hardware on CPU.
-    run_config = Loihi2SimCfg(
-        select_tag="fixed_pt", # To select fixed point implementation.
-        exception_proc_model_map={
-          InpImgToSpk: PyInpImgToSpkModel,
-          OutSpkToCls: PyOutSpkToClsModel,
-          InputAdapter: PyInputAdapter,
-          OutputAdapter: PyOutputAdapter
-          }
-        )
-  elif backend == "L2Hw": # Run on the Loihi-2 Physical Hardware on INRC.
-    run_config = Loihi2HwCfg(
-        select_sub_proc_model=True,
-        exception_proc_model_map={
-          InpImgToSpk: PyInpImgToSpkModel,
-          OutSpkToCls: PyOutSpkToClsModel,
-          InputAdapter: NxInputAdapter,
-          OutputAdapter: NxOutputAdapter
-          }
-        )
-  return run_config
