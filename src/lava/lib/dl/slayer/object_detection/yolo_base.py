@@ -18,17 +18,32 @@ def _yolo(x: torch.tensor,
           clamp_max: float = 5.0) -> torch.tensor:
     # converts raw predictions to bounding box predictions.
     _, _, H, W, _, _ = x.shape
+
+    
+    # print(f'{x.shape=}')
+    
     range_y, range_x = torch.meshgrid(
         torch.arange(H, dtype=x.dtype, device=x.device),
         torch.arange(W, dtype=x.dtype, device=x.device),
         indexing='ij',
     )
+    
+    # print(f'{range_x.shape=}')
+    # print(f'{range_y.shape=}')
+
     anchor_x, anchor_y = anchors[:, 0], anchors[:, 1]
+    
+    # print(f'{anchor_x.shape=}')
+    # print(f'{anchor_y.shape=}')
 
     x_center = (torch.sigmoid(x[:, :, :, :, 0:1, :])
                 + range_x[None, None, :, :, None, None]) / W
     y_center = (torch.sigmoid(x[:, :, :, :, 1:2, :])
                 + range_y[None, None, :, :, None, None]) / H
+    
+    # print(f'{x_center.shape=}')
+    # print(f'{y_center.shape=}')
+    
     width = (torch.exp(
         x[:, :, :, :, 2:3, :].clamp(
             max=clamp_max)) * anchor_x[None, :, None, None, None, None]) / W
@@ -40,6 +55,8 @@ def _yolo(x: torch.tensor,
 
     x = torch.concat([x_center, y_center, width, height,
                       confidence, classes], dim=-2)
+    
+    # print(f'{x.shape=}')
 
     if torch.isnan(x).any() or torch.isinf(x).any():
         print(f'{torch.isnan(x_center).any()=}')
