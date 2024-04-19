@@ -2,7 +2,7 @@
 
 __`lava-dl`__ is a library of deep learning tools within Lava that support  offline training, online training and inference methods for various Deep Event-Based Networks.
 
-There are two main strategies for training Deep Event-Based Networks: _direct training_ and _ANN to SNN converison_. 
+There are two main strategies for training Deep Event-Based Networks: _direct training_ and _ANN to SNN converison_.
 
 Directly training the network utilizes the information of precise timing of events. Direct training is very accurate and results in efficient networks. However, directly training networks take a lot of time and resources.
 
@@ -19,7 +19,7 @@ The library presently consists of
 3. `lava.lib.dl.netx` for training and deployment of event-based deep neural networks on traditional as well as neuromorphic backends.
 
 Lava-dl also has the following external, fully compatible, plugin.
-1. [`lava.lib.dl.decolle`](https://github.com/kclip/lava-decolle) for training Deep SNNs with local learning and surrogate gradients. This extension is an implementation of [DECOLLE](https://github.com/nmi-lab/decolle-public) learning repo to be fully compatible to lava-dl training tools. Refer [here](https://github.com/kclip/lava-decolle) for the detailed description of the extension, examples and tutorials. 
+1. [`lava.lib.dl.decolle`](https://github.com/kclip/lava-decolle) for training Deep SNNs with local learning and surrogate gradients. This extension is an implementation of [DECOLLE](https://github.com/nmi-lab/decolle-public) learning repo to be fully compatible to lava-dl training tools. Refer [here](https://github.com/kclip/lava-decolle) for the detailed description of the extension, examples and tutorials.
     > J. Kaiser, H. Mostafa, and E. Neftci, _Synaptic Plasticity Dynamics for Deep Continuous Local Learning (DECOLLE)._ pp 424,  Frontiers in Neuroscience 2020.
 
 More tools will be added in the future.
@@ -159,13 +159,13 @@ $ pip install lava-dl-0.2.0.tar.gz
 * [PilotNet SDNN Inference](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/pilotnet_sdnn/run.ipynb)
 * [PilotNet SDNN Benchmarking](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/pilotnet_sdnn/benchmark.ipynb)
 * [YOLO-KP SDNN Inference](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/yolo_kp/run.ipynb)
-* [MNIST Inference]()
+* [MNIST Inference](https://github.com/lava-nc/lava-dl/blob/main/tutorials/lava/lib/dl/netx/mnist/run.ipynb)
 
-## __`lava.lib.dl.slayer`__ 
+## __`lava.lib.dl.slayer`__
 
-`lava.lib.dl.slayer` is an enhanced version of [SLAYER](https://github.com/bamsumit/slayerPytorch). Most noteworthy enhancements are: support for _recurrent network structures_, a wider variety of _neuron models_ and _synaptic connections_ (a complete list of features is [here](https://github.com/lava-nc/lava-dl/blob/main/src/lava/lib/dl/slayer/README.md)). This version of SLAYER is built on top of the [PyTorch](https://pytorch.org/) deep learning framework, similar to its predecessor. For smooth integration with Lava, `lava.lib.dl.slayer` supports exporting trained models using the platform independent __hdf5 network exchange__ format. 
+`lava.lib.dl.slayer` is an enhanced version of [SLAYER](https://github.com/bamsumit/slayerPytorch). Most noteworthy enhancements are: support for _recurrent network structures_, a wider variety of _neuron models_ and _synaptic connections_ (a complete list of features is [here](https://github.com/lava-nc/lava-dl/blob/main/src/lava/lib/dl/slayer/README.md)). This version of SLAYER is built on top of the [PyTorch](https://pytorch.org/) deep learning framework, similar to its predecessor. For smooth integration with Lava, `lava.lib.dl.slayer` supports exporting trained models using the platform independent __hdf5 network exchange__ format.
 
-In future versions, SLAYER will get completely integrated into Lava to train Lava Processes directly. This will eliminate the need for explicitly exporting and importing the trained networks. 
+In future versions, SLAYER will get completely integrated into Lava to train Lava Processes directly. This will eliminate the need for explicitly exporting and importing the trained networks.
 
 ### Example Code
 
@@ -179,8 +179,8 @@ __Network Description__
 class Network(torch.nn.Module):
     def __init__(self):
         ...
-        self.blocks = torch.nn.ModuleList([# sequential network blocks 
-                slayer.block.sigma_delta.Input(sdnn_params), 
+        self.blocks = torch.nn.ModuleList([# sequential network blocks
+                slayer.block.sigma_delta.Input(sdnn_params),
                 slayer.block.sigma_delta.Conv(sdnn_params,  3, 24, 3),
                 slayer.block.sigma_delta.Conv(sdnn_params, 24, 36, 3),
                 slayer.block.rf_iz.Conv(rf_params, 36, 64, 3, delay=True),
@@ -192,7 +192,7 @@ class Network(torch.nn.Module):
             ])
 
     def forward(self, x):
-        for block in self.blocks: 
+        for block in self.blocks:
             # forward computation is as simple as calling the blocks in a loop
             x = block(x)
         return x
@@ -242,8 +242,8 @@ __Network Description__
 class Network(torch.nn.Module):
     def __init__(self):
         ...
-        self.blocks = torch.nn.ModuleList([# sequential network blocks 
-                bootstrap.block.cuba.Input(sdnn_params), 
+        self.blocks = torch.nn.ModuleList([# sequential network blocks
+                bootstrap.block.cuba.Input(sdnn_params),
                 bootstrap.block.cuba.Conv(sdnn_params,  3, 24, 3),
                 bootstrap.block.cuba.Conv(sdnn_params, 24, 36, 3),
                 bootstrap.block.cuba.Conv(rf_params, 36, 64, 3),
@@ -288,7 +288,7 @@ __Export the network__
 net.export_hdf5('network.net')
 ```
 
-## __`lava.lib.dl.netx`__ 
+## __`lava.lib.dl.netx`__
 
 For inference using Lava, `lava.lib.dl.netx` provides an automated API for loading SLAYER-trained models as Lava Processes, which can be directly run on a desired backend. `lava.lib.dl.netx` imports models saved via SLAYER using the hdf5 network exchange format. The details of hdf5 network description specification can be found [here](https://github.com/lava-nc/lava-dl/blob/main/src/lava/lib/dl/netx/README.md).
 
