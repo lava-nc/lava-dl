@@ -213,9 +213,14 @@ class SpikingNTUDataset(torch.utils.data.Dataset):
             volume = np.zeros((1, 2, height, width), dtype=np.uint8)
 
             histo_quantized(events, volume, self.dt)
-            img[:] += volume[0, 0].astype(np.int32).T - volume[0, 1].astype(np.int32).T
+            img[:] += volume[0, 0].astype(bool).T + volume[0, 1].astype(bool).T
             imgs.append(img.copy().T)
-            img *= np.exp(-(self.dt / self.tau))
+            img *= 0#np.exp(-(self.dt / self.tau))
+
+            # histo_quantized(events, volume, self.dt)
+            # img[:] += volume[0, 0].astype(np.int32).T - volume[0, 1].astype(np.int32).T
+            # imgs.append(img.copy().T)
+            # img *= np.exp(-(self.dt / self.tau))
 
         
         record: VideoRecord = VideoRecord(imgs, fn)
