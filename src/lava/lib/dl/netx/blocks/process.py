@@ -51,8 +51,10 @@ class AbstractBlock(AbstractProcess):
         del self.neuron_process
 
     def _neuron(self, bias: np.ndarray) -> Type[AbstractProcess]:
-        if bias is None:
-            return self.neuron_process(shape=self.shape, **self.neuron_params)
+        if bias is None:            
+            neuron_params = self.neuron_params.copy()
+            neuron_params['num_message_bits'] = self.output_message_bits
+            return self.neuron_process(shape=self.shape, **neuron_params)
         else:
             if len(self.shape) == 1:  # scalar bias value
                 bias_mant = bias
@@ -69,6 +71,7 @@ class AbstractBlock(AbstractProcess):
                 )
             neuron_params = {'shape': self.shape, **self.neuron_params}
             neuron_params[self.bias_key] = bias_mant.astype(np.int32)
+            neuron_params['num_message_bits'] = self.output_message_bits
             return self.neuron_process(**neuron_params)
 
     @property
@@ -146,7 +149,6 @@ class Dense(AbstractBlock):
         num_weight_bits = kwargs.pop('num_weight_bits', 8)
         weight_exponent = kwargs.pop('weight_exponent', 0)
         sparse_synapse = kwargs.pop('sparse_synapse', False)
-
         if delay is None:
             if sparse_synapse:
                 Synapse = SparseSynapse
@@ -174,6 +176,7 @@ class Dense(AbstractBlock):
                 weights=weight,
                 delays=delay.astype(int),
                 max_delay=62,
+                weight_exp=weight_exponent,
                 num_weight_bits=num_weight_bits,
                 num_message_bits=self.input_message_bits,
             )
@@ -258,7 +261,7 @@ class ComplexDense(AbstractBlock):
         )
         self.imag_synapse = Synapse(
             weights=weight_imag,
-            weight_exp=weight_exponent_imag,
+            #weight_exp=weight_exponent_imag,
             num_weight_bits=num_weight_bits_imag,
             num_message_bits=self.input_message_bits,
         )
@@ -341,7 +344,7 @@ class Conv(AbstractBlock):
     def __init__(self, **kwargs: Union[dict, tuple, list, int, bool]) -> None:
         super().__init__(**kwargs)
         weight = kwargs.pop('weight')
-
+        
         self.synapse = ConvSynapse(
             input_shape=kwargs.pop('input_shape'),
             weight=weight,

@@ -33,7 +33,7 @@ import os
 import argparse
 from torch.utils.tensorboard import SummaryWriter
 #from s4_original import S4D
-from s4 import S4D
+from lava.lib.dl.slayer.state_space_models.s4 import S4D
 from tqdm.auto import tqdm
 
 # Dropout broke in PyTorch 1.11

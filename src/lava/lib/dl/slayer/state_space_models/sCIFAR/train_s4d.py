@@ -9,7 +9,6 @@ import torchvision.transforms as transforms
 import os
 import argparse
 
-from s4 import S4D
 from tqdm.auto import tqdm
 import sys, os
 import numpy as np
@@ -24,7 +23,8 @@ import torch.nn.functional as F
 import lava.lib.dl.slayer as slayer
 import utils
 import torch
-from torch.utils.tensorboard import SummaryWriter
+from network import SCIFARNetwork
+#from torch.utils.tensorboard import SummaryWriter
 
 lam = None
 
@@ -102,31 +102,28 @@ def setup_optimizer(model, lr, weight_decay, epochs):
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
 # Optimizer
 parser.add_argument('--lr', default=0.01, type=float, help='Learning rate')
-parser.add_argument('--weight_decay', default=0.01, type=float, help='Weight decay')
+parser.add_argument('--weight_decay', default=0.0001, type=float, help='Weight decay')
 parser.add_argument('--lam', default=0.0000001, type=float, help='Lagrangian for event rate loss')
 # Scheduler
 parser.add_argument('--epochs', default=100, type=float, help='Training epochs')
 parser.add_argument('--old_optimizer', action='store_true')
 # Dataloader
 parser.add_argument('--num_workers', default=4, type=int, help='Number of workers to use for dataloader')
-parser.add_argument('--batch_size', default=64, type=int, help='Batch size')
+parser.add_argument('--batch_size', default=512, type=int, help='Batch size')
 # Model
 parser.add_argument('--n_layers', default=4, type=int, help='Number of layers')
 parser.add_argument('--d_model', default=128, type=int, help='Model dimension')
+parser.add_argument('--n_states', default=64, type=int, help='States per dimension')
 parser.add_argument('--dropout', default=0.1, type=float, help='Dropout')
 parser.add_argument('--skip', action='store_true')
 parser.add_argument('--loihi', action='store_true')
 parser.add_argument('--early_mean', action='store_true')
 parser.add_argument('--disable_quantize', action='store_true')
 parser.add_argument('--add_dropout', action='store_true')
+parser.add_argument('--num_layers', default=1, type=int, help='Number of layers')
 
 
 args = parser.parse_args()
-
-run_name =  "skip_" + str(args.skip) + "_loihi_comp_"+ str(args.loihi) + "_disable_quantize_"+ str(args.disable_quantize)+ "_early_mean" + str(args.early_mean) + "_add_dropout_" + str(args.add_dropout)+"weight_scaling"
-+ "_clamp_deactivated"
-
-writer = SummaryWriter("runs/" + run_name)
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -157,117 +154,10 @@ testset = torchvision.datasets.CIFAR10(
 train_loader = torch.utils.data.DataLoader(dataset=trainset, batch_size=args.batch_size, shuffle=True, num_workers=8)
 test_loader  = torch.utils.data.DataLoader(dataset=testset , batch_size=args.batch_size, shuffle=True, num_workers=8)
 
-
-
-class Network(torch.nn.Module):
-    def __init__(self):
-        super(Network, self).__init__()
-
-        if args.loihi:
-            self.s4dmodel = S4D(args.d_model, activation="relu", final_act = None, dropout=args.dropout, transposed=True, lr=min(0.001, args.lr))
-        else:
-            self.s4dmodel = S4D(args.d_model, activation="gelu", final_act = None, dropout=args.dropout, transposed=True, lr=min(0.001, args.lr))
-        
-
-        if args.loihi: 
-            self.final_act = F.relu
-        else:
-            self.final_act = nn.Sequential(
-                nn.Conv1d(args.d_model, 2*args.d_model, kernel_size=1),
-                nn.GLU(dim=-2),
-                )
-
-
-        sdnn_params = { # sigma-delta neuron parameters
-                'threshold'     : 0,    # delta unit   #1/64
-                'tau_grad'      : 0.5,    # delta unit surrogate gradient relaxation parameter
-                'scale_grad'    : 1,      # delta unit surrogate gradient scale parameter
-                'requires_grad' : False,   # trainable threshold
-                'shared_param'  : True,   # layer wise threshold
-                'norm'    : None,
-                "dropout" : None  # SHOULD WE HAVE ADDITIONAL DROPOUT?
-            }
-
-        if args.add_dropout: 
-            sdnn_params['dropout'] = slayer.neuron.Dropout(p=float(args.dropout))
-
-        final_act_params = {**sdnn_params, "activation" : self.final_act}
-        s4d_params = {**sdnn_params, "activation" : self.s4dmodel}
-        standard_params ={**sdnn_params, "activation" : nn.Identity()}  # uses relu as activation - is that a problem?
-        
-        if args.disable_quantize:
-            kwargs = dict(pre_hook_fx = None)
-        else:
-            kwargs = dict()
-       
-        
-        self.blocks = torch.nn.ModuleList(
-            [# sequential network blocks 
-                slayer.block.sigma_delta.Input(standard_params),
-                slayer.block.sigma_delta.Dense(standard_params, 3, args.d_model, weight_scale = 6, **kwargs),                        
-
-                slayer.block.sigma_delta.Dense(s4d_params, args.d_model, args.d_model, weight_scale = 6, **kwargs),
-                slayer.block.sigma_delta.Dense(final_act_params, args.d_model, args.d_model, weight_scale = 6, **kwargs),
-
-                slayer.block.sigma_delta.Dense(s4d_params, args.d_model, args.d_model, weight_scale = 6, **kwargs),
-                slayer.block.sigma_delta.Dense(final_act_params, args.d_model, args.d_model, weight_scale = 6,**kwargs),
-
-                slayer.block.sigma_delta.Dense(s4d_params, args.d_model, args.d_model, weight_scale = 6, **kwargs),
-                slayer.block.sigma_delta.Dense(final_act_params, args.d_model, args.d_model, weight_scale = 6,**kwargs),
-
-                slayer.block.sigma_delta.Dense(s4d_params, args.d_model, args.d_model, weight_scale = 6, **kwargs),
-                slayer.block.sigma_delta.Dense(final_act_params, args.d_model, args.d_model, weight_scale = 6, **kwargs),
-
-                slayer.block.sigma_delta.Output(standard_params, args.d_model, 10, weight_scale = 6)
-            ])
-        
-
-        self.target_weights = torch.eye(args.d_model).reshape((args.d_model, args.d_model,1,1,1))
-        self.blocks[2].synapse.weight.data = self.target_weights
-        self.blocks[2].synapse.weight.requires_grad = False
-        self.blocks[4].synapse.weight.data = self.target_weights
-        self.blocks[4].synapse.weight.requires_grad = False
-        self.blocks[6].synapse.weight.data = self.target_weights
-        self.blocks[6].synapse.weight.requires_grad = False
-        self.blocks[8].synapse.weight.data = self.target_weights
-        self.blocks[8].synapse.weight.requires_grad = False
-        
-
-    def forward(self, x):
-        x = x.transpose(-1, -2)
-        x = x * 2**6
-        for i, block in enumerate(self.blocks): 
-            if args.skip and  i != 0 and i % 2 == 0: # describes s4d layer
-                z = x
-            # forward computation is as simple as calling the blocks in a loop
-            x = block(x)
-
-            if args.skip and i != 1 and i%2 == 1: # final act layer add skip connection 
-                x = z + x
-            if args.early_mean and i == 9:
-                    x = x.mean(dim=2).unsqueeze(2)
-                    
-        
-        if args.early_mean: 
-            x = torch.squeeze(x)
-        else:
-            x = x.mean(dim=2)
-        return x
-        
-
-    def grad_flow(self, path):
-        # helps monitor the gradient flow
-        grad = [b.synapse.grad_norm for b in self.blocks if hasattr(b, 'synapse')]
-
-        plt.figure()
-        plt.semilogy(grad)
-        plt.savefig(path + 'gradFlow.png')
-        plt.close()
-
-        return grad
-
 device = torch.device('cuda')
-net = Network().to(device)
+#net = Network().to(device)
+net = SCIFARNetwork(dropout=args.dropout, num_layers=args.num_layers, d_model=args.d_model, n_states=args.n_states).to(device)
+
 
 if args.old_optimizer:
     optimizer = torch.optim.RAdam(net.parameters(), lr=args.lr, weight_decay=1e-5)
@@ -288,18 +178,32 @@ assistant = slayer.utils.Assistant(
         classifier = lambda x : x.argmax(1))
 
 for epoch in range(args.epochs):        
+    net.train()
     for i, (input, ground_truth) in enumerate(train_loader): # training loop
         input, ground_truth = input.to(device), ground_truth.to(device)
+
         assistant.train(input, ground_truth)
         print(f'\r[Epoch {epoch:3d}/{args.epochs}] {stats}', end='')
-        writer.add_scalar("Accuracy/train", stats.training.accuracy, epoch)
-        writer.add_scalar("Loss/train", stats.training.loss, epoch)
+        #writer.add_scalar("Accuracy/train", stats.training.accuracy, epoch)
+        #writer.add_scalar("Loss/train", stats.training.loss, epoch)
+        with torch.no_grad():
+            # clip weights to abs 2
+            for param in net.blocks[1].named_parameters():
+                if 'weight' in param[0]:
+                    param[1].data = torch.clamp(param[1].data, -0.3, 0.3)
+            for param in net.blocks[4].named_parameters():
+                if 'weight' in param[0]:
+                    param[1].data = torch.clamp(param[1].data, -0.3, 0.3)
+            for param in net.blocks[5].named_parameters():
+                if 'weight' in param[0]:
+                    param[1].data = torch.clamp(param[1].data, -0.3, 0.3)
     
+    net.eval()
     for i, (input, ground_truth) in enumerate(test_loader): # testing loop
+        input, ground_truth = input.to(device), ground_truth.to(device)
         assistant.test(input, ground_truth)
         print(f'\r[Epoch {epoch:3d}/{args.epochs}] {stats}', end='')
-        writer.add_scalar("Accuracy/testing", stats.testing.accuracy, epoch)
-        writer.add_scalar("Loss/testing", stats.testing.loss, epoch)
+       
      
     if stats.testing.best_loss:  
         torch.save(net.state_dict(), trained_folder + '/network.pt')
@@ -312,5 +216,4 @@ for epoch in range(args.epochs):
     # checkpoint saves
     if epoch%10 == 0:
         torch.save({'net': net.state_dict(), 'optimizer': optimizer.state_dict()}, logs_folder + f'/checkpoint{epoch}.pt')    
-    writer.flush()
-    writer.close()
+    
