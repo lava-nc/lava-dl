@@ -34,7 +34,7 @@ def init_NTU_dataloader(partition="train",
         imagefile_template='img_{:05d}.jpg',
         transform=preprocess,
         test_mode=False if partition == "train" else True,
-        classify_labels = classify_labels 
+        classify_labels = "all",#classify_labels 
     )
 
     if not partition == 'train':
@@ -77,10 +77,11 @@ def init_spiking_NTU_dataloader(partition="train",
         transforms.ToTensor(),
         transforms.Resize(resolution + 2, antialias=None),  # image batch, resize smaller edge to 256
         transforms.CenterCrop(resolution),  # image batch, center crop to square 224x224
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        #transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 
     classify_labels = [41, 42, 43, 44, 45, 46, 47, 48, 104]
+    classify_labels = "all" 
     
     dataset = SpikingNTUDataset(
         annotationfile_path=annotation_file,

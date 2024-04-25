@@ -113,7 +113,7 @@ class SpikingNTUDataset(torch.utils.data.Dataset):
         self.test_mode = test_mode
         self.classify_labels = classify_labels
         if self.classify_labels == 'all':
-            self.label_map = {i+1: i for i in range(120)}
+            self.label_map = {i: i for i in range(120)}
         else:
             self.label_map = {v: i+1 for i, v in enumerate(self.classify_labels)}
 
