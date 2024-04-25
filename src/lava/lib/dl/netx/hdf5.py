@@ -138,7 +138,7 @@ class Network(AbstractProcess):
             The Lava process that implements the neuron described.
         """
         neuron_type = neuron_config['type']
-        # num_message_bits = None
+        num_message_bits = None
         if 'messageBits' in neuron_config.keys():
             num_message_bits = neuron_config['messageBits']
         if neuron_type in ['LOIHI', 'CUBA']:
@@ -428,10 +428,8 @@ class Network(AbstractProcess):
             elif needs_s4d_reduction:
                 weight = np.dot(weight, standard_kron)
                 
-    
             opt_weights = optimize_weight_bits(weight)
             weight, num_weight_bits, weight_exponent, sign_mode = opt_weights
-            #weight_exponent = 5
             # arguments for dense block
             params = {'shape': shape,  # this shape is the number of neurons in the layer after dense, overwritten for s4d expansion
                       'neuron_params': neuron_params,

@@ -261,7 +261,7 @@ class ComplexDense(AbstractBlock):
         )
         self.imag_synapse = Synapse(
             weights=weight_imag,
-            #weight_exp=weight_exponent_imag,
+            weight_exp=weight_exponent_imag,
             num_weight_bits=num_weight_bits_imag,
             num_message_bits=self.input_message_bits,
         )
