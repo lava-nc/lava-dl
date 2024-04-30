@@ -1,15 +1,14 @@
-# Copyright (C) 2024 Intel Corporation
+# Copyright (C) 2022 Intel Corporation
 # SPDX-License-Identifier:  BSD-3-Clause
 
-"""CUBA Hoyer neuron model."""
+"""CUBA neuron model."""
 
 import torch
 import torch.nn as nn
 
 from .dynamics import leaky_integrator
-from ..spike.spike import HoyerSpike
+from ..spike import HoyerSpike
 from .cuba import Neuron
-
 
 # These are tuned heuristically so that scale_grad=1 and tau_grad=1 serves
 # as a good starting point
@@ -22,7 +21,7 @@ TAU_RHO_MULT = 100
 # TAU_RHO_MULT = 1
 
 class HoyerNeuron(Neuron):
-    """This is the implementation of Loihi CUBA Hoyer neuron.
+    """This is the implementation of Loihi CUBA neuron.
 
     .. math::
         u[t] &= (1 - \\alpha_u)\\,u[t-1] + x[t] \\
@@ -89,8 +88,8 @@ class HoyerNeuron(Neuron):
         self, threshold, current_decay, voltage_decay,
         tau_grad=1, scale_grad=1, scale=1 << 6,
         norm=None, dropout=None,
-        shared_param=True, persistent_state=False, requires_grad=False,
-        graded_spike=False, num_features=1, T=1, hoyer_type='sum', momentum=0.9, delay=False
+        shared_param=True, persistent_state=False, requires_grad=False, graded_spike=False,
+        num_features=1, hoyer_mode=True, T=1, hoyer_type='sum', momentum=0.9, delay=False
     ):
         super(HoyerNeuron, self).__init__(
             threshold=threshold,
@@ -107,17 +106,28 @@ class HoyerNeuron(Neuron):
         )
         
         # add some attributes for hoyer spiking
-        self.learnable_thr = nn.Parameter(torch.FloatTensor([self.threshold]), requires_grad=True)
+        # self.learnable_thr = nn.Parameter(torch.FloatTensor([self.threshold]), requires_grad=True)
+        self.register_parameter(
+            'learnable_thr',
+            torch.nn.Parameter(
+                torch.FloatTensor([self.threshold]),
+                requires_grad=self.requires_grad
+            ),
+        )
         self.T = T
         self.hoyer_type = hoyer_type
+        self.hoyer_mode = hoyer_mode
         self.num_features = num_features
         self.momentum = 0.9
         if self.num_features > 1:
-            self.bn = nn.BatchNorm2d(num_features=self.num_features)
+            self.bias = nn.Parameter(torch.zeros(1,num_features,1,1,1), requires_grad=True)
+            if self.hoyer_mode:
+                self.bn = nn.BatchNorm2d(num_features=self.num_features)
         self.delay = delay
 
         if self.num_features > 1: 
-            # Conv layer  B,C,H,W,T
+                # Conv layer  B,C,H,W,T
+                # self.register_buffer('running_hoyer_ext', torch.zeros([1, self.num_features, 1, 1, T], **factory_kwargs))
             if self.hoyer_type == 'sum':
                 self.register_buffer('running_hoyer_ext', torch.zeros([1, 1, 1, 1, T]))
             else:
@@ -126,7 +136,32 @@ class HoyerNeuron(Neuron):
             # Linear layer  B,C,T
             self.register_buffer('running_hoyer_ext', torch.zeros([1, 1, T]))
 
+        if norm is not None:
+            if self.complex is False:
+                self.norm = norm(num_features=num_features)
+                if hasattr(self.norm, 'pre_hook_fx'):
+                    self.norm.pre_hook_fx = self.quantize_8bit
+            else:
+                self.real_norm = norm(num_features=num_features)
+                self.imag_norm = norm(num_features=num_features)
+                if hasattr(self.real_norm, 'pre_hook_fx'):
+                    self.real_norm.pre_hook_fx = self.quantize_8bit
+                if hasattr(self.imag_norm, 'pre_hook_fx'):
+                    self.imag_norm.pre_hook_fx = self.quantize_8bit
+        else:
+            self.norm = None
+            if self.complex is True:
+                self.real_norm = None
+                self.imag_norm = None
+
+        # self.register_buffer('ref_delay', torch.FloatTensor([ref_delay]))
+
         self.clamp()
+    
+    def thr_clamp(self):
+        """Clamps the threshold value to
+        :math:`[\\verb~1/scale~, \\infty)`."""
+        self.learnable_thr.data.clamp_(1 / self.scale)
 
     def spike(self, voltage, hoyer_ext=1.0):
         """Extracts spike points from the voltage timeseries. It assumes the
@@ -190,11 +225,16 @@ class HoyerNeuron(Neuron):
             spike response of the neuron.
 
         """
+        if not self.hoyer_mode:
+            out = super().forward(input)
+            return out
         if self.num_features > 1 and hasattr(self, 'bn'):
             B,C,H,W,T = input.shape
             input = self.bn(input.permute(4,0,1,2,3).reshape(T*B,C, H, W).contiguous()).reshape(T,B,C,H,W).permute(1,2,3,4,0).contiguous()
         _, voltage = self.dynamics(input)
         self.hoyer_loss = self.cal_hoyer_loss(torch.clamp(voltage.clone(), min=0.0, max=1.0), 1.0)
+        self.clamp()
+        self.thr_clamp()
         voltage = voltage / self.learnable_thr
         if self.training:
             clamped_input = torch.clamp(voltage.clone().detach(), min=0.0, max=1.0)
