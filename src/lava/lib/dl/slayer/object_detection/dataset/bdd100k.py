@@ -118,7 +118,8 @@ class BDD(Dataset):
                  train: bool = False,
                  seq_len: int = 32,
                  randomize_seq: bool = False,
-                 augment_prob: float = 0.0) -> None:
+                 augment_prob: float = 0.0,
+                 image_jitter: bool = False) -> None:
         """Berkley Deep Drive (BDD100K) dataset module. For details on the
         dataset, refer to: https://bdd-data.berkeley.edu/.
 
@@ -141,6 +142,11 @@ class BDD(Dataset):
         augment_prob : float, optional
             Augmentation probability of the frames and bounding boxes,
             by default 0.0.
+        image_jitter : bool, optional
+            The images are now substituted by the difference of images at 
+            consecutive times, mimiking the DVS format. Additional parameters 
+            are to be set inside the body pf the function as per 
+            single(greyscale)/multi-channel(RGB) and precision
         """
         super().__init__()
         self.blur = transforms.GaussianBlur(kernel_size=5)
@@ -159,6 +165,7 @@ class BDD(Dataset):
         self.augment_prob = augment_prob
         self.seq_len = seq_len
         self.randomize_seq = randomize_seq
+        self.image_jitter = image_jitter
 
     def __getitem__(self, index: int) -> Tuple[torch.tensor, Dict[Any, Any]]:
         """Get a sample video sequence of BDD100K dataset.
@@ -196,9 +203,24 @@ class BDD(Dataset):
         if np.random.random() < self.augment_prob:
             for idx in range(len(images)):
                 images[idx] = self.grayscale(images[idx])
+        
+        #jitter for mimicking DVS
+        if self.image_jitter: ##(1) greay scale instead of color -- moving to 1Ch reduction of 3x            
+            for idx in range(len(images)):
+                images[idx] = self.grayscale(images[idx])
 
-        image = torch.cat([torch.unsqueeze(self.img_transform(img), -1)
-                           for img in images], dim=-1)
+        images = [torch.unsqueeze(self.img_transform(img), -1) for img in images]
+        
+        #jitter for mimicking DVS
+        if self.image_jitter:
+            n_bits = 4
+            prc = 2**n_bits
+            for idx in range(len(images)):               
+                images[idx] = (images[idx]*prc).int()//prc   # (2) scale to 4bit                
+                if idx<len(images)-1: 
+                    images[idx] = images[idx]-images[idx+1]
+
+        image = torch.cat(images, dim=-1)
         annotations = [self.bb_transform(ann) for ann in annotations]
 
         # [C, H, W, T], [bbox] * T
