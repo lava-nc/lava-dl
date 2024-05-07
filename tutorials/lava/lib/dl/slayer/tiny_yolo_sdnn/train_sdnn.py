@@ -29,6 +29,7 @@ if __name__ == '__main__':
     parser.add_argument('-sparsity', action='store_true', default=False, help='enable sparsity loss')
     parser.add_argument('-sp_lam',   type=float, default=0.01, help='sparsity loss mixture ratio')
     parser.add_argument('-sp_rate',  type=float, default=0.01, help='minimum rate for sparsity penalization')
+    parser.add_argument('-l1_lam',  type=float, default=0.001, help='L1 regularization mixture ratio')
     parser.add_argument('-prune_factor',  type=float, default=0, help='percentage of weights to prune')
     # Optimizer
     parser.add_argument('-lr',  type=float, default=0.0001, help='initial learning rate')
@@ -235,6 +236,8 @@ if __name__ == '__main__':
             if sparsity_montior is not None:
                 loss += sparsity_montior.loss
                 sparsity_montior.clear()
+            if args.prune_factor > 0:
+                loss += torch.mean(torch.tensor([torch.norm(param.weight, p=1) for param, _ in params_to_prune]))
 
             if torch.isnan(loss):
                 print("loss is nan, continuing")
@@ -299,8 +302,6 @@ if __name__ == '__main__':
                 plt.savefig(f'{trained_folder}/yolo_loss_tracker.png')
                 plt.close()
             stats.print(epoch, i, samples_sec, header=header_list)
-            if i==20:
-                break
 
         t_st = datetime.now()
         ap_stats = obd.bbox.metrics.APstats(iou_threshold=0.5)
@@ -395,7 +396,6 @@ if __name__ == '__main__':
                                             filename, test_set.classes,
                                             box_color_map=box_color_map)
         stats.save(trained_folder + '/')
-        break
 
     if hasattr(module, 'export_hdf5'):
         module.load_state_dict(torch.load(trained_folder + '/network.pt'))
