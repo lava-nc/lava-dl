@@ -220,7 +220,6 @@ if __name__ == '__main__':
         t_st = datetime.now()
         ap_stats = obd.bbox.metrics.APstats(iou_threshold=0.5)
 
-        print(f'{epoch=}')
         for i, (inputs, targets, bboxes) in enumerate(train_loader):
 
             print(f'{i=}') if args.verbose else None
