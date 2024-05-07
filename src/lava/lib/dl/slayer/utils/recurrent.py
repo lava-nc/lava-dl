@@ -54,7 +54,7 @@ class CustomRecurrent(torch.autograd.Function):
         """
         z = z.detach().requires_grad_()
         x = torch.zeros_like(z).to(z.device)
-        recurrent_mat_T = recurrent_mat.transpose(0, 1).clone().detach()
+        recurrent_mat_T = recurrent_mat.transpose(0, 1).clone().detach().to(z.device)
 
         ctx.dend_sums = []
         ctx.spikes = []

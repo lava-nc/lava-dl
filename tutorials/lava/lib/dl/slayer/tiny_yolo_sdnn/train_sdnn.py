@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 import torch
 import torch.nn.functional as F
+import torch.nn.utils.prune as prune
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from torch.utils.tensorboard import SummaryWriter
@@ -28,6 +29,7 @@ if __name__ == '__main__':
     parser.add_argument('-sparsity', action='store_true', default=False, help='enable sparsity loss')
     parser.add_argument('-sp_lam',   type=float, default=0.01, help='sparsity loss mixture ratio')
     parser.add_argument('-sp_rate',  type=float, default=0.01, help='minimum rate for sparsity penalization')
+    parser.add_argument('-prune_factor',  type=float, default=0, help='percentage of weights to prune')
     # Optimizer
     parser.add_argument('-lr',  type=float, default=0.0001, help='initial learning rate')
     parser.add_argument('-wd',  type=float, default=1e-5,   help='optimizer weight decay')
@@ -115,11 +117,6 @@ if __name__ == '__main__':
                                     device_ids=args.gpu)
         module = net.module
 
-    if args.sparsity:
-        sparsity_montior = slayer.loss.SparsityEnforcer(
-            max_rate=args.sp_rate, lam=args.sp_lam)
-    else:
-        sparsity_montior = None
 
     print('Loading Network')
     if args.load != '':
@@ -129,6 +126,29 @@ if __name__ == '__main__':
         print(f'Initializing model from {saved_model}')
         module.load_model(saved_model)
 
+    if args.sparsity:
+        sparsity_montior = slayer.loss.SparsityEnforcer(
+            max_rate=args.sp_rate, lam=args.sp_lam)
+    else:
+        sparsity_montior = None
+        
+    if args.prune_factor > 0:
+        print(f'Disabling weight norm for pruning. {args.prune_factor=}')
+        for blocks in [net.backend_blocks,
+                       net.head1_backend, net.head2_backend,
+                       net.head1_blocks[:1], net.head2_blocks[:1]]:
+            for b in blocks:
+                b.synapse.disable_weight_norm()
+        
+        params_to_prune = ([(b.synapse, 'weight') for b in net.backend_blocks]
+                           + [(b.synapse, 'weight') for b in net.head1_backend]
+                           + [(b.synapse, 'weight') for b in net.head2_backend]
+                           + [(b.synapse, 'weight') for b in net.head1_blocks[:1]]
+                           + [(b, 'weight') for b in net.head1_blocks[1:2]]
+                           + [(b.synapse, 'weight') for b in net.head2_blocks[:1]]
+                           + [(b, 'weight') for b in net.head2_blocks[1:2]])
+        prune.global_unstructured(params_to_prune, pruning_method=prune.L1Unstructured, amount=args.prune_factor)
+    
     module.init_model((448, 448))
 
     # Define optimizer module.
@@ -226,7 +246,7 @@ if __name__ == '__main__':
             optimizer.step()
             scheduler.step()
 
-            if i < 10:
+            if i < 10 and args.prune_factor == 0:
                 net.grad_flow(path=trained_folder + '/')
 
             # MAP calculations
@@ -279,15 +299,19 @@ if __name__ == '__main__':
                 plt.savefig(f'{trained_folder}/yolo_loss_tracker.png')
                 plt.close()
             stats.print(epoch, i, samples_sec, header=header_list)
+            if i==20:
+                break
 
         t_st = datetime.now()
         ap_stats = obd.bbox.metrics.APstats(iou_threshold=0.5)
+        all_counts = []
         for i, (inputs, targets, bboxes) in enumerate(test_loader):
             net.eval()
 
             with torch.no_grad():
                 inputs = inputs.to(device)
                 predictions, counts = net(inputs)
+                all_counts.append(counts.cpu().data.numpy())
 
                 T = inputs.shape[-1]
                 predictions = [obd.bbox.utils.nms(predictions[..., t])
@@ -371,6 +395,7 @@ if __name__ == '__main__':
                                             filename, test_set.classes,
                                             box_color_map=box_color_map)
         stats.save(trained_folder + '/')
+        break
 
     if hasattr(module, 'export_hdf5'):
         module.load_state_dict(torch.load(trained_folder + '/network.pt'))
@@ -382,3 +407,6 @@ if __name__ == '__main__':
     writer.add_hparams(params_dict, {'mAP@50': stats.testing.max_accuracy})
     writer.flush()
     writer.close()
+    
+    from ops_analyzer import analyze_ops
+    analyze_ops(net, all_counts, trained_folder + '/sparsity_report.txt')

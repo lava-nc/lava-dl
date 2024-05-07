@@ -176,6 +176,16 @@ class BDD(Dataset):
         dataset_idx = index // len(self.datasets[0])
         index = index % len(self.datasets[0])
         images, annotations = self.datasets[dataset_idx][index]
+        
+        # [C, H, W, T], [bbox] * T
+        num_seq = len(images)
+        if self.randomize_seq:
+            start_idx = np.random.randint(num_seq - self.seq_len)
+        else:
+            start_idx = 0
+        stop_idx = start_idx + self.seq_len
+        images = images[start_idx:stop_idx]
+        annotations = annotations[start_idx:stop_idx]
 
         # flip left right
         if np.random.random() < self.augment_prob:
@@ -201,16 +211,17 @@ class BDD(Dataset):
                            for img in images], dim=-1)
         annotations = [self.bb_transform(ann) for ann in annotations]
 
-        # [C, H, W, T], [bbox] * T
-        num_seq = image.shape[-1]
-        if self.randomize_seq:
-            start_idx = np.random.randint(num_seq - self.seq_len)
-        else:
-            start_idx = 0
-        stop_idx = start_idx + self.seq_len
+        # # [C, H, W, T], [bbox] * T
+        # num_seq = image.shape[-1]
+        # if self.randomize_seq:
+        #     start_idx = np.random.randint(num_seq - self.seq_len)
+        # else:
+        #     start_idx = 0
+        # stop_idx = start_idx + self.seq_len
 
         # list in time
-        return image[..., start_idx:stop_idx], annotations[start_idx:stop_idx]
+        # return image[..., start_idx:stop_idx], annotations[start_idx:stop_idx]
+        return image, annotations
 
     def __len__(self) -> int:
         """Number of samples in the dataset.
