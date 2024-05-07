@@ -31,6 +31,7 @@ if __name__ == '__main__':
     parser.add_argument('-sp_rate',  type=float, default=0.01, help='minimum rate for sparsity penalization')
     parser.add_argument('-l1_lam',  type=float, default=0.001, help='L1 regularization mixture ratio')
     parser.add_argument('-prune_factor',  type=float, default=0, help='percentage of weights to prune')
+    parser.add_argument('-prune_output',  action='store_true', default=False, help='prune the last layer')
     # Optimizer
     parser.add_argument('-lr',  type=float, default=0.0001, help='initial learning rate')
     parser.add_argument('-wd',  type=float, default=1e-5,   help='optimizer weight decay')
@@ -141,13 +142,20 @@ if __name__ == '__main__':
             for b in blocks:
                 b.synapse.disable_weight_norm()
         
-        params_to_prune = ([(b.synapse, 'weight') for b in net.backend_blocks]
-                           + [(b.synapse, 'weight') for b in net.head1_backend]
-                           + [(b.synapse, 'weight') for b in net.head2_backend]
-                           + [(b.synapse, 'weight') for b in net.head1_blocks[:1]]
-                           + [(b, 'weight') for b in net.head1_blocks[1:2]]
-                           + [(b.synapse, 'weight') for b in net.head2_blocks[:1]]
-                           + [(b, 'weight') for b in net.head2_blocks[1:2]])
+        if args.prune_output:
+            params_to_prune = ([(b.synapse, 'weight') for b in net.backend_blocks]
+                               + [(b.synapse, 'weight') for b in net.head1_backend]
+                               + [(b.synapse, 'weight') for b in net.head2_backend]
+                               + [(b.synapse, 'weight') for b in net.head1_blocks[:1]]
+                               + [(b, 'weight') for b in net.head1_blocks[1:2]]
+                               + [(b.synapse, 'weight') for b in net.head2_blocks[:1]]
+                               + [(b, 'weight') for b in net.head2_blocks[1:2]])
+        else:
+            params_to_prune = ([(b.synapse, 'weight') for b in net.backend_blocks]
+                               + [(b.synapse, 'weight') for b in net.head1_backend]
+                               + [(b.synapse, 'weight') for b in net.head2_backend]
+                               + [(b.synapse, 'weight') for b in net.head1_blocks[:1]]
+                               + [(b.synapse, 'weight') for b in net.head2_blocks[:1]])
         prune.global_unstructured(params_to_prune, pruning_method=prune.L1Unstructured, amount=args.prune_factor)
     
     module.init_model((448, 448))
@@ -236,7 +244,7 @@ if __name__ == '__main__':
                 loss += sparsity_montior.loss
                 sparsity_montior.clear()
             if args.prune_factor > 0:
-                loss += torch.mean(torch.tensor([torch.norm(param.weight, p=1) for param, _ in params_to_prune]))
+                loss += args.l1_lam * torch.mean(torch.tensor([torch.norm(param.weight, p=1) for param, _ in params_to_prune]))
 
             if torch.isnan(loss):
                 print("loss is nan, continuing")
