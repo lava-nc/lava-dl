@@ -1,0 +1,1 @@
+{"results": [["pycodestyle", "E501", 181, 80, "line too long (85 > 80 characters)", "        if (self.time_step - 1) % self.interval == (self.offset + 1) % self.interval:\n"], ["pycodestyle", "W503", 302, 21, "line break before binary operator", "                     - self.bias) / (2 * self.weight) + 0.5\n"]], "digest": "343793894a38fbc8ad6f0bebac9b2ef0"}

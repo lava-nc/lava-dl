@@ -1,0 +1,1 @@
+{"results": [["pycodestyle", "W503", 46, 16, "line break before binary operator", "                - input[..., :-shift_steps]\n"], ["pycodestyle", "W503", 74, 16, "line break before binary operator", "                - input[..., -shift_steps:]\n"]], "digest": "7e507d06a669b8ebb2e19bb36a63956b"}

@@ -1,0 +1,1 @@
+{"results": [["pycodestyle", "E501", 42, 80, "line too long (81 > 80 characters)", "source = io.source.RingBuffer(data=input.to_tensor(dim=(1, 200, 2000)).squeeze())\n"], ["pycodestyle", "E741", 36, 4, "ambiguous variable name 'l'", "for l in net.layers:\n"]], "digest": "d0462b94bbeaf1e1f00d9c8f1afbafb8"}
