@@ -290,7 +290,6 @@ class Network(YOLOBase):
             model_keys[f'head2_backend.{i}.synapse.weight_v'] = True
 
             if f'head2_backend.{i}.neuron.norm.running_mean' in saved_model.keys():
-                print('Detected different num_outputs.')
                 self.head2_backend[i].neuron.norm.running_mean.data = saved_model[f'head2_backend.{i}.neuron.norm.running_mean'].data
                 model_keys[f'head2_backend.{i}.neuron.norm.running_mean'] = True
 

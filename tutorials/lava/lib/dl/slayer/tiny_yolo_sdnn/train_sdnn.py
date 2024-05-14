@@ -32,6 +32,8 @@ if __name__ == '__main__':
     parser.add_argument('-l1_lam',  type=float, default=0.001, help='L1 regularization mixture ratio')
     parser.add_argument('-prune_factor',  type=float, default=0, help='percentage of weights to prune')
     parser.add_argument('-prune_output',  action='store_true', default=False, help='prune the last layer')
+    parser.add_argument('-thr_factor',  type=float, default=1, help='threshold scaling factor')
+    parser.add_argument('-thr_grad',  action='store_true', default=False, help='threshold gradient')
     # Optimizer
     parser.add_argument('-lr',  type=float, default=0.0001, help='initial learning rate')
     parser.add_argument('-wd',  type=float, default=1e-5,   help='optimizer weight decay')
@@ -159,6 +161,39 @@ if __name__ == '__main__':
         prune.global_unstructured(params_to_prune, pruning_method=prune.L1Unstructured, amount=args.prune_factor)
     
     module.init_model((448, 448))
+    
+    if args.thr_factor > 1:
+        for b in net.backend_blocks:
+            if hasattr(b, 'neuron'):
+                b.neuron.delta.threshold *= args.thr_factor
+        for b in net.head1_backend:
+            if hasattr(b, 'neuron'):
+                b.neuron.delta.threshold *= args.thr_factor
+        for b in net.head2_backend:
+            if hasattr(b, 'neuron'):
+                b.neuron.delta.threshold *= args.thr_factor
+        for b in net.head1_blocks:
+            if hasattr(b, 'neuron'):
+                b.neuron.delta.threshold *= args.thr_factor
+        for b in net.head2_blocks:
+            if hasattr(b, 'neuron'):
+                b.neuron.delta.threshold *= args.thr_factor
+    
+    for b in net.backend_blocks:
+        if hasattr(b, 'neuron'):
+            b.neuron.delta.threshold.requires_grad = args.thr_grad
+    for b in net.head1_backend:
+        if hasattr(b, 'neuron'):
+            b.neuron.delta.threshold.requires_grad = args.thr_grad
+    for b in net.head2_backend:
+        if hasattr(b, 'neuron'):
+            b.neuron.delta.threshold.requires_grad = args.thr_grad
+    for b in net.head1_blocks:
+        if hasattr(b, 'neuron'):
+            b.neuron.delta.threshold.requires_grad = args.thr_grad
+    for b in net.head2_blocks:
+        if hasattr(b, 'neuron'):
+            b.neuron.delta.threshold.requires_grad = args.thr_grad
 
     # Define optimizer module.
     print('Creating Optimizer')
