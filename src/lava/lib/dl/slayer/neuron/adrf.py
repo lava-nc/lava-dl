@@ -674,4 +674,4 @@ class Neuron(base.Neuron):
 
         """
         real, imag, threshold, refractory = self.dynamics(input)
-        return self.spike(real, imag, threshold + refractory)
+        return self.spike(real, imag, threshold, refractory)
