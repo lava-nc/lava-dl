@@ -16,8 +16,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - uses: actions/checkout@v3
+      with:
+        lfs: true
+
     - name: Setup CI
-      uses: lava-nc/ci-setup-composite-action@v1.1
+      uses: lava-nc/ci-setup-composite-action@v1.5.5_py3.10
       with:
         repository: 'Lava-DL'
 
@@ -29,8 +33,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - uses: actions/checkout@v3
+      with:
+        lfs: true
+
     - name: Setup CI
-      uses: lava-nc/ci-setup-composite-action@v1.1
+      uses: lava-nc/ci-setup-composite-action@v1.5.5_py3.10
       with:
         repository: 'Lava-DL'
 
@@ -49,11 +57,32 @@ jobs:
         operating-system: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
+    - uses: actions/checkout@v3
+      with:
+        lfs: true
+
     - name: Setup CI
-      uses: lava-nc/ci-setup-composite-action@v1.1
+      uses: lava-nc/ci-setup-composite-action@v1.5.5_py3.10
       with:
         repository: 'Lava-DL'    
 
     - name: Run unit tests
-      run: poetry run pytest
+      run: poetry run pytest --ignore=tests/lava/tutorials
+
+  tutorial-tests:
+    name: Unit Test Tutorials
+    runs-on: ncl-gpu04
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        lfs: true
+
+    - name: Setup CI
+      uses: lava-nc/ci-setup-composite-action@v1.5.5_py3.10
+      with:
+        repository: 'Lava-DL'    
+
+    - name: Run unit tests
+      run: poetry run pytest tests/lava/tutorials
       
