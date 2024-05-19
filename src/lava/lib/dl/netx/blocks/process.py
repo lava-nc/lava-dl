@@ -173,7 +173,7 @@ class Dense(AbstractBlock):
             self.synapse = Synapse(
                 weights=weight,
                 delays=delay.astype(int),
-                weight_exp = weight_exponent,
+                weight_exp=weight_exponent,
                 max_delay=62,
                 num_weight_bits=num_weight_bits,
                 num_message_bits=self.input_message_bits,
