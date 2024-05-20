@@ -67,7 +67,7 @@ The arguments are described in [hyperparameters](#hyperparameters) below:
 |`warmup` | Number of epochs to warmup the learning rate |
 |||
 | __Dataset__ ||
-|`dataset`     | Dataset to use. {COCO|BDD100K} |
+|`dataset`     | Dataset to use, yourDefaultDataset needs to be setup with its dataloader {yourDefaultDataset|BDD100K} |
 |`path`        | Dataset path |
 |`aug_prob`    | Training augmentation probability |
 |`output_dir`  | Directory in which to put log folders |

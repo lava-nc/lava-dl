@@ -5,8 +5,6 @@ from lava.lib.dl import slayer
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
-path = ['/home/dbendaya/work/ContinualLearning/tinyYolov3_lava/YOLOsdnn/']
-sys.path.extend(path)
 from yolo_base import YOLOBase
 
 from .model_utils import quantize_8bit, quantize_5bit, event_rate, SparsityMonitor
