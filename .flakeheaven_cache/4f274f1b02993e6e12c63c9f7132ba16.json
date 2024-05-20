@@ -1,1 +1,0 @@
-{"results": [["pycodestyle", "W503", 107, 17, "line break before binary operator", "                 * anchor_x[:, None, None, None]) / W\n"], ["pycodestyle", "W503", 109, 18, "line break before binary operator", "                  * anchor_y[:, None, None, None]) / H\n"]], "digest": "5fac453cd309f5710ddf96d2b9455917"}

@@ -1,1 +1,0 @@
-{"results": [["pycodestyle", "W503", 199, 16, "line break before binary operator", "                / max(ref_decay.item(), 512)\n"]], "digest": "e7c12f0f0933db1aa5f50a3ad97624ce"}

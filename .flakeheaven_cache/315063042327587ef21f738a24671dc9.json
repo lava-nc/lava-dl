@@ -1,1 +1,0 @@
-{"results": [["pycodestyle", "E203", 61, 80, "whitespace before ','", "        self.assertTrue((tensor_from_tensor - tensor_from_numpy).sum() < epsilon\n"], ["pycodestyle", "W503", 78, 24, "line break before binary operator", "                        < epsilon, msg='fill_tensor() does not return same data'\n"]], "digest": "a3d91b0a8843b76b5a15bb61f445e3a2"}

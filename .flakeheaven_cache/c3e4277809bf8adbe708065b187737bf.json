@@ -1,1 +1,0 @@
-{"results": [["pycodestyle", "E741", 46, 4, "ambiguous variable name 'l'", "for l in net.layers:\n"]], "digest": "5dcecee0654fde24744321330792783b"}
