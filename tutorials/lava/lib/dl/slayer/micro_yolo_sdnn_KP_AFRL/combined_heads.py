@@ -15,11 +15,11 @@ import torch
 
 ## improving the module by not importing models but just the saved weight tensors
 
-def networkPruning(saved_net_path, saved_to_net_path = None, pruningFactor = 2, pruningMethod = "random", logLevel = 0):
-    # loads model from saved_net_path and saves it into saved_to_net_path after pruning it by pruningLevel using pruningMethod
-    # pruningMethod = {"random", 'L1', 'l2'} 
+def networkPruning(saved_net_path, saved_to_net_path = None, pruning_ratio = 2, pruning_method = "random", log_level = 0):
+    # loads model from saved_net_path and saves it into saved_to_net_path after pruning it by pruningLevel using pruning_method
+    # pruning_method = {"random", 'L1', 'l2'} 
     # saved_to_net_path by default saves the pruned model to saved_net_path directory + '/halfed/network.pt'
-    # pruningFactor = 2 (accepts floats) [tested 2]
+    # pruning_ratio = 2 (accepts floats) [tested 2]
     
     ### load (full) KP model network - examples below
     # saved_net_path = 'KP/Trained_DVS_FULL_KP_H1_202402201714/network.pt'
@@ -29,22 +29,22 @@ def networkPruning(saved_net_path, saved_to_net_path = None, pruningFactor = 2, 
     
     # print(*[(mk, mv.shape) for (mk, mv) in zip(MM.keys(), MM.values())] ,sep='\n')    
     # print(*[(mk, mv.shape, (mv.shape[0]//2 if mv.shape[0]>1 else None, mv.shape[1]//2 if len(mv.shape)>1 and mv.shape[1]>3 else None)) for (mk, mv) in zip(MM.keys(), MM.values())] ,sep='\n')
-    if pruningMethod=='random':
+    if pruning_method=='random':
         for k, (mk, mv) in enumerate(zip(MM.keys(), MM.values())):
             S = list(mv.shape)
-            S[0] = int(S[0]//pruningFactor) if S[0]>1 else S[0]
+            S[0] = int(S[0]//pruning_ratio) if S[0]>1 else S[0]
             MM[mk] = MM[mk][:S[0], ...] if k<len(MM)-1 else MM[mk]
             if len(mv.shape)>1:
-                S[1] = int(S[1]//pruningFactor) if S[1]>3 else S[1]
+                S[1] = int(S[1]//pruning_ratio) if S[1]>3 else S[1]
                 MM[mk] = MM[mk][:, :S[1], ...]
 
-    elif pruningMethod in ('L1', 'L2'):
-        nrm = lambda x: torch.norm(x, 1 if pruningMethod=='L1' else 2, dim=(1,2,3,4))
+    elif pruning_method in ('L1', 'L2'):
+        nrm = lambda x: torch.norm(x, 1 if pruning_method=='L1' else 2, dim=(1,2,3,4))
         index_weights = np.where(['weight_v' in name for name in MM.keys()])[0]
         pruned_index_0 = None
         for k,iw in enumerate(index_weights):
             sortArgNorm = torch.argsort(nrm(MM[[*MM.keys()][iw]]))
-            pruned_index = sortArgNorm>=len(sortArgNorm)//pruningFactor
+            pruned_index = sortArgNorm>=len(sortArgNorm)//pruning_ratio
             for kk in range(index_weights[k-1]+1 if k>0 else 1, iw+1):
                 S = list(MM[[*MM.keys()][kk]].size())        
                 check = (S[0]>1)
@@ -57,11 +57,11 @@ def networkPruning(saved_net_path, saved_to_net_path = None, pruningFactor = 2, 
             pruned_index_0 = pruned_index
         MM[[*MM.keys()][-1]] = MM[[*MM.keys()][-1]][:,pruned_index_0, ...]         
 
-    if logLevel:    
+    if log_level:    
         print(*[(f'{mk}: {list(mv0.shape)} --> {list(mv.shape)}') for (mk, mv, mv0) in zip(MM.keys(), MM.values(), M0.values())] ,sep='\n')    
 
 
-    saved_to_net_path = '/'.join(saved_net_path.split('/')[:-1])+ '/%s_pruning_by%.1f/network.pt'%(pruningMethod,pruningFactor) if not saved_to_net_path else saved_to_net_path
+    saved_to_net_path = '/'.join(saved_net_path.split('/')[:-1])+ '/%s_pruning_by%.1f/network.pt'%(pruning_method, pruning_ratio) if not saved_to_net_path else saved_to_net_path
     print(f'saving to {saved_to_net_path}')
     os.makedirs(os.path.dirname(saved_to_net_path), exist_ok=True)
     torch.save(MM, saved_to_net_path)
@@ -77,7 +77,7 @@ def networkPruning(saved_net_path, saved_to_net_path = None, pruningFactor = 2, 
     module_short = net_short
     module_short.load_model(saved_to_net_path)
     from torchinfo import summary
-    print(summary(module_short, (3, 448, 448))) if logLevel>1 else None
+    print(summary(module_short, (3, 448, 448))) if log_level>1 else None
     print('succesfull pruning!')
 
 
@@ -85,11 +85,11 @@ def networkPruning(saved_net_path, saved_to_net_path = None, pruningFactor = 2, 
 
 
 
-def networkPruning_(saved_net_path, saved_to_net_path = None, pruningFactor = 2, pruningMethod = "random", logLevel = 0):
-    # loads model from saved_net_path and saves it into saved_to_net_path after pruning it by pruningLevel using pruningMethod
-    # pruningMethod = {"random", 'L1', 'l2'} 
+def networkPruning_(saved_net_path, saved_to_net_path = None, pruning_ratio = 2, pruning_method = "random", log_level = 0):
+    # loads model from saved_net_path and saves it into saved_to_net_path after pruning it by pruningLevel using pruning_method
+    # pruning_method = {"random", 'L1', 'l2'} 
     # saved_to_net_path by default saves the pruned model to saved_net_path directory + '/halfed/network.pt'
-    # pruningFactor = 2 (accepts floats) [tested 2]
+    # pruning_ratio = 2 (accepts floats) [tested 2]
     
     ### load (full) KP model network - examples below
     # saved_net_path = 'single_head_KP/Trained_DVS_FULL_KP_H1_202402201716/network.pt'
@@ -106,8 +106,8 @@ def networkPruning_(saved_net_path, saved_to_net_path = None, pruningFactor = 2,
     module = net
     module.load_model(saved_net_path)
     
-    print(summary(module, (3, 448, 448))) if logLevel>1 else None
-    # pruningMethod = 'halfed' if pruningMethod=='random' else pruningMethod
+    print(summary(module, (3, 448, 448))) if log_level>1 else None
+    # pruning_method = 'halfed' if pruning_method=='random' else pruning_method
 
     ## prunes to model and saves it
     import pickle
@@ -121,25 +121,25 @@ def networkPruning_(saved_net_path, saved_to_net_path = None, pruningFactor = 2,
         name_blk = param.split('.')
         name = 'module_short.%s[%s].'%(tuple(name_blk[:2])) + ".".join(name_blk[2::])+ ".data" if k>0 else ''    
         nameList.append(name)
-        if pruningMethod=='random':
+        if pruning_method=='random':
             if k==0:
                 continue
             if check:
-                S[0] = S[0]//pruningFactor
+                S[0] = S[0]//pruning_ratio
                 tmp = eval(name)[0:S[0],...]
                 exec('%s = tmp'%name)
             if len(S)>1 or (k == len(module_short.state_dict())-1):
-                S[1] = S[1]//pruningFactor if (S[1]%pruningFactor)==0 else S[1]
+                S[1] = S[1]//pruning_ratio if (S[1]%pruning_ratio)==0 else S[1]
                 tmp = eval(name)[:,0:S[1],...]        
                 exec('%s = tmp'%name)
     
-    if pruningMethod in ('L1', 'L2'):
-        nrm = lambda x: torch.norm(x, 1 if pruningMethod=='L1' else 2, dim=(1,2,3,4))
+    if pruning_method in ('L1', 'L2'):
+        nrm = lambda x: torch.norm(x, 1 if pruning_method=='L1' else 2, dim=(1,2,3,4))
         index_weights = np.where(['weight_v' in name for name in nameList])[0]
         pruned_index_0 = None
         for k,iw in enumerate(index_weights):
             sortArgNorm = torch.argsort(nrm(eval(nameList[iw])))
-            pruned_index = sortArgNorm>=len(sortArgNorm)//pruningFactor
+            pruned_index = sortArgNorm>=len(sortArgNorm)//pruning_ratio
             for kk in range(index_weights[k-1]+1 if k>0 else 1, iw+1):
                 S = list(eval(nameList[kk]).size())        
                 check = (S[0]>1)
@@ -154,13 +154,13 @@ def networkPruning_(saved_net_path, saved_to_net_path = None, pruningFactor = 2,
         exec('%s = tmp'%nameList[-1])
         # print(len(nameList)-1, nameList[-1], eval(nameList[-1]).shape)
 
-    if logLevel:    
+    if log_level:    
         for k, param in enumerate(module_short.state_dict()):  
             S = list(module_short.state_dict()[param].size())
             S0 = list(module.state_dict()[param].size())
             print(f'{k}: {param}: ',S0, '-->', S) 
 
-    saved_to_net_path = '/'.join(saved_net_path.split('/')[:-1])+ '/%s_pruning_by%.1f/network.pt'%(pruningMethod,pruningFactor) if not saved_to_net_path else saved_to_net_path
+    saved_to_net_path = '/'.join(saved_net_path.split('/')[:-1])+ '/%s_pruning_by%.1f/network.pt'%(pruning_method, pruning_ratio) if not saved_to_net_path else saved_to_net_path
     print(f'saving to {saved_to_net_path}')
     os.makedirs(os.path.dirname(saved_to_net_path), exist_ok=True)
     torch.save(module_short.state_dict(), saved_to_net_path)
@@ -175,7 +175,7 @@ def networkPruning_(saved_net_path, saved_to_net_path = None, pruningFactor = 2,
                           clamp_max=5).to(device)
     module_short = net_short
     module_short.load_model(saved_to_net_path)
-    print(summary(module_short, (3, 448, 448))) if logLevel>1 else None
+    print(summary(module_short, (3, 448, 448))) if log_level>1 else None
     print('succesfull pruning!')
 
 
