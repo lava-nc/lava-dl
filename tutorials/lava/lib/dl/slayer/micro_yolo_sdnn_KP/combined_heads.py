@@ -6,7 +6,7 @@ from object_detection.boundingbox.utils import storeData, accuracy, non_maximum_
 import argparse
 import os
 import sys
-sys.path.extend(path)
+# sys.path.extend(path)
 nms = non_maximum_suppression
 
 
@@ -24,8 +24,6 @@ def networkPruning(saved_net_path, saved_to_net_path=None, pruning_ratio=2, prun
     M0 = torch.load(saved_net_path)
     MM = torch.load(saved_net_path)
 
-    # print(*[(mk, mv.shape) for (mk, mv) in zip(MM.keys(), MM.values())] ,sep='\n')
-    # print(*[(mk, mv.shape, (mv.shape[0]//2 if mv.shape[0]>1 else None, mv.shape[1]//2 if len(mv.shape)>1 and mv.shape[1]>3 else None)) for (mk, mv) in zip(MM.keys(), MM.values())] ,sep='\n')
     if pruning_method == 'random':
         for k, (mk, mv) in enumerate(zip(MM.keys(), MM.values())):
             S = list(mv.shape)
@@ -213,25 +211,25 @@ def toPanda(arg_list, update_flag=True, export_to_pkl=True, export_to_excel=Fals
     return Collection
 
 
-def retrieve_path(seedStr, verbose=False, search_pos=-1, removePaths=False, confirm_deletion=False):
+def retrieve_path(seed_str, verbose=False, search_pos=-1, remove_paths=False, confirm_deletion=False):
     # search_pos = [1,0,-1] - beginning, middle, end of string
     # ORIGIN_PATH = "/home/dbendaya/work/ContinualLearning/tinyYolov3_lava/YOLOsdnn/tinyYOLOv3s/"
     # SEARCH_STR = ORIGIN_PATH + '**/' + ('%s*/**/' if search_pos==1 else '') + ('*%s*/**/' if search_pos==0 else '') + ('*%s' if search_pos==-1 else '')
     SEARCH_STR = '**/' + ('%s*/**/' if search_pos == 1 else '') + (
         '*%s*/**/' if search_pos == 0 else '') + ('*%s' if search_pos == -1 else '')
     # SEARCH_STR = "/home/dbendaya/work/ContinualLearning/**/Trained_*%s"
-    G_extras = glob(SEARCH_STR % seedStr, recursive=True)
+    G_extras = glob(SEARCH_STR % seed_str, recursive=True)
     G_extras.sort(key=os.path.getmtime)
     print('ATTENTION: more than 1 entry for final search string pattern: %s' %
-          seedStr) if len(G_extras) > 2 else None
+          seed_str) if len(G_extras) > 2 else None
     if G_extras == []:
         print(
             'FAILED: Trained folder not found or wrong search string') if verbose else None
         return []
-    print(f'\nPattern {seedStr} can be found here:',
+    print(f'\nPattern {seed_str} can be found here:',
           *G_extras, sep='\n') if verbose else None
-    choice = 'y' if confirm_deletion and removePaths else ''
-    if removePaths:
+    choice = 'y' if confirm_deletion and remove_paths else ''
+    if remove_paths:
         yes = {'yes', 'y', 'Y'}
         if not confirm_deletion:
             choice = input('Removing paths [y/N]?').lower()
@@ -288,7 +286,7 @@ def retrieve_info(seedStr, verbose=False, track_loaded_models=False, confirm_del
     except Exception as error:
         print(f'*** Error: {type(error).__name__}\n*** {path}: %s file is missing...' %
               ('data' if file_opened else 'args'))
-        retrieve_path(seedStr, removePaths=True,
+        retrieve_path(seedStr, remove_paths=True,
                       confirm_deletion=confirm_deletion)
         print('=============>|Terminating')
         return None

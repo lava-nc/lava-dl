@@ -1,0 +1,1 @@
+{"results": [["pycodestyle", "W503", 328, 48, "line break before binary operator", "                                                - self.max_rate),\n"]], "digest": "51710748c3b0988195f2ab11595f428e"}

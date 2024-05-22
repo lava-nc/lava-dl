@@ -6,19 +6,16 @@ from object_detection.boundingbox.utils import storeData, accuracy, non_maximum_
 import argparse
 import os
 import sys
-path = ['.']
-sys.path.extend(path)
+# sys.path.extend(path)
 nms = non_maximum_suppression
 
 
 # improving the module by not importing models but just the saved weight tensors
 
 def networkPruning(saved_net_path, saved_to_net_path=None, pruning_ratio=2, pruning_method="random", log_level=0):
-    # loads model from saved_net_path and saves it into saved_to_net_path after
-    # pruning it by pruningLevel using pruning_method
+    # loads model from saved_net_path and saves it into saved_to_net_path after pruning it by pruningLevel using pruning_method
     # pruning_method = {"random", 'L1', 'l2'}
-    # saved_to_net_path by default saves the pruned model to saved_net_path
-    # directory + '/halfed/network.pt'
+    # saved_to_net_path by default saves the pruned model to saved_net_path directory + '/halfed/network.pt'
     # pruning_ratio = 2 (accepts floats) [tested 2]
 
     # load (full) KP model network - examples below
@@ -61,8 +58,7 @@ def networkPruning(saved_net_path, saved_to_net_path=None, pruning_ratio=2, prun
         print(*[(f'{mk}: {list(mv0.shape)} --> {list(mv.shape)}')
               for (mk, mv, mv0) in zip(MM.keys(), MM.values(), M0.values())], sep='\n')
 
-    saved_to_net_path = '/'.join(saved_net_path.split('/')[:-1])
-    + '/%s_pruning_by%.1f/network.pt' % (
+    saved_to_net_path = '/'.join(saved_net_path.split('/')[:-1]) + '/%s_pruning_by%.1f/network.pt' % (
         pruning_method, pruning_ratio) if not saved_to_net_path else saved_to_net_path
     print(f'saving to {saved_to_net_path}')
     os.makedirs(os.path.dirname(saved_to_net_path), exist_ok=True)
@@ -215,25 +211,25 @@ def toPanda(arg_list, update_flag=True, export_to_pkl=True, export_to_excel=Fals
     return Collection
 
 
-def retrieve_path(seedStr, verbose=False, search_pos=-1, removePaths=False, confirm_deletion=False):
+def retrieve_path(seed_str, verbose=False, search_pos=-1, remove_paths=False, confirm_deletion=False):
     # search_pos = [1,0,-1] - beginning, middle, end of string
     # ORIGIN_PATH = "/home/dbendaya/work/ContinualLearning/tinyYolov3_lava/YOLOsdnn/tinyYOLOv3s/"
     # SEARCH_STR = ORIGIN_PATH + '**/' + ('%s*/**/' if search_pos==1 else '') + ('*%s*/**/' if search_pos==0 else '') + ('*%s' if search_pos==-1 else '')
     SEARCH_STR = '**/' + ('%s*/**/' if search_pos == 1 else '') + (
         '*%s*/**/' if search_pos == 0 else '') + ('*%s' if search_pos == -1 else '')
     # SEARCH_STR = "/home/dbendaya/work/ContinualLearning/**/Trained_*%s"
-    G_extras = glob(SEARCH_STR % seedStr, recursive=True)
+    G_extras = glob(SEARCH_STR % seed_str, recursive=True)
     G_extras.sort(key=os.path.getmtime)
     print('ATTENTION: more than 1 entry for final search string pattern: %s' %
-          seedStr) if len(G_extras) > 2 else None
+          seed_str) if len(G_extras) > 2 else None
     if G_extras == []:
         print(
             'FAILED: Trained folder not found or wrong search string') if verbose else None
         return []
-    print(f'\nPattern {seedStr} can be found here:',
+    print(f'\nPattern {seed_str} can be found here:',
           *G_extras, sep='\n') if verbose else None
-    choice = 'y' if confirm_deletion and removePaths else ''
-    if removePaths:
+    choice = 'y' if confirm_deletion and remove_paths else ''
+    if remove_paths:
         yes = {'yes', 'y', 'Y'}
         if not confirm_deletion:
             choice = input('Removing paths [y/N]?').lower()
@@ -290,7 +286,7 @@ def retrieve_info(seedStr, verbose=False, track_loaded_models=False, confirm_del
     except Exception as error:
         print(f'*** Error: {type(error).__name__}\n*** {path}: %s file is missing...' %
               ('data' if file_opened else 'args'))
-        retrieve_path(seedStr, removePaths=True,
+        retrieve_path(seedStr, remove_paths=True,
                       confirm_deletion=confirm_deletion)
         print('=============>|Terminating')
         return None

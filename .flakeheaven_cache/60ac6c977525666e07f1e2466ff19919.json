@@ -1,0 +1,1 @@
+{"results": [["pycodestyle", "W503", 40, 20, "line break before binary operator", "                    + '/shift.cu'\n"]], "digest": "2905e3163f333bac372ad9bec020b175"}

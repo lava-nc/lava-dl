@@ -1,0 +1,1 @@
+{"results": [["pycodestyle", "W503", 44, 20, "line break before binary operator", "                    + '/leaky_integrator.cu'\n"]], "digest": "240027dda65596ebcefb396d7f796e1e"}
