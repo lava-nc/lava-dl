@@ -1,1 +1,0 @@
-{"results": [["pycodestyle", "W503", 45, 20, "line break before binary operator", "                    + '/adaptive_phase_th.cu'\n"], ["pycodestyle", "W503", 210, 20, "line break before binary operator", "                    or torch.norm(refractory[0, i] - _refractory[0, i]) > 1e-6\n"]], "digest": "0c4271e365ac784ab6868027c29c105d"}

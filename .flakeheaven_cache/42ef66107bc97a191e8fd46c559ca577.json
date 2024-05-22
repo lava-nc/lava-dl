@@ -1,1 +1,0 @@
-{"results": [["pycodestyle", "W503", 111, 16, "line break before binary operator", "                and epoch % self.sample_period == 0\n"], ["pycodestyle", "W503", 116, 16, "line break before binary operator", "                and epoch % self.sample_period == 0\n"]], "digest": "ffdd1ad20576322749777843d4ca5608"}

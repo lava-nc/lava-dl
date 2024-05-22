@@ -1,1 +1,0 @@
-{"results": [["pycodestyle", "W503", 1333, 12, "line break before binary operator", "            * torch.eye(self.num_neurons).to(x.device) - 1\n"]], "digest": "47e8924852f95579304ab2e26fdd98e6"}
