@@ -75,8 +75,13 @@ def Image_Jitter(image: Image, max_pixel_displacement_perc=0.01) -> Image:
                                         (jitter_direction[1] > 0),
                                         - jitter_direction[0] *
                                         (jitter_direction[0] < 0),
-                                        - jitter_direction[1] * (jitter_direction[1] < 0)))(image.squeeze())
+                                        - jitter_direction[1] *
+                                        (jitter_direction[1] < 0)))(image.squeeze())
     SS = image.size()[1:]
-    ii = image_s[:, -jitter_direction[1] * (jitter_direction[1] < 0):SS[0] - jitter_direction[1] * (jitter_direction[1] < 0),
-                    - jitter_direction[0] * (jitter_direction[0] < 0):SS[1] - jitter_direction[0] * (jitter_direction[0] < 0)]
+    ii = image_s[:, 
+                 -jitter_direction[1] * (jitter_direction[1] < 0):SS[0] 
+                 - jitter_direction[1] * (jitter_direction[1] < 0),
+                 - jitter_direction[0] * (jitter_direction[0] < 0):SS[1] 
+                 - jitter_direction[0] * (jitter_direction[0] < 0)
+                 ]
     return image - ii.unsqueeze(-1)
