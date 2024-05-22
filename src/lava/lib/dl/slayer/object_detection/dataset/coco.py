@@ -1,8 +1,10 @@
+from sklearn.cluster import MiniBatchKMeans
 import os
 import sys
 import subprocess
 import importlib
 import random
+import numpy as np
 from PIL import Image, ImageFilter, ImageTransform
 from PIL.Image import Transpose
 
@@ -16,6 +18,7 @@ from object_detection.boundingbox.utils import Height, Width
 
 from typing import Any, Dict, Tuple, Optional, Callable
 
+
 try:
     from pycocotools.coco import COCO as COCOapi
 except ModuleNotFoundError:
@@ -27,21 +30,23 @@ except ModuleNotFoundError:
                            '#egg=pycocotools&subdirectory=PythonAPI'])
 
 
-
-def Image_Jitter(image, max_pixel_displacement_perc = 0.01):
+def Image_Jitter(image, max_pixel_displacement_perc=0.01):
     # max_pixel_displacement_perc = .01
-    x,y = (torch.tensor(image.shape[1:3])*max_pixel_displacement_perc).type(torch.int)
-    jitter_direction = random.randrange(-x,x), random.randrange(-y,y)    
-    image_s = transforms.Pad(padding = (jitter_direction[0]*(jitter_direction[0]>0),
-                        jitter_direction[1]*(jitter_direction[1]>0),
-                        -jitter_direction[0]*(jitter_direction[0]<0),
-                        -jitter_direction[1]*(jitter_direction[1]<0)))(image.squeeze())
+    x, y = (torch.tensor(image.shape[1:3]) *
+            max_pixel_displacement_perc).type(torch.int)
+    jitter_direction = random.randrange(-x, x), random.randrange(-y, y)
+    image_s = transforms.Pad(padding=(jitter_direction[0]*(jitter_direction[0] > 0),
+                                      jitter_direction[1] *
+                                      (jitter_direction[1] > 0),
+                                      -jitter_direction[0] *
+                                      (jitter_direction[0] < 0),
+                                      -jitter_direction[1]*(jitter_direction[1] < 0)))(image.squeeze())
     SS = image.size()[1:]
-    ii = image_s[:, -jitter_direction[1]*(jitter_direction[1]<0):SS[0]-jitter_direction[1]*(jitter_direction[1]<0), 
-    -jitter_direction[0]*(jitter_direction[0]<0):SS[1]-jitter_direction[0]*(jitter_direction[0]<0)]
+    ii = image_s[:, -jitter_direction[1]*(jitter_direction[1] < 0):SS[0]-jitter_direction[1]*(jitter_direction[1] < 0),
+                 -jitter_direction[0]*(jitter_direction[0] < 0):SS[1]-jitter_direction[0]*(jitter_direction[0] < 0)]
     return image-ii.unsqueeze(-1)
 
-from sklearn.cluster import MiniBatchKMeans
+
 def quantize_global(image, k):
     k_means = MiniBatchKMeans(k, compute_labels=False)
     k_means.fit(image.reshape(-1, 1))
@@ -49,6 +54,7 @@ def quantize_global(image, k):
     q_img = k_means.cluster_centers_[labels]
     q_image = np.uint8(q_img.reshape(image.shape))
     return q_image
+
 
 class _COCO(Dataset):
     def __init__(self,
@@ -143,18 +149,13 @@ class COCO(Dataset):
 
         image = torch.unsqueeze(self.img_transform(image), -1)
 
-        #jitter for mimicking DVS
+        # jitter for mimicking DVS
         if self.image_jitter:
             image = Image_Jitter(image)
-        
+
         annotation = self.bb_transform(annotation)
 
         return image, [annotation]  # list in time
 
     def __len__(self) -> int:
         return sum([len(dataset) for dataset in self.datasets])
-
-
-   
-
-
