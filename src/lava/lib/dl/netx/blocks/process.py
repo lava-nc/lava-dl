@@ -101,7 +101,6 @@ class Input(AbstractBlock):
         self.neuron = self._neuron(kwargs.pop('bias', None))
 
         # The input must be handled through neuron's bias.
-        self.inp = InPort(shape=self.neuron.a_in.shape)
         self.out = OutPort(shape=self.neuron.s_out.shape)
         self.neuron.s_out.connect(self.out)
 
