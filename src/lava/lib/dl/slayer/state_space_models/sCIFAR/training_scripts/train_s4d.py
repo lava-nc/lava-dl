@@ -105,20 +105,14 @@ parser.add_argument('--lr', default=0.01, type=float, help='Learning rate')
 parser.add_argument('--weight_decay', default=0.0001, type=float, help='Weight decay')
 parser.add_argument('--lam', default=0.0000001, type=float, help='Lagrangian for event rate loss')
 # Scheduler
-parser.add_argument('--epochs', default=100, type=float, help='Training epochs')
-parser.add_argument('--old_optimizer', action='store_true')
+parser.add_argument('--epochs', default=3, type=float, help='Training epochs')
+
 # Dataloader
-parser.add_argument('--num_workers', default=4, type=int, help='Number of workers to use for dataloader')
-parser.add_argument('--batch_size', default=512, type=int, help='Batch size')
+parser.add_argument('--num_workers', default=8, type=int, help='Number of workers to use for dataloader')
+parser.add_argument('--batch_size', default=250, type=int, help='Batch size')
 # Model
-parser.add_argument('--n_layers', default=4, type=int, help='Number of layers')
 parser.add_argument('--d_model', default=128, type=int, help='Model dimension')
 parser.add_argument('--dropout', default=0.1, type=float, help='Dropout')
-parser.add_argument('--skip', action='store_true')
-parser.add_argument('--loihi', action='store_true')
-parser.add_argument('--early_mean', action='store_true')
-parser.add_argument('--disable_quantize', action='store_true')
-parser.add_argument('--add_dropout', action='store_true')
 parser.add_argument('--num_layers', default=1, type=int, help='Number of layers')
 
 
@@ -130,7 +124,7 @@ best_acc = 0  # best test accuracy
 start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 
 # Data
-trained_folder = 'Trained'
+trained_folder = 'Trained_slayer_quantized'
 logs_folder = 'Logs'
 
 os.makedirs(trained_folder, exist_ok=True)
@@ -155,17 +149,13 @@ test_loader  = torch.utils.data.DataLoader(dataset=testset , batch_size=args.bat
 
 
 
-
 device = torch.device('cuda')
 #net = Network().to(device)
 net = SCIFARNetwork(dropout=args.dropout, num_layers=args.num_layers).to(device)
 
 
-if args.old_optimizer:
-    optimizer = torch.optim.RAdam(net.parameters(), lr=args.lr, weight_decay=1e-5)
-else:
-    optimizer, scheduler = setup_optimizer(
-    net, lr=args.lr, weight_decay=args.weight_decay, epochs=args.epochs
+optimizer, scheduler = setup_optimizer(
+net, lr=args.lr, weight_decay=args.weight_decay, epochs=args.epochs
 )
 
 
@@ -201,7 +191,7 @@ for epoch in range(args.epochs):
        
      
     if stats.testing.best_loss:  
-        torch.save(net.state_dict(), trained_folder + '/network.pt')
+        torch.save(net.state_dict(), trained_folder + '/network_quantized.pt')
     stats.update()
     stats.save(trained_folder + '/')
     
