@@ -112,6 +112,7 @@ parser.add_argument('--num_workers', default=8, type=int, help='Number of worker
 parser.add_argument('--batch_size', default=250, type=int, help='Batch size')
 # Model
 parser.add_argument('--d_model', default=128, type=int, help='Model dimension')
+parser.add_argument('--n_states', default=64, type=int, help='States per dimension')
 parser.add_argument('--dropout', default=0.1, type=float, help='Dropout')
 parser.add_argument('--num_layers', default=1, type=int, help='Number of layers')
 
@@ -151,7 +152,7 @@ test_loader  = torch.utils.data.DataLoader(dataset=testset , batch_size=args.bat
 
 device = torch.device('cuda')
 #net = Network().to(device)
-net = SCIFARNetwork(dropout=args.dropout, num_layers=args.num_layers).to(device)
+net = SCIFARNetwork(dropout=args.dropout, num_layers=args.num_layers, d_model=args.d_model, n_states=args.n_states).to(device)
 
 
 optimizer, scheduler = setup_optimizer(
@@ -173,15 +174,22 @@ for epoch in range(args.epochs):
     net.train()
     for i, (input, ground_truth) in enumerate(train_loader): # training loop
         input, ground_truth = input.to(device), ground_truth.to(device)
+
         assistant.train(input, ground_truth)
         print(f'\r[Epoch {epoch:3d}/{args.epochs}] {stats}', end='')
         #writer.add_scalar("Accuracy/train", stats.training.accuracy, epoch)
         #writer.add_scalar("Loss/train", stats.training.loss, epoch)
         with torch.no_grad():
-            # clap weights to abs 1
-            for param in net.named_parameters():
+            # clip weights to abs 2
+            for param in net.blocks[1].named_parameters():
                 if 'weight' in param[0]:
-                    param[1].data = torch.clamp(param[1].data, -1, 1)
+                    param[1].data = torch.clamp(param[1].data, -0.3, 0.3)
+            for param in net.blocks[4].named_parameters():
+                if 'weight' in param[0]:
+                    param[1].data = torch.clamp(param[1].data, -0.3, 0.3)
+            for param in net.blocks[5].named_parameters():
+                if 'weight' in param[0]:
+                    param[1].data = torch.clamp(param[1].data, -0.3, 0.3)
     
     net.eval()
     for i, (input, ground_truth) in enumerate(test_loader): # testing loop
