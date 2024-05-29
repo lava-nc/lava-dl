@@ -25,6 +25,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.backends.cudnn as cudnn
+from torch import quantization
 
 import torchvision
 import torchvision.transforms as transforms
@@ -53,7 +54,7 @@ parser.add_argument('--lr', default=0.01, type=float, help='Learning rate')
 parser.add_argument('--weight_decay', default=0.01, type=float, help='Weight decay')
 # Scheduler
 # parser.add_argument('--patience', default=10, type=float, help='Patience for learning rate scheduler')
-parser.add_argument('--epochs', default=100, type=float, help='Training epochs')
+parser.add_argument('--epochs', default=10, type=float, help='Training epochs')
 # Dataset
 parser.add_argument('--dataset', default='cifar10', choices=['mnist', 'cifar10'], type=str, help='Dataset')
 parser.add_argument('--grayscale', action='store_true', help='Use grayscale CIFAR10')
@@ -166,75 +167,80 @@ class S4Model(nn.Module):
         d_input,
         d_output=10,
         d_model=256,
+        d_state = 4,
         n_layers=4,
         dropout=0.2,
         prenorm=False,
     ):
         super().__init__()
-
-        self.prenorm = prenorm
+        self.d_model = d_model
+        self.d_state = d_state
+        self.seq_len = 1024
+      
+    
+       # self.prenorm = prenorm
 
         # Linear encoder (d_input = 1 for grayscale and 3 for RGB)
-        self.encoder = nn.Linear(d_input, d_model)
+        self.encoder = nn.Linear(d_input, d_model, bias=False)
 
         # Stack S4 layers as residual blocks
         self.s4_layers = nn.ModuleList()
-        self.norms = nn.ModuleList()
+        #self.norms = nn.ModuleList()
         self.dropouts = nn.ModuleList()
+        self.ff_layers = nn.ModuleList()
         for _ in range(n_layers):
-            if False: #not args.loihi:
-                self.s4_layers.append(
-                    S4D(d_model, dropout=dropout, transposed=True, lr=min(0.001, args.lr))
+            self.s4_layers.append(
+                    S4D(d_model, activation=None, final_act=None, d_state=self.d_state, dropout=dropout, transposed=False, lr=min(0.001, args.lr), skip=False, is_real=True)
                 )
-            else:
-                self.s4_layers.append(
-                    S4D(d_model, activation="relu", final_act="relu", dropout=dropout, transposed=True, lr=min(0.001, args.lr), is_real=False)
-                )
-            self.norms.append(nn.LayerNorm(d_model))
+          #  model = S4D(d_model=model_dim,
+          #              d_state=d_states,
+          #              dropout=False,
+          #              transposed=True,
+          #              lr=None,
+          #              skip=False,
+          #              activation=None,
+          #              is_real=True)
+        
+            #self.norms.append(nn.LayerNorm(d_model))
             self.dropouts.append(dropout_fn(dropout))
+            self.ff_layers.append(nn.Sequential(nn.Linear(d_model, d_model, bias=False), nn.ReLU()))   
+
+        self.s4_layers[0].setup_step()
+        with torch.no_grad():
+            # todo 
+            # check forward path is correct
+            # look into initialization
+            # make them trainable
+            self.A = torch.rand(d_model, d_state).to(device)
+            self.B = torch.rand(d_model, d_state).to(device)
+            self.C = torch.rand(d_model, d_state).to(device)
 
         # Linear decoder
-        self.decoder = nn.Linear(d_model, d_output)
+        self.decoder = nn.Linear(d_model, d_output, bias=False)
 
     def forward(self, x):
         """
         Input x is shape (B, L, d_input)
         """
         x = self.encoder(x)  # (B, L, d_input) -> (B, L, d_model)
-
-        x = x.transpose(-1, -2)  # (B, L, d_model) -> (B, d_model, L)
-        for layer, norm, dropout in zip(self.s4_layers, self.norms, self.dropouts):
-            # Each iteration of this loop will map (B, d_model, L) -> (B, d_model, L)
-
-            z = x
-            #if self.prenorm:
-                # Prenorm
-            #    z = norm(z.transpose(-1, -2)).transpose(-1, -2)
-
+        for layer, ff_layer, dropout in zip(self.s4_layers, self.ff_layers, self.dropouts):
             # Apply S4 block: we ignore the state input and output
-            z = layer(z)
-
+            #x = layer(x)
+            hidden_state = torch.zeros(x.size(0), self.d_model, self.seq_len+1, self.d_state, device = x.device)
+            for i in range(self.seq_len):
+                x_new = x[:, i, :].to(x.device)
+               # print(f"{x_new.size()=}")
+               # print(f"{torch.transpose(x_new, 0,1)[:,:, None, None].size()=}")
+               # print(f"{self.B[None,:,None,:].size()=}")
+                hidden_state[:, :, i+1, :] = hidden_state[:,:, i, :] * self.A[None,:,:] + x_new[:,:, None] * self.B[None,:,:]
+                x[:,i, :] = (self.C[None, :, :] * hidden_state[:, :, i+1, :] * 2).sum(dim=-1)
             # Dropout on the output of the S4 block
-            z = dropout(z)
-
-            # Residual connection
-            if args.skip:
-                x = z + x
-            else:
-                x = z
-
-            #if not self.prenorm and args.norm:
-            #    # Postnorm
-            #    x = norm(x.transpose(-1, -2)).transpose(-1, -2)
-
-        x = x.transpose(-1, -2)
-
-        # Pooling: average pooling over the sequence length
-        x = x.mean(dim=1)
+            x = dropout(x)
+            x = ff_layer(x)
 
         # Decode the outputs
-        x = self.decoder(x)  # (B, d_model) -> (B, d_output)
-
+        x = self.decoder(x)
+        x = x[:,-1,:]
         return x
 
 # Model
@@ -247,7 +253,11 @@ model = S4Model(
     dropout=args.dropout,
     prenorm=args.prenorm,
 )
-
+#model.train()
+model.encoder.qconfig = torch.quantization.default_qat_qconfig
+model.ff_layers[0].qconfig = torch.quantization.default_qat_qconfig
+model.decoder.qconfig = torch.quantization.default_qat_qconfig
+torch.quantization.prepare_qat(model, inplace=True);
 model = model.to(device)
 if device == 'cuda':
     cudnn.benchmark = True
@@ -325,6 +335,7 @@ def train(epoch):
     pbar = tqdm(enumerate(trainloader))
     for batch_idx, (inputs, targets) in pbar:
         inputs, targets = inputs.to(device), targets.to(device)
+      #  inputs = (inputs * 2**9).int().float()
         optimizer.zero_grad()
         outputs = model(inputs)
         loss = criterion(outputs, targets)
@@ -380,7 +391,8 @@ def eval(epoch, dataloader, checkpoint=False):
             }
             if not os.path.isdir('checkpoint'):
                 os.mkdir('checkpoint')
-            torch.save(state, './checkpoint/ckpt.pth')
+            print("saving checkoint")
+            torch.save(state, './checkpoint/playing_around.pth')
             best_acc = acc
 
         return acc

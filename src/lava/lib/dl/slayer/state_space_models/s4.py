@@ -170,6 +170,7 @@ def log_vandermonde_naive(v, x, L, conj=True):
     x: (..., N)
     returns: (..., L) \sum v x^l
     """
+    x = torch.log(x)
     vandermonde_matrix = torch.exp(x.unsqueeze(-1) * torch.arange(L).to(x)) # (... N L)
     vandermonde_prod = contract('... n, ... n l -> ... l', v, vandermonde_matrix) # (... L)
     return 2*vandermonde_prod.real
@@ -993,6 +994,7 @@ class SSMKernelDiag(SSMKernel):
     def __init__(
         self,
         s4d_exp: int,
+        quantize: bool = False,
         disc: str = 'zoh',  # Change to 'bilinear' to match S4, but should make little difference either way
         dt_fast: bool = False,
         real_transform: str = 'exp',
@@ -1014,6 +1016,7 @@ class SSMKernelDiag(SSMKernel):
         self.backend = backend
         self.is_real = is_real
         self.s4d_exp = s4d_exp
+        self.quantize = quantize
 
         # Initialize dt, A, B, C
         inv_dt = self.init_dt()
@@ -1100,22 +1103,47 @@ class SSMKernelDiag(SSMKernel):
         A = repeat(A, 't n -> (v t) n', v=self.repeat)  # (H N)
         B = repeat(B, 'b t n -> b (v t) n', v=self.repeat)  # (1 H N)
 
+        if self.quantize: 
+            # copied from setup_setp
+            # Incorporate dt into A
+            dtA = dt * A  # (H N)
+
+            if self.disc == 'zoh':
+                dA = torch.exp(dtA) # (H N)
+                dB = B * (torch.exp(dtA)-1.) / A # (C H N)
+            elif self.disc == 'bilinear':
+                dA = (1. + dtA/2) / (1. - dtA/2)
+                dB = B * (1. - dtA/2).reciprocal() * dt # or * dtA / A
+            #dB = rearrange(dB, '1 h n -> h n')
+            dC = C
+            exp = 2**12
+            dB = ((dB.data * exp).int() / exp).float()
+            dC = ((dC.data * exp).int() / exp).float()
+            dA = ((dA.data * exp).int() / exp).float()
+            C = dC
+            dtA = torch.log(dA)
+            A =  dtA/dt
+            B = ((dB * A) / torch.exp(dtA)-1).float()
+       
+      
         # TODO: The downstream algorithm should only need to access dt*A
         # However the current DPLR kernel still uses dt and A separately
         # Once that is fixed, this should return dtA instead of dt and A
-        dtA = dt * A  # (H N)
-
+        #dtA = dt * A  # (H N)
+  
+    
         return dt, A, B, C
 
     def forward(self, L, state=None, rate=1.0):
         """See Kernel.forward() for argument documentation."""
-        exp = 2**self.s4d_exp
+        exp = 2**12
         dt, A, B, C = self._get_params(rate)
-        A = ((A * exp).int() / exp).float()
-        B = ((B * exp).int() / exp).float()
-        C = ((C * exp).int() / exp).float()
+       # A = ((A * exp).int() / exp).float()
+       # B = ((B * exp).int() / exp).float()
+       # C = ((C * exp).int() / exp).float()
         dtA = dt * A
-
+       # dtA = ((dtA * exp).int() / exp).float()
+        #print(A)
         # Augment B with state
         if state is not None:
             s = state / dt
@@ -1125,7 +1153,7 @@ class SSMKernelDiag(SSMKernel):
                 s = s * dtA * dtA.exp() / (dtA.exp() - 1.)
             B = torch.cat([s, B], dim=-3) # (1+B H N)
 
-
+        #C = ((C * exp).int() / exp).float()
         # Combine B and C
         C = (B[:, None, :, :] * C).view(-1, self.H, self.N)
 
@@ -1140,7 +1168,14 @@ class SSMKernelDiag(SSMKernel):
         # Main kernel
         if self.disc == 'zoh':
             # Power up
-            C = C * (torch.exp(dtA)-1.) / A
+
+            dtA = torch.exp(dtA)
+            if self.quantize:
+                dtA = ((dtA * exp).int() / exp).float()
+            C = C * (dtA-1.) / A
+            # is actually B
+            if self.quantize:
+                C = ((C * exp).int() / exp).float()
             K = log_vandermonde(C, dtA, L) # (H L)
         elif self.disc == 'bilinear':
             C = C * (1. - dtA/2).reciprocal() * dt # or * dtA / A
@@ -1177,6 +1212,8 @@ class SSMKernelDiag(SSMKernel):
             K_state = None
         K = K[-1, :, :, :] # (C H L)
 
+        if self.quantize:
+            K = ((K * exp).int() / exp).float()
         return K, K_state
 
     def _setup_step(self):
@@ -1194,6 +1231,11 @@ class SSMKernelDiag(SSMKernel):
             self.dB = B * (1. - dtA/2).reciprocal() * dt # or * dtA / A
         self.dB = rearrange(self.dB, '1 h n -> h n')
         self.dC = C
+        if self.quantize: 
+            exp = 2**12
+            self.dB = nn.Parameter(((self.dB.data * exp).int() / exp).float())
+            self.dC = nn.Parameter(((self.dC.data * exp).int() / exp).float())
+            self.dA = nn.Parameter(((self.dA.data * exp).int() / exp).float())
 
     def default_state(self, *batch_shape):
         # C = _r2c(self.C)
@@ -1872,6 +1914,7 @@ class S4Block(nn.Module):
         # If other types of inner layers are desired, it is easy
         # to add an option to swap a different module in
         self.layer = FFTConv(d_model, transposed=False, dropout=dropout, tie_dropout=tie_dropout, **layer_args)
+        
 
         # Pointwise operations
 
@@ -1987,6 +2030,7 @@ class S4D(S4Block):
         transposed=False,
         bottleneck=None,
         skip = True,
+        quantize = False,
         final_act = None,
         activation = "relu",
         **layer_args,  # Arguments into inner layer (e.g. FFTConv)
@@ -2002,7 +2046,8 @@ class S4D(S4Block):
                        'imag_transform': 'none',
                        'd_state': d_state,
                        'is_real': is_real,
-                       's4d_exp': s4d_exp}
+                       's4d_exp': s4d_exp,
+                       'quantize': quantize}
         layer_args.update(kernel_args)
 
         super().__init__(d_model,

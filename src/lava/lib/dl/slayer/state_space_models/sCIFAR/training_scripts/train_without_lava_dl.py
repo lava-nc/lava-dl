@@ -21,10 +21,12 @@ The default CIFAR10 model trained by this file should get
 
 Each epoch takes approximately 7m20s on a T4 GPU (will be much faster on V100 / A100).
 '''
+from lava.lib.dl.slayer.state_space_models.sCIFAR.networks import SCIFARNetworkTorch
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.backends.cudnn as cudnn
+from torch import quantization
 
 import torchvision
 import torchvision.transforms as transforms
@@ -53,7 +55,7 @@ parser.add_argument('--lr', default=0.01, type=float, help='Learning rate')
 parser.add_argument('--weight_decay', default=0.01, type=float, help='Weight decay')
 # Scheduler
 # parser.add_argument('--patience', default=10, type=float, help='Patience for learning rate scheduler')
-parser.add_argument('--epochs', default=100, type=float, help='Training epochs')
+parser.add_argument('--epochs', default=20, type=float, help='Training epochs')
 # Dataset
 parser.add_argument('--dataset', default='cifar10', choices=['mnist', 'cifar10'], type=str, help='Dataset')
 parser.add_argument('--grayscale', action='store_true', help='Use grayscale CIFAR10')
@@ -128,28 +130,7 @@ if args.dataset == 'cifar10':
     d_input = 3 if not args.grayscale else 1
     d_output = 10
 
-elif args.dataset == 'mnist':
 
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Lambda(lambda x: x.view(1, 784).t())
-    ])
-    transform_train = transform_test = transform
-
-    trainset = torchvision.datasets.MNIST(
-        root='./data', train=True, download=True, transform=transform_train)
-    trainset, _ = split_train_val(trainset, val_split=0.1)
-
-    valset = torchvision.datasets.MNIST(
-        root='./data', train=True, download=True, transform=transform_test)
-    _, valset = split_train_val(valset, val_split=0.1)
-
-    testset = torchvision.datasets.MNIST(
-        root='./data', train=False, download=True, transform=transform_test)
-
-    d_input = 1
-    d_output = 10
-else: raise NotImplementedError
 
 # Dataloaders
 trainloader = torch.utils.data.DataLoader(
@@ -159,107 +140,31 @@ valloader = torch.utils.data.DataLoader(
 testloader = torch.utils.data.DataLoader(
     testset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
 
-class S4Model(nn.Module):
-
-    def __init__(
-        self,
-        d_input,
-        d_output=10,
-        d_model=256,
-        n_layers=4,
-        dropout=0.2,
-        prenorm=False,
-    ):
-        super().__init__()
-
-        self.prenorm = prenorm
-
-        # Linear encoder (d_input = 1 for grayscale and 3 for RGB)
-        self.encoder = nn.Linear(d_input, d_model)
-
-        # Stack S4 layers as residual blocks
-        self.s4_layers = nn.ModuleList()
-        self.norms = nn.ModuleList()
-        self.dropouts = nn.ModuleList()
-        for _ in range(n_layers):
-            if False: #not args.loihi:
-                self.s4_layers.append(
-                    S4D(d_model, dropout=dropout, transposed=True, lr=min(0.001, args.lr))
-                )
-            else:
-                self.s4_layers.append(
-                    S4D(d_model, activation="relu", final_act="relu", dropout=dropout, transposed=True, lr=min(0.001, args.lr), is_real=False)
-                )
-            self.norms.append(nn.LayerNorm(d_model))
-            self.dropouts.append(dropout_fn(dropout))
-
-        # Linear decoder
-        self.decoder = nn.Linear(d_model, d_output)
-
-    def forward(self, x):
-        """
-        Input x is shape (B, L, d_input)
-        """
-        x = self.encoder(x)  # (B, L, d_input) -> (B, L, d_model)
-
-        x = x.transpose(-1, -2)  # (B, L, d_model) -> (B, d_model, L)
-        for layer, norm, dropout in zip(self.s4_layers, self.norms, self.dropouts):
-            # Each iteration of this loop will map (B, d_model, L) -> (B, d_model, L)
-
-            z = x
-            #if self.prenorm:
-                # Prenorm
-            #    z = norm(z.transpose(-1, -2)).transpose(-1, -2)
-
-            # Apply S4 block: we ignore the state input and output
-            z = layer(z)
-
-            # Dropout on the output of the S4 block
-            z = dropout(z)
-
-            # Residual connection
-            if args.skip:
-                x = z + x
-            else:
-                x = z
-
-            #if not self.prenorm and args.norm:
-            #    # Postnorm
-            #    x = norm(x.transpose(-1, -2)).transpose(-1, -2)
-
-        x = x.transpose(-1, -2)
-
-        # Pooling: average pooling over the sequence length
-        x = x.mean(dim=1)
-
-        # Decode the outputs
-        x = self.decoder(x)  # (B, d_model) -> (B, d_output)
-
-        return x
 
 # Model
 print('==> Building model..')
-model = S4Model(
-    d_input=d_input,
-    d_output=d_output,
-    d_model=args.d_model,
-    n_layers=args.n_layers,
-    dropout=args.dropout,
-    prenorm=args.prenorm,
+model = SCIFARNetworkTorch(
+    d_input=3,
+    d_output=10,
+    d_model=128,
+    dropout=0.15,
+    lr = 0.01,
+    d_state=4,
+    n_layers=1,
+    is_real=True,
+    get_last=True,
+    quantize=True,
 )
 
+model.train()
+model.encoder.qconfig = torch.quantization.default_qat_qconfig
+model.ff_layers[0].qconfig = torch.quantization.default_qat_qconfig
+model.decoder.qconfig = torch.quantization.default_qat_qconfig
+torch.quantization.prepare_qat(model, inplace=True);
 model = model.to(device)
 if device == 'cuda':
     cudnn.benchmark = True
 
-if args.resume:
-    # Load checkpoint.
-    print('==> Resuming from checkpoint..')
-    assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
-    checkpoint = torch.load('./checkpoint/ckpt.pth')
-    model.load_state_dict(checkpoint['model'])
-    best_acc = checkpoint['acc']
-    start_epoch = checkpoint['epoch']
 
 def setup_optimizer(model, lr, weight_decay, epochs):
     """
@@ -325,6 +230,7 @@ def train(epoch):
     pbar = tqdm(enumerate(trainloader))
     for batch_idx, (inputs, targets) in pbar:
         inputs, targets = inputs.to(device), targets.to(device)
+      #  inputs = (inputs * 2**9).int().float()
         optimizer.zero_grad()
         outputs = model(inputs)
         loss = criterion(outputs, targets)
@@ -380,7 +286,8 @@ def eval(epoch, dataloader, checkpoint=False):
             }
             if not os.path.isdir('checkpoint'):
                 os.mkdir('checkpoint')
-            torch.save(state, './checkpoint/ckpt.pth')
+            print("saving checkoint")
+            torch.save(state, './checkpoint/best_with_four_states.pth')
             best_acc = acc
 
         return acc
