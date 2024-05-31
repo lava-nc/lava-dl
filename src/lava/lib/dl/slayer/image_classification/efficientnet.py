@@ -434,6 +434,7 @@ def _efficientnet(
     activation = nn.SiLU,
     scale: bool = True,
     scale_act = nn.Sigmoid,
+    norm_layer = torch.nn.BatchNorm2d,
     **kwargs: Any,
 ) -> MyEfficientNet:
     if weights is not None:
@@ -518,6 +519,8 @@ def my_efficientnet_b0(weights: Optional[EfficientNet_B0_Weights] = None,
                        dropout: float = 0.0,
                        scale: bool = True,
                        scale_act= nn.Sigmoid,
+                       low_res=False,
+                       norm_layer=torch.nn.BatchNorm2d,
                        *args,
                        **kwargs: Any
 ) -> MyEfficientNet:
@@ -542,6 +545,8 @@ def my_efficientnet_b0(weights: Optional[EfficientNet_B0_Weights] = None,
     weights = EfficientNet_B0_Weights.verify(weights)
 
     inverted_residual_setting, last_channel = _efficientnet_conf("efficientnet_b0", width_mult=1.0, depth_mult=1.0)
+    if low_res:
+        inverted_residual_setting[0].stride = 2
     return _efficientnet(inverted_residual_setting, 
                          dropout,
                          last_channel, 
@@ -551,6 +556,7 @@ def my_efficientnet_b0(weights: Optional[EfficientNet_B0_Weights] = None,
                          activation=activation,
                          scale=scale,
                          scale_act=scale_act,
+                         norm_layer=norm_layer,
                          **kwargs
     )
 

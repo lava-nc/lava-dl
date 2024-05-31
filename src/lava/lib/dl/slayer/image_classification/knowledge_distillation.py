@@ -19,7 +19,7 @@ from lava.lib.dl.slayer.action_recognition.model import EfficientNetS4D, SlayerC
 import numpy as np
 
 class ImageNetDataset(torch.utils.data.Dataset):
-    def __init__(self, file_list, split='train'):
+    def __init__(self, file_list):
         super().__init__()
         with open(file_list, "r") as f:
             self.fns = f.readlines()
@@ -41,7 +41,7 @@ class ImageNetDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         inp = self.preprocess(self._load_image(self.fns[idx]))
-        tgt = torch.zeros_like(inp)
+        tgt = 0 
         return inp, tgt
     
     def __len__(self):
@@ -59,7 +59,7 @@ def train_original_to_pl_silu():
     print("done.")
 
     print("Create dataset")
-    imagenet_dataset = ImageNetDataset(file_list="/nas-data/pweidel/datasets/imagenet/index_file_train.txt", split='train')
+    imagenet_dataset = ImageNetDataset(file_list="/nas-data/pweidel/datasets/imagenet/index_file_train.txt")
     dataloader = torch.utils.data.DataLoader(dataset=imagenet_dataset,
                                              batch_size=32,
                                              num_workers=32,
@@ -148,7 +148,7 @@ def train_pl_silu_to_no_scale():
     
 
     
-    imagenet_dataset = ImageNetDataset(file_list="/nas-data/pweidel/datasets/imagenet/index_file_train.txt", split='train')
+    imagenet_dataset = ImageNetDataset(file_list="/nas-data/pweidel/datasets/imagenet/index_file_train.txt")
     dataloader = torch.utils.data.DataLoader(dataset=imagenet_dataset,
                                              batch_size=32,
                                              num_workers=32,
@@ -159,7 +159,6 @@ def train_pl_silu_to_no_scale():
     fwkd.train(device='cuda')
     fwkd.save_student("EffSiLUNoScale.pt")
  
-
 
 def train_no_scale_classifier():
 
@@ -172,7 +171,7 @@ def train_no_scale_classifier():
     checkpoint = torch.load("EffSiLUNoScale.pt")
     student.load_state_dict(checkpoint)
     
-    imagenet_dataset = ImageNetDataset(file_list="/nas-data/pweidel/datasets/imagenet/index_file_train.txt", split='train')
+    imagenet_dataset = ImageNetDataset(file_list="/nas-data/pweidel/datasets/imagenet/index_file_train.txt")
     dataloader = torch.utils.data.DataLoader(dataset=imagenet_dataset,
                                              batch_size=32,
                                              num_workers=32,
@@ -189,8 +188,58 @@ def train_no_scale_classifier():
     kd.save_student("EffSiLUNoScaleClass.pt")
  
 
+
+def train_low_res_effnet():
+
+    teacher = my_efficientnet_b0(weights='IMAGENET1K_V1').cuda()
+    teacher.eval()
+    student = my_efficientnet_b0(weights='IMAGENET1K_V1',
+                                 activation=PiecewiseLinearSiLU,
+                                 scale=False,
+                                 low_res=True,
+                                 norm_layer=torch.nn.LayerNorm).cuda()
+
+    checkpoint = torch.load("EffSiLUNoScaleLowResClass.pt")
+    student.load_state_dict(checkpoint)
+
+    resolution = 224 
+    preprocess = transforms.Compose([
+                transforms.Resize(resolution + 2, antialias=None),  # image batch, resize smaller edge to 256
+                transforms.CenterCrop(resolution),  # image batch, center crop to square 224x224
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+    #train_dataset = ImageNetDataset(file_list="/nas-data/pweidel/datasets/imagenet/index_file_train.txt")
+    #val_dataset = ImageNetDataset(file_list="/nas-data/pweidel/datasets/imagenet/index_file_val.txt")
+    train_dataset = ImageNet(root="/nas-data/pweidel/datasets/imagenet", split='train', transform=preprocess)
+    val_dataset = ImageNet(root="/nas-data/pweidel/datasets/imagenet", split='val', transform=preprocess)
+    train_dataloader = torch.utils.data.DataLoader(dataset=train_dataset,
+                                                   batch_size=32,
+                                                   num_workers=12,
+                                                   pin_memory=True,
+                                                   shuffle=True)
+    
+
+    val_dataloader = torch.utils.data.DataLoader(dataset=val_dataset,
+                                                 batch_size=32,
+                                                 num_workers=12,
+                                                 pin_memory=True,
+                                                 shuffle=True)
+    
+    kd = KnowledgeDist(teacher_model=teacher,
+                       student_model=student,
+                       parameters=student.classifier.parameters(),
+                       train_dataloader=train_dataloader,
+                       val_dataloader=val_dataloader,
+                       n_epochs=100,
+                       lr=1e-3)
+    kd.train(device='cuda')
+    kd.save_student("EffSiLUNoScaleLowResClass.pt")
+ 
+
 if __name__ == "__main__": 
 
     # train_original_to_pl_silu()
-    train_original_to_slayer_cnn()
+    # train_original_to_slayer_cnn()
     #train_no_scale_classifier()
+    train_low_res_effnet()
