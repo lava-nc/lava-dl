@@ -198,7 +198,13 @@ def non_maximum_suppression_latent_space(predictions: List[torch.tensor],
             detections_lat = detections_lat[:max_detections]
         detections = [detections, detections_lat]
         result.append(detections)
-    return result
+        
+    all_results = []
+    for res in result:
+        # print(res[0].shape, res[1].shape)
+        all_results.append({'detections': res[0], 'latent': res[1]})
+    
+    return all_results
 
 
 def annotation_from_tensor(tensor: torch.tensor,

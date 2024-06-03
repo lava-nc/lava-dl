@@ -108,6 +108,8 @@ class Network(YOLOBase):
             slayer.synapse.Conv(512, self.num_output, 1, padding=0, stride=1, **synapse_kwargs),
             slayer.dendrite.Sigma(),
         ])
+        
+        self.latent_space_decoder = slayer.dendrite.Sigma()
 
     def forward(
         self,
@@ -156,7 +158,7 @@ class Network(YOLOBase):
         for idx, block in enumerate(self.blocks):
             x = block(x)
             if (len(self.blocks) - latent_space_backcounter) == idx:
-                latent_space = x
+                latent_space = self.latent_space_decoder(x)
                 # print('latent_space ', latent_space.shape)
             # print(idx, x.shape)
             count.append(slayer.utils.event_rate(x))
