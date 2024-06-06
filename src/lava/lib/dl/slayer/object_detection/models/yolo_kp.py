@@ -108,11 +108,14 @@ class Network(YOLOBase):
             slayer.synapse.Conv(512, self.num_output, 1, padding=0, stride=1, **synapse_kwargs),
             slayer.dendrite.Sigma(),
         ])
+        
+        self.latent_space_decoder = slayer.dendrite.Sigma()
 
     def forward(
         self,
         input: torch.tensor,
-        sparsity_monitor: slayer.loss.SparsityEnforcer = None
+        sparsity_monitor: slayer.loss.SparsityEnforcer = None,
+        latent_space_backcounter: int = 0 # 0 -> not using latent space backcounter return, 1 -> returning last latent space layer
     ) -> Tuple[Union[torch.tensor, List[torch.tensor]], torch.tensor]:
         """Forward computation step of the network module.
 
@@ -151,22 +154,42 @@ class Network(YOLOBase):
             count.append(slayer.utils.event_rate(input))
 
         x = input
-        for block in self.blocks:
+        latent_space = None
+        for idx, block in enumerate(self.blocks):
             x = block(x)
+            if (len(self.blocks) - latent_space_backcounter) == idx:
+                latent_space = self.latent_space_decoder(x)
+                # print('latent_space ', latent_space.shape)
+            # print(idx, x.shape)
             count.append(slayer.utils.event_rate(x))
             if has_sparisty_loss:
                 sparsity_monitor.append(x)
 
         for head in self.heads:
             x = head(x)
+            # print('head ', x.shape)
             count.append(torch.mean(torch.abs((x) > 0).to(x.dtype)).item())
 
         head1 = self.yolo_raw(x)
+        # print('head1 ', head1.shape)
 
+        if latent_space is not None:
+            N, A, _, _, P, T = head1.shape
+            latent_space = latent_space.unsqueeze(1).repeat(1, A, 1, 1, 1, 1)          
+            N, _, P, _, _, T = latent_space.shape
+            latent_space = latent_space.reshape([N, -1, P, T])
+            # print('latent_space ', latent_space.shape)
+        
         if not self.training:
             output = self.yolo(head1, self.anchors[0])
+            # print('output ', output.shape)
         else:
             output = [head1]
+        
+        if latent_space is not None:
+            return (output,
+                torch.FloatTensor(count).reshape((1, -1)).to(input.device),
+                latent_space)
 
         return (output,
                 torch.FloatTensor(count).reshape((1, -1)).to(input.device))

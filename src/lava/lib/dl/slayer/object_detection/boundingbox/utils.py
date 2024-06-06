@@ -106,6 +106,107 @@ def non_maximum_suppression(predictions: List[torch.tensor],
     return result
 
 
+def non_maximum_suppression_latent_space(predictions: List[torch.tensor],
+                                         latent_space: List[torch.tensor],
+                            conf_threshold: float = 0.5,
+                            nms_threshold: float = 0.4,
+                            merge_conf: bool = True,
+                            max_detections: int = 300,
+                            max_iterations: int = 100) -> List[torch.tensor]:
+    """Performs Non-Maximal suppression of the input predictions. First a basic
+    filtering of the bounding boxes based on a minimum confidence threshold are
+    eliminated. Subsequently a non-maximal suppression is performed. A
+    non-maximal threshold is used to determine if the two bounding boxes
+    represent the same object. It supports batch inputs.
+
+    Parameters
+    ----------
+    predictions : List[torch.tensor]
+        List of bounding box predictions per batch in
+        (x_center, y_center, width, height) format.
+    conf_threshold : float, optional
+        Confidence threshold, by default 0.5.
+    nms_threshold : float, optional
+        Non maximal overlap threshold, by default 0.4.
+    merge_conf : bool, optional
+        Flag indicating whether to merge objectness score with classification
+        confidence, by default True.
+    max_detections : int, optional
+        Maximum limit of detections to reduce computational load. If exceeded
+        only the top predictions are taken., by default 300.
+    max_iterations : int, optional
+        Maximum number of iterations in non-maximal suppression loop, by
+        default 100.
+
+    Returns
+    -------
+    List[torch.tensor]
+        Non-maximal filterered prediction outputs per batch.
+    """
+    result = []
+    for pred, lat in zip(predictions, latent_space):
+
+        filtered = pred[pred[:, 4] > conf_threshold]
+        filtered_lat = lat[pred[:, 4] > conf_threshold]
+                
+        if not filtered.size(0):
+            result.append([torch.zeros((0, 6), device=pred.device),
+                           torch.zeros((0, lat.shape[1]), device=pred.device)])
+            continue
+
+        boxes = filtered[:, :4]
+        obj_conf, labels = torch.max(filtered[:, 5:], dim=1, keepdim=True)
+        if merge_conf:
+            scores = filtered[:, 4:5] * obj_conf
+        else:
+            scores = filtered[:, 4:5]
+
+        order = torch.argsort(scores.squeeze(), descending=True)
+
+        # Custon NMS loop
+        detections = torch.cat([boxes, scores, labels], dim=-1)
+        prev_objects = detections.shape[0]
+        if order.shape:
+            detections = detections[order]
+            detections_lat = filtered_lat[order]
+            
+            for i in range(max_iterations):
+                ious = bbox_iou(detections, detections)
+                label_match = (
+                    detections[:, 5].reshape(-1, 1)
+                    == detections[:, 5].reshape(1, -1)
+                ).long().view(ious.shape)
+
+                keep = (
+                    ious * label_match > nms_threshold
+                ).long().triu(1).sum(dim=0,
+                                     keepdim=True).T.expand_as(detections) == 0
+                detections = detections[keep].reshape(-1, 6).contiguous()
+                detections_lat = detections_lat[keep[:,0]]
+                if detections.shape[0] == prev_objects:
+                    break
+                else:
+                    prev_objects = detections.shape[0]
+        # #
+        # # above gives slightly better scores
+        # idx = ops.nms(ops._box_convert._box_xywh_to_xyxy(boxes.clone()),
+        #               scores.flatten(), nms_threshold)
+        # detections = torch.cat([boxes[idx], scores[idx], labels[idx]], dim=-1)
+        
+        if detections.shape[0] > max_detections:
+            detections = detections[:max_detections]
+            detections_lat = detections_lat[:max_detections]
+        detections = [detections, detections_lat]
+        result.append(detections)
+        
+    all_results = []
+    for res in result:
+        # print(res[0].shape, res[1].shape)
+        all_results.append({'detections': res[0], 'latent': res[1]})
+    
+    return all_results
+
+
 def annotation_from_tensor(tensor: torch.tensor,
                            frame_size: Dict[str, int],
                            object_names: Iterable[str],
@@ -692,3 +793,4 @@ def create_video(inputs: torch.tensor,
 
 
 nms = non_maximum_suppression
+nms_ls = non_maximum_suppression_latent_space
