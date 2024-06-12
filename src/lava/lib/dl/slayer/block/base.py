@@ -1478,7 +1478,7 @@ class AbstractRecurrent(torch.nn.Module):
         self.spike_state = spike.clone().detach().reshape(z.shape[:-1])
 
         if self.delay_shift is True:
-            x = step_delay(self, x)
+            x = delay(x, 1)
         if self.delay is not None:
             x = self.delay(x)
 
