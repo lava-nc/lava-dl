@@ -194,6 +194,12 @@ def nms(predictions: np.ndarray,
                                      max_detections,
                                      max_iterations)[0].cpu().data.numpy()
 
+# Wrapped function calls
+def t_nms(predictions: np.ndarray) -> np.ndarray:
+    return obd.boundingbox.utils.temporal_NMS.next(torch.tensor(predictions[None,:]))[0].cpu().data.numpy()
+
+
+
 
 def sigmoid(x: np.ndarray) -> np.ndarray:
     return 1.0 / (1.0 + np.exp(-x))
