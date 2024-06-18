@@ -91,10 +91,14 @@ class Network(AbstractProcess):
         self.in_layer = self.layers[0]
         self.out_layer = self.layers[-1]
 
-        self.inp = InPort(shape=self.in_layer.inp.shape)
+        if isinstance(self.in_layer, Input):
+            in_layer_inp = self.in_layer.neuron.a_in
+        else:
+            in_layer_inp = self.in_layer.inp
+        self.inp = InPort(shape=in_layer_inp.shape)
         self.out = OutPort(shape=self.out_layer.out.shape)
 
-        self.inp.connect(self.in_layer.inp)
+        self.inp.connect(in_layer_inp)
         self.out_layer.out.connect(self.out)
 
         self.output_message_bits = self.out_layer.output_message_bits
