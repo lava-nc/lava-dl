@@ -75,7 +75,7 @@ model_params = {"lstm_num_hidden": args.lstm_dims,
 
 resolution = 448 if args.model == "YoloKP-S4D" else 224
 if "low-res" in args.model:
-    resolution /= 2
+    resolution //= 2
 
 # Dataset
 init_dataloader = dataset_registry[args.dataset] 
