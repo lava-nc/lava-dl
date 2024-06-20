@@ -551,8 +551,7 @@ class LowResPlSiLUNoScaleEfficientNetS4D(nn.Module):
         self.efficientnet = my_efficientnet_b0(weights='IMAGENET1K_V1',
                                                activation=PiecewiseLinearSiLU, 
                                                scale=False, 
-                                               low_res=True,
-                                               norm_layer=torch.nn.LayerNorm)
+                                               low_res=True)
         # checkpoint = torch.load("EffSiLUNoScale.pt")
         # self.efficientnet.load_state_dict(checkpoint)
 

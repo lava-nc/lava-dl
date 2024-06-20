@@ -447,10 +447,14 @@ def _efficientnet(
                            activation=activation,
                            scale=scale,
                            scale_act=scale_act,
+                           norm_layer=norm_layer,
                            **kwargs)
 
     if weights is not None:
-        model.load_state_dict(weights.get_state_dict(progress=progress))
+        if norm_layer is torch.nn.BatchNorm2d:
+            model.load_state_dict(weights.get_state_dict(progress=progress))
+        else:
+            model.load_state_dict(weights.get_state_dict(progress=progress), strict=False)
 
     return model
 

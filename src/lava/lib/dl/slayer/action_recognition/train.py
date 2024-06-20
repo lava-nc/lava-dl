@@ -97,7 +97,7 @@ model = model_cls(num_classes=num_classes, **model_params).cuda()
 if args.continue_training:
     print("Continue training.")
     checkpoint = torch.load(f'{args.model}-{args.dataset}.pth')
-    model.load_state_dict(checkpoint)
+    model.load_state_dict(checkpoint, strict=False)
     model.train()
 
 
