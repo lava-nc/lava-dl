@@ -12,6 +12,39 @@ from lava.lib.dl.slayer.image_classification.piecewise_linear_silu import Piecew
 from lava.lib.dl.slayer.image_classification.relu1 import ReLU1 
 
 
+def set_nested_attr(net, name, mod):
+    if '.' in name:
+        n, rest = name.split('.', 1)
+        set_nested_attr(getattr(net, n), rest, mod)
+    else:
+        setattr(net, name, mod)
+
+
+def replace_depthwise(net):
+        # Replace all depthwise convolutions with non-depthwise convolutions
+        modules = list(net.named_modules())
+        for name, module in modules:
+            if isinstance(module, nn.Conv2d) and module.groups == module.in_channels:
+                # Replace depthwise convolution with non-depthwise convolution
+                non_depthwise_conv = nn.Conv2d(in_channels=module.in_channels,
+                                               out_channels=module.out_channels,
+                                               kernel_size=module.kernel_size,
+                                               stride=module.stride,
+                                               padding=module.padding,
+                                               dilation=module.dilation,
+                                               groups=1,
+                                               bias=True if module.bias is not None else False)  # Set groups to 1 for non-depthwise convolution
+                non_depthwise_conv.weight.data = module.weight.data.clone().repeat(1, module.groups, 1, 1) / module.groups  # Set weights to average of depthwise weights
+                if module.bias is not None:
+                    non_depthwise_conv.bias.data = module.bias.data.clone()
+
+                # Replace module with non-depthwise convolution
+                set_nested_attr(net, name, non_depthwise_conv)
+
+
+
+
+
 class EfficientNetLSTM(nn.Module):
 
     def __init__(self,
@@ -552,8 +585,8 @@ class LowResPlSiLUNoScaleEfficientNetS4D(nn.Module):
                                                activation=PiecewiseLinearSiLU, 
                                                scale=False, 
                                                low_res=True)
-        # checkpoint = torch.load("EffSiLUNoScale.pt")
-        # self.efficientnet.load_state_dict(checkpoint)
+        
+        replace_depthwise(self.efficientnet)
 
         if self.train_backbone:
             self.efficientnet.train()
@@ -579,7 +612,6 @@ class LowResPlSiLUNoScaleEfficientNetS4D(nn.Module):
                                      nn.Linear(num_readout_hidden, num_classes, bias=readout_bias))
 
     def forward(self, x):
-
 
         inp_shape = x.shape
 
