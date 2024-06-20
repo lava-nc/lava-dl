@@ -5,6 +5,6 @@ class PiecewiseLinearSiLU(nn.Module):
         super().__init__()
 
     def forward(self, x):
-        x = x.clamp(-5., x.max().item())
+        x = x.clamp(-5.)
         x[x<-0.5] = (x[x<-0.5] + 5) * -0.1
         return x
