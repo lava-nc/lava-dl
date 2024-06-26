@@ -55,7 +55,7 @@ parser.add_argument('--lr', default=0.01, type=float, help='Learning rate')
 parser.add_argument('--weight_decay', default=0.01, type=float, help='Weight decay')
 # Scheduler
 # parser.add_argument('--patience', default=10, type=float, help='Patience for learning rate scheduler')
-parser.add_argument('--epochs', default=20, type=float, help='Training epochs')
+parser.add_argument('--epochs', default=30, type=float, help='Training epochs')
 # Dataset
 parser.add_argument('--dataset', default='cifar10', choices=['mnist', 'cifar10'], type=str, help='Dataset')
 parser.add_argument('--grayscale', action='store_true', help='Use grayscale CIFAR10')
@@ -127,7 +127,7 @@ if args.dataset == 'cifar10':
     testset = torchvision.datasets.CIFAR10(
         root='./data/cifar/', train=False, download=True, transform=transform_test)
 
-    d_input = 3 if not args.grayscale else 1
+    d_input = 3
     d_output = 10
 
 
@@ -149,18 +149,19 @@ model = SCIFARNetworkTorch(
     d_model=128,
     dropout=0.15,
     lr = 0.01,
-    d_state=4,
-    n_layers=1,
-    is_real=True,
+    d_state=64,
+    n_layers=4,
+    s4d_exp=12,
+    is_real=False,
     get_last=True,
-    quantize=True,
+    quantize=False,
 )
 
 model.train()
-model.encoder.qconfig = torch.quantization.default_qat_qconfig
-model.ff_layers[0].qconfig = torch.quantization.default_qat_qconfig
-model.decoder.qconfig = torch.quantization.default_qat_qconfig
-torch.quantization.prepare_qat(model, inplace=True);
+#model.encoder.qconfig = torch.quantization.default_qat_qconfig
+#model.ff_layers[0].qconfig = torch.quantization.default_qat_qconfig
+#model.decoder.qconfig = torch.quantization.default_qat_qconfig
+#torch.quantization.prepare_qat(model, inplace=True);
 model = model.to(device)
 if device == 'cuda':
     cudnn.benchmark = True
@@ -230,7 +231,6 @@ def train(epoch):
     pbar = tqdm(enumerate(trainloader))
     for batch_idx, (inputs, targets) in pbar:
         inputs, targets = inputs.to(device), targets.to(device)
-      #  inputs = (inputs * 2**9).int().float()
         optimizer.zero_grad()
         outputs = model(inputs)
         loss = criterion(outputs, targets)
@@ -287,7 +287,7 @@ def eval(epoch, dataloader, checkpoint=False):
             if not os.path.isdir('checkpoint'):
                 os.mkdir('checkpoint')
             print("saving checkoint")
-            torch.save(state, './checkpoint/best_with_four_states.pth')
+            torch.save(state, './checkpoint/eight_states_quantized_complex.pth')
             best_acc = acc
 
         return acc

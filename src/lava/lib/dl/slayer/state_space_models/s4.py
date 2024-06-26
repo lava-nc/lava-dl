@@ -225,6 +225,30 @@ def LinearActivation(
         linear = nn.Sequential(linear, activation)
     return linear
 
+def quantize_per_tensor(input, scale):
+    # check if input is complex
+    with torch.no_grad():
+        if not torch.is_complex(input):
+            quantized_tensor = ((input.float() * scale).int() / scale).float()
+            #print(quantized_tensor)
+            #dtA = ((dtA * exp).int() / exp).float()
+            #quantized_tensor = (input.float() * scale).round() / scale
+            #print(quantized_tensor)
+        else:
+            # Separate the real and imaginary parts
+            real = input.real.float()
+            imag = input.imag.float()
+
+            real_quantized = quantize_per_tensor(real, scale)
+            imag_quantized = quantize_per_tensor(imag, scale)
+            #input.real = real_quantized
+            #input.imag = imag_quantized
+            quantized_tensor = torch.complex(real_quantized, imag_quantized)
+
+
+    # Combine the quantized real and imaginary parts back into a complex tensor
+    return quantized_tensor
+
 class DropoutNd(nn.Module):
     def __init__(self, p: float = 0.5, tie=True, transposed=True):
         """
@@ -1021,6 +1045,10 @@ class SSMKernelDiag(SSMKernel):
         # Initialize dt, A, B, C
         inv_dt = self.init_dt()
         A, P, B, C = self.init_ssm_dplr()
+        print(f"{B=}")
+        if is_real:
+            B.data = B.real
+            C.data = C.real 
         # Note that in the Diag case, P will be ignored
         # The DPLR case subclasses this and uses P
         self.register_params(A, B, C, inv_dt, P)
@@ -1068,8 +1096,8 @@ class SSMKernelDiag(SSMKernel):
         self.register("inv_dt", inv_dt, self.lr_dict['dt'], self.wd_dict['dt'])
         # Register ABC
         if self.is_real:
-            self.register("C", C.real, self.lr_dict['C'], None)
-            self.register("B", B.real, self.lr_dict['B'], self.wd_dict['B'])
+            self.register("C", C, self.lr_dict['C'], None)
+            self.register("B", B, self.lr_dict['B'], self.wd_dict['B'])
             self.register("A_real", inv_transform(-A.real, self.real_transform), self.lr_dict['A'], self.wd_dict['A'])
         else:
             self.register("C", _c2r(_resolve_conj(C)), self.lr_dict['C'], None)
@@ -1103,28 +1131,33 @@ class SSMKernelDiag(SSMKernel):
         A = repeat(A, 't n -> (v t) n', v=self.repeat)  # (H N)
         B = repeat(B, 'b t n -> b (v t) n', v=self.repeat)  # (1 H N)
 
-        if self.quantize: 
-            # copied from setup_setp
-            # Incorporate dt into A
-            dtA = dt * A  # (H N)
+        if self.quantize:
+            with torch.no_grad(): 
+                # copied from setup_setp
+                # Incorporate dt into A
+                dtA = dt * A  # (H N)
 
-            if self.disc == 'zoh':
-                dA = torch.exp(dtA) # (H N)
-                dB = B * (torch.exp(dtA)-1.) / A # (C H N)
-            elif self.disc == 'bilinear':
-                dA = (1. + dtA/2) / (1. - dtA/2)
-                dB = B * (1. - dtA/2).reciprocal() * dt # or * dtA / A
-            #dB = rearrange(dB, '1 h n -> h n')
-            dC = C
-            exp = 2**12
-            dB = ((dB.data * exp).int() / exp).float()
-            dC = ((dC.data * exp).int() / exp).float()
-            dA = ((dA.data * exp).int() / exp).float()
-            C = dC
-            dtA = torch.log(dA)
-            A =  dtA/dt
-            B = ((dB * A) / torch.exp(dtA)-1).float()
-       
+                if self.disc == 'zoh':
+                    dA = torch.exp(dtA) # (H N)
+                    dB = B * (torch.exp(dtA)-1.) / A # (C H N)
+                elif self.disc == 'bilinear':
+                    dA = (1. + dtA/2) / (1. - dtA/2)
+                    dB = B * (1. - dtA/2).reciprocal() * dt # or * dtA / A
+                #dB = rearrange(dB, '1 h n -> h n')
+                dC = C.data
+                exp = 2**self.s4d_exp  #hier war immer noch das data hinten dran gehängt
+                #print("dB")
+                dB = quantize_per_tensor(dB, exp)
+                #print("dC")
+                dC = quantize_per_tensor(dC, exp)
+                #print("dA")
+                dA = quantize_per_tensor(dA, exp)
+    
+                C.data = dC
+                dtA = torch.log(dA)
+                A.data =  dtA/dt.data
+                B.data = ((dB * A) / torch.exp(dtA)-1)  #.float()
+        
       
         # TODO: The downstream algorithm should only need to access dt*A
         # However the current DPLR kernel still uses dt and A separately
@@ -1136,7 +1169,7 @@ class SSMKernelDiag(SSMKernel):
 
     def forward(self, L, state=None, rate=1.0):
         """See Kernel.forward() for argument documentation."""
-        exp = 2**12
+        exp = 2**self.s4d_exp
         dt, A, B, C = self._get_params(rate)
        # A = ((A * exp).int() / exp).float()
        # B = ((B * exp).int() / exp).float()
@@ -1171,11 +1204,14 @@ class SSMKernelDiag(SSMKernel):
 
             dtA = torch.exp(dtA)
             if self.quantize:
-                dtA = ((dtA * exp).int() / exp).float()
+                #print("dtA")
+                dtA.data = quantize_per_tensor(dtA.data, exp)
+                
             C = C * (dtA-1.) / A
             # is actually B
             if self.quantize:
-                C = ((C * exp).int() / exp).float()
+                #print("C")
+                C.data = quantize_per_tensor(C.data, exp)
             K = log_vandermonde(C, dtA, L) # (H L)
         elif self.disc == 'bilinear':
             C = C * (1. - dtA/2).reciprocal() * dt # or * dtA / A
@@ -1213,7 +1249,8 @@ class SSMKernelDiag(SSMKernel):
         K = K[-1, :, :, :] # (C H L)
 
         if self.quantize:
-            K = ((K * exp).int() / exp).float()
+            #print("K")
+            K.data = quantize_per_tensor(K.data, exp)
         return K, K_state
 
     def _setup_step(self):
@@ -1232,10 +1269,10 @@ class SSMKernelDiag(SSMKernel):
         self.dB = rearrange(self.dB, '1 h n -> h n')
         self.dC = C
         if self.quantize: 
-            exp = 2**12
-            self.dB = nn.Parameter(((self.dB.data * exp).int() / exp).float())
-            self.dC = nn.Parameter(((self.dC.data * exp).int() / exp).float())
-            self.dA = nn.Parameter(((self.dA.data * exp).int() / exp).float())
+            exp = 2**self.s4d_exp
+            self.dB.data = quantize_per_tensor(self.dB.data, exp)
+            self.dC.data = quantize_per_tensor(self.dC.data, exp)
+            self.dA.data = quantize_per_tensor(self.dA.data, exp)
 
     def default_state(self, *batch_shape):
         # C = _r2c(self.C)
