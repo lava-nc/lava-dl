@@ -586,7 +586,9 @@ class LowResPlSiLUNoScaleEfficientNetS4D(nn.Module):
                                                scale=False, 
                                                low_res=True)
         
-        replace_depthwise(self.efficientnet)
+        # replace_depthwise(self.efficientnet)
+        del self.efficientnet.features[8]
+        del self.efficientnet.features[7]
 
         if self.train_backbone:
             self.efficientnet.train()
