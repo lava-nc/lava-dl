@@ -1091,6 +1091,8 @@ class SSMKernelDiag(SSMKernel):
         C = C.expand(torch.broadcast_shapes(C.shape, (1, self.H, self.N))) # (C, H, N)  # TODO originally this was only in DPLR, check safe for Diag
         B = B.unsqueeze(0) # (1, H, N)
         assert self.channels == C.shape[0]
+        
+   
 
         # Register dt
         self.register("inv_dt", inv_dt, self.lr_dict['dt'], self.wd_dict['dt'])
@@ -1104,7 +1106,7 @@ class SSMKernelDiag(SSMKernel):
             self.register("B", _c2r(B), self.lr_dict['B'], self.wd_dict['B'])
             self.register("A_real", inv_transform(-A.real, self.real_transform), self.lr_dict['A'], self.wd_dict['A'])
             self.register("A_imag", inv_transform(-A.imag, self.imag_transform), self.lr_dict['A'], self.wd_dict['A'])
-
+        
     def _get_params(self, rate=1.0):
         """Process the internal parameters."""
 
@@ -1131,7 +1133,7 @@ class SSMKernelDiag(SSMKernel):
         A = repeat(A, 't n -> (v t) n', v=self.repeat)  # (H N)
         B = repeat(B, 'b t n -> b (v t) n', v=self.repeat)  # (1 H N)
 
-        if self.quantize:
+        if self.quantize and False:
             with torch.no_grad(): 
                 # copied from setup_setp
                 # Incorporate dt into A

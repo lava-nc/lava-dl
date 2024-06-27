@@ -58,10 +58,10 @@ parser.add_argument('--weight_decay', default=0.01, type=float, help='Weight dec
 parser.add_argument('--epochs', default=30, type=float, help='Training epochs')
 # Dataset
 parser.add_argument('--dataset', default='cifar10', choices=['mnist', 'cifar10'], type=str, help='Dataset')
-parser.add_argument('--grayscale', action='store_true', help='Use grayscale CIFAR10')
+
 # Dataloader
 parser.add_argument('--num_workers', default=4, type=int, help='Number of workers to use for dataloader')
-parser.add_argument('--batch_size', default=64, type=int, help='Batch size')
+parser.add_argument('--batch_size', default=32, type=int, help='Batch size')
 # Model
 parser.add_argument('--n_layers', default=1, type=int, help='Number of layers')
 parser.add_argument('--d_model', default=128, type=int, help='Model dimension')
@@ -70,10 +70,6 @@ parser.add_argument('--prenorm', action='store_true', help='Prenorm')
 # General
 parser.add_argument('--resume', '-r', action='store_true', help='Resume from checkpoint')
 
-# Comparison Slayer
-parser.add_argument('--norm', action='store_true')
-parser.add_argument('--skip', action='store_true')
-parser.add_argument('--loihi', action='store_true')
 
 args = parser.parse_args()
 
@@ -82,7 +78,7 @@ best_acc = 0  # best test accuracy
 start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 
 
-run_name = "norm_" + str(args.norm) + "_skip_" + str(args.skip) + "_loihi_comp_" + str(args.loihi)+ "_drop_out_adjusted_wrapper"
+run_name = "test_run"
 
 writer = SummaryWriter("runs/" + run_name)
 # Data
@@ -98,20 +94,11 @@ def split_train_val(train, val_split):
     return train, val
 
 if args.dataset == 'cifar10':
-
-    if args.grayscale:
-        transform = transforms.Compose([
-            transforms.Grayscale(),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=122.6 / 255.0, std=61.0 / 255.0),
-            transforms.Lambda(lambda x: x.view(1, 1024).t())
-        ])
-    else:
-        transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-            transforms.Lambda(lambda x: x.view(3, 1024).t())
-        ])
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        transforms.Lambda(lambda x: x.view(3, 1024).t())
+    ])
 
     # S4 is trained on sequences with no data augmentation!
     transform_train = transform_test = transform
@@ -147,7 +134,7 @@ model = SCIFARNetworkTorch(
     d_input=3,
     d_output=10,
     d_model=128,
-    dropout=0.15,
+    dropout=0.,
     lr = 0.01,
     d_state=64,
     n_layers=4,
@@ -156,8 +143,8 @@ model = SCIFARNetworkTorch(
     get_last=True,
     quantize=False,
 )
-
-model.train()
+# model.forward = model.forward_step
+#model.train()
 #model.encoder.qconfig = torch.quantization.default_qat_qconfig
 #model.ff_layers[0].qconfig = torch.quantization.default_qat_qconfig
 #model.decoder.qconfig = torch.quantization.default_qat_qconfig
@@ -165,6 +152,27 @@ model.train()
 model = model.to(device)
 if device == 'cuda':
     cudnn.benchmark = True
+
+def store_original_params_pre_hook(module, _):
+    module.original_params = [p.detach().clone() for p in module.parameters()]
+
+
+def restore_original_params_hook(module, *_):
+    for p, original_p in zip(module.parameters(), module.original_params):
+        p.data = original_p.data
+
+def clamp_activations_hook(module, input, output):
+    # Define the range for 24 signed bits
+    min_val = -2**23
+    max_val = 2**23 - 1
+    # Clamp the output activations
+    output.data = torch.clamp(output.data, min_val, max_val)
+
+# # Register hooks
+# for layer in model.modules():
+#     if isinstance(layer, S4D):
+#         layer.register_forward_pre_hook(store_original_params_pre_hook)
+#         layer.register_forward_hook(restore_original_params_hook)
 
 
 def setup_optimizer(model, lr, weight_decay, epochs):
@@ -221,7 +229,7 @@ optimizer, scheduler = setup_optimizer(
 ###############################################################################
 # Everything after this point is standard PyTorch training!
 ###############################################################################
-
+inp_scale = 2 ** 9
 # Training
 def train(epoch):
     model.train()
@@ -231,6 +239,7 @@ def train(epoch):
     pbar = tqdm(enumerate(trainloader))
     for batch_idx, (inputs, targets) in pbar:
         inputs, targets = inputs.to(device), targets.to(device)
+        inputs = ((inputs * inp_scale).int() / inp_scale).float()
         optimizer.zero_grad()
         outputs = model(inputs)
         loss = criterion(outputs, targets)
@@ -269,8 +278,8 @@ def eval(epoch, dataloader, checkpoint=False):
             total += targets.size(0)
             correct += predicted.eq(targets).sum().item()
             pbar.set_description(
-                'Batch Idx: (%d/%d) | Loss: %.3f | Acc: %.3f%% (%d/%d)' %
-                (batch_idx, len(dataloader), eval_loss/(batch_idx+1), 100.*correct/total, correct, total)
+                'Batch Idx: (%d/%d) | Loss: %.3f | Acc: %.3f%% (%d/%d) | Best Acc_ %.3f' %
+                (batch_idx, len(dataloader), eval_loss/(batch_idx+1), 100.*correct/total, correct, total, best_acc)
             )
     writer.add_scalar("Accuracy/testing", correct/total, epoch)
     writer.add_scalar("Loss/testing", eval_loss/batch_idx+1, epoch)
@@ -287,19 +296,97 @@ def eval(epoch, dataloader, checkpoint=False):
             if not os.path.isdir('checkpoint'):
                 os.mkdir('checkpoint')
             print("saving checkoint")
-            torch.save(state, './checkpoint/eight_states_quantized_complex.pth')
+            torch.save(state, './checkpoint/eight_states_complex.pth')
             best_acc = acc
 
         return acc
 
 pbar = tqdm(range(start_epoch, args.epochs))
 for epoch in pbar:
-    if epoch == 0:
-        pbar.set_description('Epoch: %d' % (epoch))
-    else:
-        pbar.set_description('Epoch: %d | Val acc: %1.3f' % (epoch, val_acc))
-    train(epoch)
-    val_acc = eval(epoch, valloader, checkpoint=True)
-    eval(epoch, testloader)
-    scheduler.step()
-    # print(f"Epoch {epoch} learning rate: {scheduler.get_last_lr()}")
+     if epoch == 0:
+         pbar.set_description('Epoch: %d' % (epoch))
+     else:
+         pbar.set_description('Epoch: %d | Val acc: %1.3f' % (epoch, val_acc))
+     train(epoch)
+     val_acc = eval(epoch, valloader, checkpoint=True)
+     eval(epoch, testloader)
+     scheduler.step()
+#     # print(f"Epoch {epoch} learning rate: {scheduler.get_last_lr()}")
+
+for layer in model.modules():
+    layer.register_forward_hook(clamp_activations_hook)
+
+checkpoint = torch.load('./checkpoint/eight_states_complex.pth')
+state_dict = checkpoint['model']
+model.load_state_dict(state_dict)
+model.forward = model.forward_step
+for layer in model.s4_layers:
+    layer.layer.kernel.quantize = True
+
+train(0)
+
+state = {
+         'model': model.state_dict(),
+         'acc': 0.,
+         'epoch': epoch,
+        }
+
+print("saving checkoint")
+torch.save(state, './checkpoint/eight_states_quantized_complex.pth')
+
+# inp = next(iter(trainloader))[0].cuda()
+
+# out_c = model(inp)
+# out_c.sum().backward()
+# grad_C = model.s4_layers[0].layer.kernel.C.grad
+
+
+# model_s = SCIFARNetworkTorch(
+#     d_input=3,
+#     d_output=10,
+#     d_model=128,
+#     dropout=0.,
+#     lr = 0.01,
+#     d_state=64,
+#     n_layers=4,
+#     s4d_exp=12,
+#     is_real=False,
+#     get_last=True,
+#     quantize=True,
+# ).cuda()
+
+# checkpoint = torch.load('./checkpoint/eight_states_quantized_complex.pth')
+# state_dict = checkpoint['model']
+# model_s.load_state_dict(state_dict)
+# model_s.s4_layers[0].layer.kernel.quantize = True
+# model_s.train()
+
+# out_s = model_s.forward_step(inp)
+
+# out_s.sum().backward()
+# grad_C_s = model_s.s4_layers[0].layer.kernel.C.grad
+
+# for name, param in model.named_parameters():
+#     if param.grad is not None:
+#         print(f"Gradient of {name}:")
+#         print(param.grad)
+#     else:
+#         print(f"No gradient for {name}")
+
+# model.forward = model.forward_step
+# model.train()
+# train(0)
+# state = {
+#     'model': model.state_dict(),
+#     'acc': best_acc, # TODO thats wrong but we dont have the best acc here
+#     'epoch': epoch,
+# }
+# if not os.path.isdir('checkpoint'):
+#     os.mkdir('checkpoint')
+# print("saving checkoint")
+# torch.save(state, './checkpoint/eight_states_quantized_complex.pth')
+
+
+# todo clamping
+# dropout ist null wollen wir das?
+# 
