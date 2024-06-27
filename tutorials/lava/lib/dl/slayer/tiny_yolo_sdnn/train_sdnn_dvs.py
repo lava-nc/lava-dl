@@ -101,12 +101,12 @@ if __name__ == '__main__':
     parser.add_argument('-epoch',  type=int, default=200, help='number of epochs to run')
     parser.add_argument('-warmup', type=int, default=10,  help='number of epochs to warmup')
     # dataset
-    parser.add_argument('-dataset',     type=str,   default='PropheseeAutomotive', help='dataset to use [BDD100K, PropheseeAutomotive, DSIAC]')
+    parser.add_argument('-dataset',     type=str,   default='PropheseeAutomotive', help='dataset to use [BDD100K, PropheseeAutomotive]')
     parser.add_argument('-subset',      default=False, action='store_true', help='use PropheseeAutomotive12 subset')
     parser.add_argument('-seq_len',  type=int, default=32, help='number of time continous frames')
     parser.add_argument('-delta_t',  type=int, default=1, help='time window for events')
     parser.add_argument('-event_ratio',  type=float, default=0.07, help='filtering bbox')
-    parser.add_argument('-path',        type=str,   default='data/prophesee', help='dataset path to use ["data/prophesee", "data/bdd100k", "data/dsiac"]')
+    parser.add_argument('-path',        type=str,   default='data/prophesee', help='dataset path to use ["data/prophesee", "data/bdd100k"]')
     parser.add_argument('-output_dir',  type=str,   default='.', help='directory in which to put log folders')
     parser.add_argument('-num_workers', type=int,   default=1, help='number of dataloader workers')
     parser.add_argument('-aug_prob',    type=float, default=0.2, help='training augmentation probability')
@@ -217,7 +217,7 @@ if __name__ == '__main__':
 
     print('Creating Dataset')
 
-    if args.dataset == 'BDD100K' or args.dataset == 'DSIAC':
+    if args.dataset == 'BDD100K':
         train_set = obd.dataset.BDD(root=args.path, dataset='track',
                                     train=True, augment_prob=args.aug_prob,
                                     randomize_seq=True)
