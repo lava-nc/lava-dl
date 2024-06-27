@@ -35,13 +35,15 @@ class SCIFARNetworkTorch(nn.Module):
         d_model=256,
         n_layers=1,
         dropout=0.2,
+        s4d_exp=12,
         activation=None,
         final_act=None,
         d_state=64,
         quantize=True,
         lr=0.001,
         is_real=True,
-        get_last=True
+        get_last=True,
+        use_step=False,
     ):
         super().__init__()
         self.get_last = get_last
@@ -59,8 +61,9 @@ class SCIFARNetworkTorch(nn.Module):
                         activation=activation,
                         final_act=final_act,
                         d_state=d_state,
-                        quantize=quantize, 
-                        dropout=dropout, 
+                       # quantize=quantize, 
+                        dropout=dropout,
+                      #  s4d_exp=s4d_exp,
                         transposed=False, 
                         lr=lr,
                         is_real=is_real,
@@ -72,7 +75,13 @@ class SCIFARNetworkTorch(nn.Module):
         # Linear decoder
         self.decoder = nn.Linear(d_model, d_output, bias=False)
 
-    def forward(self, x):
+        if use_step:
+            self.forward = self.forward_step
+        else:
+            self.forward = self.forward_conv
+
+
+    def forward_conv(self, x):
         """
         Input x is shape (B, L, d_input)
         """
@@ -91,6 +100,26 @@ class SCIFARNetworkTorch(nn.Module):
               x = x[:,-1,:]
         return x
 
+    def forward_step(self, x):
+        x = self.encoder(x)
+        for layer, ff_layer, dropout in zip(self.s4_layers, self.ff_layers, self.dropouts):
+            layer.setup_step() # call A, B and C and computed dB, dC and dA from it
+            state = layer.default_state(x.shape[0])
+            xx = x.clone()
+            for t in range(x.shape[1]):
+                out, state = layer.step(x[:,t,:], state)
+                xx[:, t] = out.clone()
+            x = xx
+            # Dropout on the output of the S4 block
+            x = dropout(x)
+            x = ff_layer(x)
+
+        # Decode the outputs
+        x = self.decoder(x)
+        if self.get_last:
+              x = x[:,-1,:]
+
+        return x
 
 class SCIFARNetworkSlayer(torch.nn.Module):
     # Loihi compatible network for sCIFAR classification
