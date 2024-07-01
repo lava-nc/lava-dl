@@ -134,21 +134,17 @@ model = SCIFARNetworkTorch(
     d_input=3,
     d_output=10,
     d_model=128,
-    dropout=0.,
+    dropout=0.01,
     lr = 0.01,
-    d_state=64,
-    n_layers=4,
+    d_state=16,
+    n_layers=2,
     s4d_exp=12,
     is_real=False,
     get_last=True,
     quantize=False,
 )
 # model.forward = model.forward_step
-#model.train()
-#model.encoder.qconfig = torch.quantization.default_qat_qconfig
-#model.ff_layers[0].qconfig = torch.quantization.default_qat_qconfig
-#model.decoder.qconfig = torch.quantization.default_qat_qconfig
-#torch.quantization.prepare_qat(model, inplace=True);
+inp_exp = 9
 model = model.to(device)
 if device == 'cuda':
     cudnn.benchmark = True
@@ -165,8 +161,14 @@ def clamp_activations_hook(module, input, output):
     # Define the range for 24 signed bits
     min_val = -2**23
     max_val = 2**23 - 1
-    # Clamp the output activations
-    output.data = torch.clamp(output.data, min_val, max_val)
+    final_exp = inp_exp + 6
+    if torch.any(output.data * 2**final_exp < min_val) or torch.any(output.data * 2** final_exp > max_val):
+        print("Needs Clamping Activations")
+    #torch.clamp((output.data * 2**final_exp).int(), min_val, max_val)
+    #output.data /= 2**final_exp
+    #output.data = output.data.float()
+    return output
+
 
 # # Register hooks
 # for layer in model.modules():
@@ -223,15 +225,15 @@ def setup_optimizer(model, lr, weight_decay, epochs):
 
 criterion = nn.CrossEntropyLoss()
 optimizer, scheduler = setup_optimizer(
-    model, lr=args.lr, weight_decay=args.weight_decay, epochs=args.epochs
+    model, lr=args.lr, weight_decay=args.weight_decay, epochs = args.epochs
 )
 
 ###############################################################################
 # Everything after this point is standard PyTorch training!
 ###############################################################################
-inp_scale = 2 ** 9
+
 # Training
-def train(epoch):
+def train(epoch, optimizer):
     model.train()
     train_loss = 0
     correct = 0
@@ -239,7 +241,7 @@ def train(epoch):
     pbar = tqdm(enumerate(trainloader))
     for batch_idx, (inputs, targets) in pbar:
         inputs, targets = inputs.to(device), targets.to(device)
-        inputs = ((inputs * inp_scale).int() / inp_scale).float()
+        inputs = ((inputs * 2**inp_exp).int() / 2**inp_exp).float()
         optimizer.zero_grad()
         outputs = model(inputs)
         loss = criterion(outputs, targets)
@@ -260,7 +262,7 @@ def train(epoch):
     writer.add_scalar("Loss/train", train_loss/(batch_idx+1), epoch)
 
 
-def eval(epoch, dataloader, checkpoint=False):
+def eval(epoch, dataloader, file_name, checkpoint=False):
     global best_acc
     model.eval()
     eval_loss = 0
@@ -296,43 +298,66 @@ def eval(epoch, dataloader, checkpoint=False):
             if not os.path.isdir('checkpoint'):
                 os.mkdir('checkpoint')
             print("saving checkoint")
-            torch.save(state, './checkpoint/eight_states_complex.pth')
+            torch.save(state, file_name)
             best_acc = acc
 
         return acc
 
-pbar = tqdm(range(start_epoch, args.epochs))
-for epoch in pbar:
-     if epoch == 0:
-         pbar.set_description('Epoch: %d' % (epoch))
-     else:
-         pbar.set_description('Epoch: %d | Val acc: %1.3f' % (epoch, val_acc))
-     train(epoch)
-     val_acc = eval(epoch, valloader, checkpoint=True)
-     eval(epoch, testloader)
-     scheduler.step()
-#     # print(f"Epoch {epoch} learning rate: {scheduler.get_last_lr()}")
+# pbar = tqdm(range(start_epoch, args.epochs))
+# for epoch in pbar:
+#      if epoch == 0:
+#          pbar.set_description('Epoch: %d' % (epoch))
+#      else:
+#          pbar.set_description('Epoch: %d | Val acc: %1.3f' % (epoch, val_acc))
+#      train(epoch, optimizer)
+#      val_acc = eval(epoch, valloader,  './checkpoint/states_complex.pth', checkpoint=True)
+#      eval(epoch, testloader,  './checkpoint/states_complex.pth')
+#      scheduler.step()
+# #     # print(f"Epoch {epoch} learning rate: {scheduler.get_last_lr()}")
 
-for layer in model.modules():
-    layer.register_forward_hook(clamp_activations_hook)
 
-checkpoint = torch.load('./checkpoint/eight_states_complex.pth')
+
+checkpoint = torch.load('./checkpoint/states_complex.pth')
 state_dict = checkpoint['model']
+print(checkpoint["acc"])
 model.load_state_dict(state_dict)
 model.forward = model.forward_step
 for layer in model.s4_layers:
     layer.layer.kernel.quantize = True
 
-train(0)
+#for layer in model.modules():
+#    layer.register_forward_hook(clamp_activations_hook)
 
-state = {
-         'model': model.state_dict(),
-         'acc': 0.,
-         'epoch': epoch,
-        }
 
-print("saving checkoint")
-torch.save(state, './checkpoint/eight_states_quantized_complex.pth')
+#model.train()
+#model.encoder.qconfig = torch.quantization.default_qat_qconfig
+#model.ff_layers[0].qconfig = torch.quantization.default_qat_qconfig
+#model.decoder.qconfig = torch.quantization.default_qat_qconfig
+#torch.quantization.prepare_qat(model, inplace=True);
+#torch.quantization.convert(model, inplace=True)
+#model.to("QuantizedCUDA")
+
+
+#fine_optimizer, fine_scheduler = setup_optimizer(
+#    model, lr=10**-4, weight_decay=args.weight_decay, epochs=5
+#)
+
+#print("Checking new model untuned")
+#val_acc = eval(0, valloader,  './checkpoint/quantized_states_complex.pth', checkpoint=False)
+#print("Start fine tuning")
+
+### fine tune
+#best_acc = 0
+#pbar = tqdm(range(start_epoch, 5))
+#for epoch in pbar:
+#     if epoch == 0:
+#        pbar.set_description('Epoch: %d' % (epoch))
+#     else:
+#         pbar.set_description('Epoch: %d | Val acc: %1.3f' % (epoch, val_acc))
+#     train(epoch, fine_optimizer)
+#     val_acc = eval(epoch, valloader,  './checkpoint/quantized_states_complex.pth', checkpoint=True)
+#     eval(epoch, testloader, None)
+#     fine_scheduler.step()
 
 # inp = next(iter(trainloader))[0].cuda()
 
