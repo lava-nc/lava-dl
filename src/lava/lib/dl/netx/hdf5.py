@@ -19,7 +19,8 @@ from lava.proc.sdn.process import Sigma, Delta, SigmaDelta
 from lava.lib.dl.slayer.neuron.rf import neuron_params as get_rf_params
 from lava.lib.dl.netx.utils import NetDict
 from lava.lib.dl.netx.utils import optimize_weight_bits
-from lava.lib.dl.netx.blocks.process import Input, Dense, RecurrentDense, Conv, ComplexDense
+from lava.lib.dl.netx.blocks.process import Input, Dense, RecurrentDense, \
+    Conv, ComplexDense
 from lava.lib.dl.netx.blocks.models import AbstractPyBlockModel
 
 
@@ -398,14 +399,16 @@ class Network(AbstractProcess):
                     weight_rec = weight_rec.reshape(shape[0], -1)
 
             if rec:
-                weight_concat = np.hstack((weight,weight_rec))
+                weight_concat = np.hstack((weight, weight_rec))
                 opt_weight_concat = optimize_weight_bits(weight_concat)
-                weight_concat, num_weight_bits, weight_exponent, sign_mode = opt_weight_concat
-                weight = weight_concat[:,:weight.shape[1]]
-                weight_rec = weight_concat[:,weight.shape[1]:]
+                weight_concat, num_weight_bits, \
+                    weight_exponent, sign_mode = opt_weight_concat
+                weight = weight_concat[:, :weight.shape[1]]
+                weight_rec = weight_concat[:, weight.shape[1]:]
             else:
                 opt_weights = optimize_weight_bits(weight)
-                weight, num_weight_bits, weight_exponent, sign_mode = opt_weights
+                weight, num_weight_bits, \
+                    weight_exponent, sign_mode = opt_weights
 
             # arguments for dense block
             params = {'shape': shape,
