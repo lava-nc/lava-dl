@@ -196,7 +196,8 @@ class Dense(AbstractBlock):
 
     def export_hdf5(self, handle: Union[h5py.File, h5py.Group]) -> None:
         raise NotImplementedError
-    
+
+
 class RecurrentDense(AbstractBlock):
     """RecurrentDense layer block.
     Parameters
@@ -295,12 +296,13 @@ class RecurrentDense(AbstractBlock):
         self.inp.connect(self.synapse.s_in)
         self.synapse.a_out.connect(self.neuron.a_in)
         self.neuron.s_out.connect(self.out)
-        
+
         self.neuron.s_out.connect(self.synapse_rec.s_in)
 
         self.synapse_rec.a_out.connect(self.neuron.a_in)
 
         self._clean()
+
 
 class ComplexDense(AbstractBlock):
     """Dense Complex layer block.

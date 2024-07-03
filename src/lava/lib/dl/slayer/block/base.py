@@ -1505,10 +1505,12 @@ class AbstractRecurrent(torch.nn.Module):
         handle.create_dataset(
             'type', (1, ), 'S10', ['dense_rec'.encode('ascii', 'ignore')]
         )
-        
+
         handle.create_dataset('shape', data=np.array(self.neuron.shape))
-        handle.create_dataset('inFeatures', data=self.input_synapse.in_channels)
-        handle.create_dataset('outFeatures', data=self.input_synapse.out_channels)
+        handle.create_dataset(
+            'inFeatures', data=self.input_synapse.in_channels)
+        handle.create_dataset(
+            'outFeatures', data=self.input_synapse.out_channels)
 
         if self.input_synapse.weight_norm_enabled:
             self.input_synapse.disable_weight_norm()
@@ -1525,7 +1527,8 @@ class AbstractRecurrent(torch.nn.Module):
             raise NotImplementedError(f'Complex recurrent not implemented.')
         else:
             handle.create_dataset('weight', data=weight(self.input_synapse))
-            handle.create_dataset('weight_rec', data=weight(self.recurrent_synapse))
+            handle.create_dataset(
+                'weight_rec', data=weight(self.recurrent_synapse))
 
         # bias
         has_norm = False
