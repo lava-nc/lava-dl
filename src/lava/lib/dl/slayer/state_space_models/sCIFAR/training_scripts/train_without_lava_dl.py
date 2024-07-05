@@ -137,7 +137,7 @@ model = SCIFARNetworkTorch(
     dropout=0.01,
     lr = 0.01,
     d_state=16,
-    n_layers=2,
+    n_layers=1,
     s4d_exp=12,
     is_real=False,
     get_last=True,
@@ -303,21 +303,21 @@ def eval(epoch, dataloader, file_name, checkpoint=False):
 
         return acc
 
-# pbar = tqdm(range(start_epoch, args.epochs))
-# for epoch in pbar:
+#pbar = tqdm(range(start_epoch, args.epochs))
+#for epoch in pbar:
 #      if epoch == 0:
 #          pbar.set_description('Epoch: %d' % (epoch))
 #      else:
 #          pbar.set_description('Epoch: %d | Val acc: %1.3f' % (epoch, val_acc))
 #      train(epoch, optimizer)
-#      val_acc = eval(epoch, valloader,  './checkpoint/states_complex.pth', checkpoint=True)
-#      eval(epoch, testloader,  './checkpoint/states_complex.pth')
+#      val_acc = eval(epoch, valloader,  './checkpoint/states_complex_1_layer.pth', checkpoint=True)
+#      eval(epoch, testloader,  './checkpoint/states_complex_1_layer.pth')
 #      scheduler.step()
 # #     # print(f"Epoch {epoch} learning rate: {scheduler.get_last_lr()}")
 
 
 
-checkpoint = torch.load('./checkpoint/states_complex.pth')
+checkpoint = torch.load('./checkpoint/states_complex_1_layer.pth')
 state_dict = checkpoint['model']
 print(checkpoint["acc"])
 model.load_state_dict(state_dict)
@@ -325,93 +325,40 @@ model.forward = model.forward_step
 for layer in model.s4_layers:
     layer.layer.kernel.quantize = True
 
-#for layer in model.modules():
-#    layer.register_forward_hook(clamp_activations_hook)
+
+model.train()
+model.encoder.qconfig = torch.quantization.default_weight_only_qconfig # default_qat_qconfig
+model.ff_layers[0].qconfig = torch.quantization.default_weight_only_qconfig
+model.decoder.qconfig = torch.quantization.default_weight_only_qconfig
+torch.quantization.prepare_qat(model, inplace=True);
+model.eval()
+quantization.convert(model, inplace=True)
 
 
-#model.train()
-#model.encoder.qconfig = torch.quantization.default_qat_qconfig
-#model.ff_layers[0].qconfig = torch.quantization.default_qat_qconfig
-#model.decoder.qconfig = torch.quantization.default_qat_qconfig
-#torch.quantization.prepare_qat(model, inplace=True);
 #torch.quantization.convert(model, inplace=True)
 #model.to("QuantizedCUDA")
 
 
-#fine_optimizer, fine_scheduler = setup_optimizer(
-#    model, lr=10**-4, weight_decay=args.weight_decay, epochs=5
-#)
+fine_optimizer, fine_scheduler = setup_optimizer(
+    model, lr=10**-6, weight_decay=args.weight_decay, epochs=2
+)
+
+#for layer in model.modules():
+#    layer.register_forward_hook(clamp_activations_hook)
 
 #print("Checking new model untuned")
-#val_acc = eval(0, valloader,  './checkpoint/quantized_states_complex.pth', checkpoint=False)
-#print("Start fine tuning")
+val_acc = eval(0, valloader,  None, checkpoint=False)
+print("Start fine tuning")
 
 ### fine tune
-#best_acc = 0
-#pbar = tqdm(range(start_epoch, 5))
-#for epoch in pbar:
-#     if epoch == 0:
-#        pbar.set_description('Epoch: %d' % (epoch))
-#     else:
-#         pbar.set_description('Epoch: %d | Val acc: %1.3f' % (epoch, val_acc))
-#     train(epoch, fine_optimizer)
-#     val_acc = eval(epoch, valloader,  './checkpoint/quantized_states_complex.pth', checkpoint=True)
-#     eval(epoch, testloader, None)
-#     fine_scheduler.step()
-
-# inp = next(iter(trainloader))[0].cuda()
-
-# out_c = model(inp)
-# out_c.sum().backward()
-# grad_C = model.s4_layers[0].layer.kernel.C.grad
-
-
-# model_s = SCIFARNetworkTorch(
-#     d_input=3,
-#     d_output=10,
-#     d_model=128,
-#     dropout=0.,
-#     lr = 0.01,
-#     d_state=64,
-#     n_layers=4,
-#     s4d_exp=12,
-#     is_real=False,
-#     get_last=True,
-#     quantize=True,
-# ).cuda()
-
-# checkpoint = torch.load('./checkpoint/eight_states_quantized_complex.pth')
-# state_dict = checkpoint['model']
-# model_s.load_state_dict(state_dict)
-# model_s.s4_layers[0].layer.kernel.quantize = True
-# model_s.train()
-
-# out_s = model_s.forward_step(inp)
-
-# out_s.sum().backward()
-# grad_C_s = model_s.s4_layers[0].layer.kernel.C.grad
-
-# for name, param in model.named_parameters():
-#     if param.grad is not None:
-#         print(f"Gradient of {name}:")
-#         print(param.grad)
-#     else:
-#         print(f"No gradient for {name}")
-
-# model.forward = model.forward_step
-# model.train()
-# train(0)
-# state = {
-#     'model': model.state_dict(),
-#     'acc': best_acc, # TODO thats wrong but we dont have the best acc here
-#     'epoch': epoch,
-# }
-# if not os.path.isdir('checkpoint'):
-#     os.mkdir('checkpoint')
-# print("saving checkoint")
-# torch.save(state, './checkpoint/eight_states_quantized_complex.pth')
-
-
-# todo clamping
-# dropout ist null wollen wir das?
-# 
+best_acc = 0
+pbar = tqdm(range(start_epoch, 2))
+for epoch in pbar:
+     if epoch == 0:
+        pbar.set_description('Epoch: %d' % (epoch))
+     else:
+         pbar.set_description('Epoch: %d | Val acc: %1.3f' % (epoch, val_acc))
+     train(epoch, fine_optimizer)
+     val_acc = eval(epoch, valloader, None, checkpoint=True)
+     eval(epoch, testloader, None)
+     fine_scheduler.step()

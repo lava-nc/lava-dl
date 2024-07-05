@@ -230,10 +230,7 @@ def quantize_per_tensor(input, scale):
     with torch.no_grad():
         if not torch.is_complex(input):
             quantized_tensor = ((input.float() * scale).int() / scale).float()
-            #print(quantized_tensor)
-            #dtA = ((dtA * exp).int() / exp).float()
-            #quantized_tensor = (input.float() * scale).round() / scale
-            #print(quantized_tensor)
+   
         else:
             # Separate the real and imaginary parts
             real = input.real.float()
@@ -241,10 +238,7 @@ def quantize_per_tensor(input, scale):
 
             real_quantized = quantize_per_tensor(real, scale)
             imag_quantized = quantize_per_tensor(imag, scale)
-            #input.real = real_quantized
-            #input.imag = imag_quantized
             quantized_tensor = torch.complex(real_quantized, imag_quantized)
-
 
     # Combine the quantized real and imaginary parts back into a complex tensor
     return quantized_tensor
