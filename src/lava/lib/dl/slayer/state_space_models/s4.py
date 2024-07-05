@@ -850,6 +850,7 @@ class SSMKernel(Kernel):
         else:
             shape = (self.H, 1) if self.dt_tie else (self.H, self.N//2)
             # Initialize log dt
+            # torch.manual_seed(1)
             inv_dt = torch.rand(*shape, dtype=self.dtype) * (
                 math.log(self.dt_max) - math.log(self.dt_min)
             ) + math.log(self.dt_min)
@@ -887,6 +888,7 @@ class SSMKernel(Kernel):
             C = contract('hmn, chn -> chm', V.conj().transpose(-1, -2), C) # V^* C
             C = repeat(C, 'c t n -> c (v t) n', v=self.H // C.size(-2)).clone().contiguous()
         else:
+            # torch.manual_seed(0)
             C = torch.randn(self.channels, self.H, self.N//2, dtype=self.cdtype)
 
         # Broadcast other parameters to have n_ssm copies
@@ -1041,7 +1043,6 @@ class SSMKernelDiag(SSMKernel):
         # Initialize dt, A, B, C
         inv_dt = self.init_dt()
         A, P, B, C = self.init_ssm_dplr()
-        print(f"{B=}")
         if is_real:
             B.data = B.real
             C.data = C.real 
@@ -2004,7 +2005,6 @@ class S4Block(nn.Module):
             x = self.input_linear(x)
 
         y, state = self.layer(x, **kwargs)
-
 
         if self.gate is not None:
             y = self.output_gate(y)

@@ -2,7 +2,7 @@ import math
 from typing import Mapping, Optional, Union
 import torch
 from torch import nn
-from einops import repeat
+from einops import repeat, rearrange
 from ssm_utils import dplr, nplr
 
 class DropoutNd(nn.Module):
@@ -25,33 +25,6 @@ class DropoutNd(nn.Module):
             mask = torch.rand(*mask_shape, device=X.device) < 1.-self.p
             X = X * mask * (1.0/(1-self.p))
         return X
-
-
-def ssm(init, N, R, H, **ssm_args):
-    """Dispatcher to create single SSM initialization
-
-    N: state size
-    R: rank (for DPLR parameterization)
-    H: number of independent SSM copies
-    """
-    print("=" * 40)
-    print("init ", init)
-
-    if init.startswith("diag") or init.startswith("dplr"):
-        if init.startswith("diag"):
-            ssm_args["P_scale"] = 0.0
-        args = init[4:].split("-")
-        assert args[0] == ""
-        if len(args) > 1:
-            ssm_args["init"] = args[1]
-        A, P, B, V = dplr(N=N, rank=R, H=H, **ssm_args)
-    else:
-        A, P, B, V = nplr(init, N, R, **ssm_args)
-        A = repeat(A, 'n -> s n', s=H)
-        P = repeat(P, 'r n -> r s n', s=H)
-        B = repeat(B, 'n -> s n', s=H)
-        V = repeat(V, 'n m -> s n m', s=H)
-    return A, P, B, V
 
 
 
@@ -94,7 +67,6 @@ class S4D(nn.Module):
         self.dropout = dropout
         self.rank = rank
         self.ssm_init = ssm_init
-        print(self.ssm_init)
 
 
               # Initialize dt, A, B, C
@@ -103,7 +75,7 @@ class S4D(nn.Module):
         self.drop = DropoutNd(dropout) if dropout > 0.0 else nn.Identity()
 
         self.repeat = self.d_model // A.size(0)
-        print(self.repeat)
+
         # register params
         self.register_parameter("C", nn.Parameter(torch.view_as_real(C.conj().resolve_conj())))
         self.register_parameter("B", nn.Parameter(torch.view_as_real(B)))
@@ -121,6 +93,10 @@ class S4D(nn.Module):
         x_f = torch.fft.rfft(x, n=2*L) # (B H L)
         y_f = torch.einsum('bhl,chl->bchl', x_f, k_f)
         y = torch.fft.irfft(y_f, n=2*L)[..., :L] # (B C H L)
+
+        # Squeeze second dimension
+        y = rearrange(y, 'b c h l -> b (c h) l')
+
         # TODO too much dropout?
         y = self.drop(y)
         # TODO maybe transpose, droput better with transpose
@@ -151,10 +127,6 @@ class S4D(nn.Module):
         C = C * (dtA-1.) / A
         K = log_vandermonde(C, dtA, L) # (H L)
 
-        # Attention: we chose channels = 1
-        #TODO do they do something?
-        K = K.view(-1, 1, self.d_model, L) # (1+B C H L)
-        K = K[-1, :, :, :] # (C H L)
         return K
     
     def _get_params(self):
@@ -176,6 +148,7 @@ class S4D(nn.Module):
         # Generate dt
         shape = (self.d_model, 1)
         # Initialize log dt
+        # torch.manual_seed(1)
         inv_dt = torch.rand(*shape, dtype=torch.float) * (
             math.log(dt_max) - math.log(dt_min)
         ) + math.log(dt_min)
@@ -183,11 +156,10 @@ class S4D(nn.Module):
 
     def init_ssm_dplr(self):
         """Returns DPLR (A, P, B, C) parameters for init options."""
-        # Because these complex parameterizations assume conjugate symmetry,
-        # double the value of self.d_state for convenience
-        A, P, B, _ =  ssm(self.ssm_init, self.d_state*2, self.rank, self.d_model)
+        A, P, B, _ =  self.ssm()
 
         # Broadcast C to have H channels
+        # torch.manual_seed(0)
         C = torch.randn(1, self.d_model, self.d_state, dtype=torch.cfloat)
 
         # Broadcast tensors to n_ssm copies
@@ -201,7 +173,25 @@ class S4D(nn.Module):
         C = C.expand(torch.broadcast_shapes(C.shape, (1, self.d_model, self.d_state))) # (C, H, N) 
         B = B.unsqueeze(0) # (1, H, N)
         return A, P, B, C
-    
-s4d = S4D(d_model=10, d_state=5)
-out = s4d(torch.randn(1, 10, 100))
-   
+
+    def ssm(self):
+        """Dispatcher to create single SSM initialization
+        N: state size
+        R: rank (for DPLR parameterization)
+        H: number of independent SSM copies
+        """
+
+        # Because these complex parameterizations assume conjugate symmetry,
+        # double the value of self.d_state for convenience
+        d_state = self.d_state * 2
+
+        if self.ssm_init == "diag" or self.ssm_init == "dlpr":
+            A, P, B, V = dplr(N=d_state, rank=self.rank, H=self.d_model)
+        else:
+            A, P, B, V = nplr(self.ssm_init, d_state, self.rank)
+            A = repeat(A, 'n -> s n', s=self.d_model)
+            P = repeat(P, 'r n -> r s n', s=self.d_model)
+            B = repeat(B, 'n -> s n', s=self.d_model)
+            V = repeat(V, 'n m -> s n m', s=self.d_model)
+        return A, P, B, V
+
