@@ -64,12 +64,12 @@ class S4D(nn.Module):
             self.activation = nn.ReLU()
         else:
             raise ValueError(f"Activation {activation} not implemented")
+
         self.dropout = dropout
         self.rank = rank
         self.ssm_init = ssm_init
 
-
-              # Initialize dt, A, B, C
+        # Initialize dt, A, B, C
         inv_dt = self.init_dt()
         A, _, B, C = self.init_ssm_dplr()
         self.drop = DropoutNd(dropout) if dropout > 0.0 else nn.Identity()
@@ -105,13 +105,35 @@ class S4D(nn.Module):
         return y
         
     def setup_step(self):
-        pass
+        """Set up dA, dB, dC discretized parameters for stepping."""
+
+        dt, A, B, C, = self._get_params()
+        # Incorporate dt into A
+        dtA = dt * A  # (H N)
+
+        self.dA = torch.exp(dtA) # (H N)
+        self.dB = B * (torch.exp(dtA)-1.) / A # (C H N)
+        self.dB = rearrange(self.dB, '1 h n -> h n')
+        self.dC = C
 
     def step(self, x, state):
-        pass
+        next_state = torch.einsum("h n, b h n -> b h n", self.dA, state) \
+                + torch.einsum("h n, b h -> b h n", self.dB, x)
+        y = torch.einsum("c h n, b h n -> b c h", self.dC, next_state)
 
-    def default_state(self):
-        pass
+        y = 2*y.real
+        y = rearrange(y, 'b c h -> b (c h)')
+        y = self.activation(y)
+
+        return y, next_state
+
+    def default_state(self, batch_size):
+        state = torch.zeros(batch_size,
+                            self.d_model,
+                            self.d_state,
+                            dtype=self.dC.dtype, 
+                            device=self.dC.device)
+        return state 
 
     def compute_kernel(self, L):
         dt, A, B, C = self._get_params()
@@ -148,7 +170,6 @@ class S4D(nn.Module):
         # Generate dt
         shape = (self.d_model, 1)
         # Initialize log dt
-        # torch.manual_seed(1)
         inv_dt = torch.rand(*shape, dtype=torch.float) * (
             math.log(dt_max) - math.log(dt_min)
         ) + math.log(dt_min)
@@ -159,7 +180,6 @@ class S4D(nn.Module):
         A, P, B, _ =  self.ssm()
 
         # Broadcast C to have H channels
-        # torch.manual_seed(0)
         C = torch.randn(1, self.d_model, self.d_state, dtype=torch.cfloat)
 
         # Broadcast tensors to n_ssm copies
@@ -169,7 +189,7 @@ class S4D(nn.Module):
         A = repeat(A, 't n -> (v t) n', v=self.d_model // A.size(-2)).clone().contiguous()
 
 
-           # Broadcast everything to correct shapes
+        # Broadcast everything to correct shapes
         C = C.expand(torch.broadcast_shapes(C.shape, (1, self.d_model, self.d_state))) # (C, H, N) 
         B = B.unsqueeze(0) # (1, H, N)
         return A, P, B, C
