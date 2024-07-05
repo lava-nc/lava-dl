@@ -602,6 +602,8 @@ def ssm(init, N, R, H, **ssm_args):
     R: rank (for DPLR parameterization)
     H: number of independent SSM copies
     """
+   # print("=" * 40)
+   # print("ssm_args ", ssm_args)
 
     if init.startswith("diag") or init.startswith("dplr"):
         if init.startswith("diag"):
