@@ -198,6 +198,112 @@ class Dense(AbstractBlock):
         raise NotImplementedError
 
 
+class RecurrentDense(AbstractBlock):
+    """RecurrentDense layer block.
+    Parameters
+    ----------
+    shape : tuple or list
+        shape of the layer block in (x, y, z)/WHC format.
+    neuron_params : dict, optional
+        dictionary of neuron parameters. Defaults to None.
+    weight : np.ndarray
+        synaptic weight.
+    weight_rec : np.ndarray
+        recurrent synaptic weight.
+    delay : np.ndarray
+        synaptic delay.
+    bias : np.ndarray or None
+        bias of neuron. None means no bias. Defaults to None.
+    has_graded_input : dict
+        flag for graded spikes at input. Defaults to False.
+    num_weight_bits : int
+        number of weight bits. Defaults to 8.
+    weight_exponent : int
+        weight exponent value. Defaults to 0.
+    sparse_synapse : bool
+        connection is sparse
+    input_message_bits : int, optional
+        number of message bits in input spike. Defaults to 0 meaning unary
+        spike.
+    """
+
+    def __init__(self, **kwargs: Union[dict, tuple, list, int, bool]) -> None:
+        super().__init__(**kwargs)
+
+        weight = kwargs.pop('weight')
+        weight_rec = kwargs.pop('weight_rec')
+        delay = kwargs.pop('delay', None)
+        num_weight_bits = kwargs.pop('num_weight_bits', 8)
+        weight_exponent = kwargs.pop('weight_exponent', 0)
+        sparse_synapse = kwargs.pop('sparse_synapse', False)
+
+        if delay is None:
+            if sparse_synapse:
+                Synapse = SparseSynapse
+                weight = csr_matrix(weight)
+            else:
+                Synapse = DenseSynapse
+
+            self.synapse = Synapse(
+                weights=weight,
+                weight_exp=weight_exponent,
+                num_weight_bits=num_weight_bits,
+                num_message_bits=self.input_message_bits,
+                shape=weight.shape
+            )
+            self.synapse_rec = Synapse(
+                weights=weight_rec,
+                weight_exp=weight_exponent,
+                num_weight_bits=num_weight_bits,
+                num_message_bits=self.input_message_bits,
+                shape=weight_rec.shape
+            )
+        else:
+            # TODO test this in greater detail
+            if sparse_synapse:
+                Synapse = DelaySparseSynapse
+                delay[weight == 0] = 0
+                weight = csr_matrix(weight)
+                delay = csr_matrix(delay)
+            else:
+                Synapse = DelayDenseSynapse
+
+            self.synapse = Synapse(
+                weights=weight,
+                delays=delay.astype(int),
+                max_delay=62,
+                num_weight_bits=num_weight_bits,
+                num_message_bits=self.input_message_bits,
+            )
+            self.synapse_rec = Synapse(
+                weights=weight_rec,
+                delays=delay.astype(int),
+                max_delay=62,
+                num_weight_bits=num_weight_bits,
+                num_message_bits=self.input_message_bits,
+            )
+
+        if self.shape != self.synapse.a_out.shape:
+            raise RuntimeError(
+                f'Expected synapse output shape to be {self.shape[-1]}, '
+                f'found {self.synapse.a_out.shape}.'
+            )
+
+        self.neuron = self._neuron(kwargs.pop('bias', None))
+
+        self.inp = InPort(shape=self.synapse.s_in.shape)
+        self.out = OutPort(shape=self.neuron.s_out.shape)
+        self.inp.connect(self.synapse.s_in)
+        self.synapse.a_out.connect(self.neuron.a_in)
+        self.neuron.s_out.connect(self.out)
+
+        self.neuron.s_out.connect(self.synapse_rec.s_in)
+
+        self.synapse_rec.a_out.connect(self.neuron.a_in)
+
+        self._clean()
+
+
 class ComplexDense(AbstractBlock):
     """Dense Complex layer block.
 
