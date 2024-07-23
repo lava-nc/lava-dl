@@ -127,3 +127,5 @@ def analyze_ops(net, all_counts, filename=None):
     
     if handle is not None:
         handle.close()
+
+    return ops
