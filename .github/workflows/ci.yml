@@ -1,4 +1,5 @@
 name: Run CI
+permissions: read-all
 on:
   push:
     branches:
@@ -54,5 +55,9 @@ jobs:
         repository: 'Lava-DL'    
 
     - name: Run unit tests
-      run: poetry run pytest
+      run: |
+        # There is an issue "ImportError: cannot import name 'packaging' from 'pkg_resources'" when 
+        # using setuptools==70.0.0 -- temp fix to downgrade to  setuptools==69.5.1
+        poetry run pip install setuptools==69.5.1
+        poetry run pytest
       
