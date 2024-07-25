@@ -17,7 +17,7 @@ jobs:
 
     steps:
     - name: Setup CI
-      uses: lava-nc/ci-setup-composite-action@v1.1
+      uses: lava-nc/ci-setup-composite-action@v1.5.10_py3.10
       with:
         repository: 'Lava-DL'
 
@@ -30,7 +30,7 @@ jobs:
 
     steps:
     - name: Setup CI
-      uses: lava-nc/ci-setup-composite-action@v1.1
+      uses: lava-nc/ci-setup-composite-action@v1.5.10_py3.10
       with:
         repository: 'Lava-DL'
 
@@ -50,7 +50,7 @@ jobs:
 
     steps:
     - name: Setup CI
-      uses: lava-nc/ci-setup-composite-action@v1.1
+      uses: lava-nc/ci-setup-composite-action@v1.5.10_py3.10
       with:
         repository: 'Lava-DL'    
 
