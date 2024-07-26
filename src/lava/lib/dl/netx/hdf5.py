@@ -19,7 +19,8 @@ from lava.proc.sdn.process import Sigma, Delta, SigmaDelta
 from lava.lib.dl.slayer.neuron.rf import neuron_params as get_rf_params
 from lava.lib.dl.netx.utils import NetDict
 from lava.lib.dl.netx.utils import optimize_weight_bits
-from lava.lib.dl.netx.blocks.process import Input, Dense, Conv, ComplexDense
+from lava.lib.dl.netx.blocks.process import Input, Dense, RecurrentDense, \
+    Conv, ComplexDense
 from lava.lib.dl.netx.blocks.models import AbstractPyBlockModel
 
 
@@ -320,7 +321,8 @@ class Network(AbstractProcess):
                      reset_interval: Optional[int] = None,
                      reset_offset: int = 0,
                      spike_exp: int = 6,
-                     sparse_synapse: bool = 0) -> Tuple[Dense, str]:
+                     sparse_synapse: bool = 0,
+                     rec: bool = False) -> Tuple[Dense, str]:
         """Creates dense layer from layer configuration
 
         Parameters
@@ -393,11 +395,24 @@ class Network(AbstractProcess):
 
         else:
             weight = layer_config['weight']
+            if rec:
+                weight_rec = layer_config['weight_rec']
             if weight.ndim == 1:
                 weight = weight.reshape(shape[0], -1)
+                if rec:
+                    weight_rec = weight_rec.reshape(shape[0], -1)
 
-            opt_weights = optimize_weight_bits(weight)
-            weight, num_weight_bits, weight_exponent, sign_mode = opt_weights
+            if rec:
+                weight_concat = np.hstack((weight, weight_rec))
+                opt_weight_concat = optimize_weight_bits(weight_concat)
+                weight_concat, num_weight_bits, \
+                    weight_exponent, sign_mode = opt_weight_concat
+                weight = weight_concat[:, :weight.shape[1]]
+                weight_rec = weight_concat[:, weight.shape[1]:]
+            else:
+                opt_weights = optimize_weight_bits(weight)
+                weight, num_weight_bits, \
+                    weight_exponent, sign_mode = opt_weights
 
             # arguments for dense block
             params = {'shape': shape,
@@ -408,6 +423,8 @@ class Network(AbstractProcess):
                       'sign_mode': sign_mode,
                       'input_message_bits': input_message_bits,
                       "sparse_synapse": sparse_synapse}
+            if rec:
+                params['weight_rec'] = weight_rec
 
             if 'delay' in layer_config.keys():
                 delay = layer_config['delay']
@@ -438,7 +455,10 @@ class Network(AbstractProcess):
             if 'bias' in layer_config.keys():
                 params['bias'] = layer_config['bias']
 
-            proc = Dense(**params)
+            if rec:
+                proc = RecurrentDense(**params)
+            else:
+                proc = Dense(**params)
         table_entry = Network._table_str(type_str='Dense', width=1, height=1,
                                          channel=shape[0],
                                          delay='delay' in layer_config.keys())
@@ -619,14 +639,19 @@ class Network(AbstractProcess):
                 flatten_next = True
                 table = None
 
-            elif layer_type == 'dense':
+            elif layer_type == 'dense' or layer_type == 'dense_rec':
+                if layer_type == 'dense':
+                    rec = False
+                elif layer_type == 'dense_rec':
+                    rec = True
                 layer, table = self.create_dense(
                     layer_config=layer_config[i],
                     input_message_bits=input_message_bits,
                     reset_interval=reset_interval,
                     reset_offset=reset_offset,
                     spike_exp=self.spike_exp,
-                    sparse_synapse=self.sparse_fc_layer)
+                    sparse_synapse=self.sparse_fc_layer,
+                    rec=rec)
                 if i >= self.skip_layers:
                     layers.append(layer)
                     reset_offset += 1

@@ -3,10 +3,11 @@
 
 from typing import List, Tuple
 
-import torch
+import numpy as np
 from PIL.Image import Image, Transpose
 
-from ..boundingbox.utils import tensor_from_annotation
+Width = int
+Height = int
 
 """Dataset manipulation utility module."""
 
@@ -41,3 +42,17 @@ def flip_ud(image: Image) -> Image:
         Flipped image.
     """
     return Image.transpose(image, Transpose.FLIP_TOP_BOTTOM)
+
+
+def resize_events_frame(events: np.array,
+                        size: Tuple[Height, Width]) -> np.array:
+    height = events.shape[0]
+    width = events.shape[1]
+    img = np.asarray(
+        [[events[int(height * rows / size[0])][int(width * cols / size[1])]
+          for cols in range(size[1])] for rows in range(size[0])])
+    return img
+
+
+def fliplr_events(events: np.array) -> np.array:
+    return np.fliplr(events)
