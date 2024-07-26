@@ -1478,7 +1478,7 @@ class AbstractRecurrent(torch.nn.Module):
         self.spike_state = spike.clone().detach().reshape(z.shape[:-1])
 
         if self.delay_shift is True:
-            x = step_delay(self, x)
+            x = delay(x, 1)
         if self.delay is not None:
             x = self.delay(x)
 
@@ -1494,11 +1494,64 @@ class AbstractRecurrent(torch.nn.Module):
         return self.neuron.shape
 
     def export_hdf5(self, handle):
-        """Hdf5 export method for the block.
+        def weight(s):
+            return s.pre_hook_fx(
+                s.weight, descale=True
+            ).reshape(s.weight.shape[:2]).cpu().data.numpy()
 
-        Parameters
-        ----------
-        handle : file handle
-            hdf5 handle to export block description.
-        """
-        pass
+        def delay(d):
+            return torch.floor(d.delay).flatten().cpu().data.numpy()
+
+        handle.create_dataset(
+            'type', (1, ), 'S10', ['dense_rec'.encode('ascii', 'ignore')]
+        )
+
+        handle.create_dataset('shape', data=np.array(self.neuron.shape))
+        handle.create_dataset(
+            'inFeatures', data=self.input_synapse.in_channels)
+        handle.create_dataset(
+            'outFeatures', data=self.input_synapse.out_channels)
+
+        if self.input_synapse.weight_norm_enabled:
+            self.input_synapse.disable_weight_norm()
+
+        if hasattr(self.input_synapse, 'imag'):   # complex synapse
+            handle.create_dataset(
+                'weight/real',
+                data=weight(self.input_synapse.real)
+            )
+            handle.create_dataset(
+                'weight/imag',
+                data=weight(self.input_synapse.imag)
+            )
+            raise NotImplementedError(f'Complex recurrent not implemented.')
+        else:
+            handle.create_dataset('weight', data=weight(self.input_synapse))
+            handle.create_dataset(
+                'weight_rec', data=weight(self.recurrent_synapse))
+
+        # bias
+        has_norm = False
+        if hasattr(self.neuron, 'norm'):
+            if self.neuron.norm is not None:
+                has_norm = True
+        if has_norm is True:
+            handle.create_dataset(
+                'bias',
+                data=self.neuron.norm.bias.cpu().data.numpy().flatten()
+            )
+
+        # delay
+        if self.delay is not None:
+            self.delay.clamp()  # clamp the delay value
+            handle.create_dataset('delay', data=delay(self.delay))
+
+        # neuron
+        for key, value in self.neuron.device_params.items():
+            handle.create_dataset(f'neuron/{key}', data=value)
+        if has_norm is True:
+            if hasattr(self.neuron.norm, 'weight_exp'):
+                handle.create_dataset(
+                    'neuron/weight_exp',
+                    data=self.neuron.norm.weight_exp
+                )

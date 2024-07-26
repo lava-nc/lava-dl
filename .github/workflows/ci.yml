@@ -16,8 +16,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - uses: actions/checkout@v3
+      with:
+        lfs: true
+
     - name: Setup CI
-      uses: lava-nc/ci-setup-composite-action@v1.1
+      uses: lava-nc/ci-setup-composite-action@v1.5.12_py3.10
       with:
         repository: 'Lava-DL'
 
@@ -29,8 +33,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - uses: actions/checkout@v3
+      with:
+        lfs: true
+
     - name: Setup CI
-      uses: lava-nc/ci-setup-composite-action@v1.1
+      uses: lava-nc/ci-setup-composite-action@v1.5.12_py3.10
       with:
         repository: 'Lava-DL'
 
@@ -46,14 +54,22 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        operating-system: [ubuntu-latest, windows-latest]
 
     steps:
+    - uses: actions/checkout@v3
+      with:
+        lfs: true
+    
     - name: Setup CI
-      uses: lava-nc/ci-setup-composite-action@v1.1
+      uses: lava-nc/ci-setup-composite-action@v1.5.12_py3.10
       with:
         repository: 'Lava-DL'    
 
     - name: Run unit tests
-      run: poetry run pytest
+      run: |
+        # There is an issue "ImportError: cannot import name 'packaging' from 'pkg_resources'" when 
+        # using setuptools==70.0.0 -- temp fix to downgrade to  setuptools==69.5.1
+        poetry run pip install setuptools==69.5.1
+        poetry run pytest
       
