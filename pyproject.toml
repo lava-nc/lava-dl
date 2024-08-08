@@ -10,7 +10,7 @@ packages = [
     {include = "tests"}
 ]
 include = ["tutorials"]
-version = "0.5.0.dev0"
+version = "0.6.0"
 readme = "README.md"
 description = "A library of deep learning tools, which consists of lava.lib.dl.slayer and lava.lib.dl.netx for training and deployment of event-based deep neural networks on traditional as well as neuromorphic backends. Lava-DL is part of Lava Framework"
 homepage = "https://lava-nc.org/"
@@ -48,7 +48,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = ">=3.10, <3.11"
 
-lava-nc = { git = "https://github.com/lava-nc/lava.git", branch = "main", develop = true }
+lava-nc = "0.10.0"
 
 torchvision = ">=0.18.0,<0.19.0"
 h5py = "^3.7.0"
