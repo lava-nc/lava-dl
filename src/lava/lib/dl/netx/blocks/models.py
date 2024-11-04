@@ -45,7 +45,14 @@ class AbstractPyBlockModel(AbstractSubProcessModel):
 @implements(proc=Input, protocol=LoihiProtocol)
 class PyInputModel(AbstractPyBlockModel):
     def __init__(self, proc: AbstractProcess) -> None:
-        super().__init__(proc)
+        if proc.output_message_bits > 0:
+            self.out: PyOutPort = LavaPyType(np.ndarray,
+                                             np.int32,
+                                             precision=proc.output_message_bits)
+        else:
+            self.out: PyOutPort = LavaPyType(np.ndarray,
+                                             np.int8,
+                                             precision=1)
 
 
 @implements(proc=ComplexInput, protocol=LoihiProtocol)
