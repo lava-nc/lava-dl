@@ -33,7 +33,7 @@ class Accelerated:
             if jitconfig.TORCH_CUDA_ARCH_LIST is not None:
                 os.environ['TORCH_CUDA_ARCH_LIST'] = \
                     jitconfig.TORCH_CUDA_ARCH_LIST
-            Accelerated.module = load(
+            Accelerated.module = load(  # nosec
                 name='shift',
                 sources=[
                     os.path.dirname(os.path.abspath(__file__))

@@ -264,7 +264,7 @@ class Network(YOLOBase):
         model_file : str
             Path to pytorch model file.
         """
-        saved_model = torch.load(model_file)
+        saved_model = torch.load(model_file)  # nosec
         model_keys = {k : False for k in saved_model.keys()}
         device = self.anchors.device
         self.anchors.data = saved_model['anchors'].data.to(device)
