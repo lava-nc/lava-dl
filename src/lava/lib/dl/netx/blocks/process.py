@@ -257,7 +257,7 @@ class RecurrentDense(AbstractBlock):
                 weights=weight_rec,
                 weight_exp=weight_exponent,
                 num_weight_bits=num_weight_bits,
-                num_message_bits=self.input_message_bits,
+                num_message_bits=0,
                 shape=weight_rec.shape
             )
         else:
@@ -282,7 +282,7 @@ class RecurrentDense(AbstractBlock):
                 delays=delay.astype(int),
                 max_delay=62,
                 num_weight_bits=num_weight_bits,
-                num_message_bits=self.input_message_bits,
+                num_message_bits=0,
             )
 
         if self.shape != self.synapse.a_out.shape:
