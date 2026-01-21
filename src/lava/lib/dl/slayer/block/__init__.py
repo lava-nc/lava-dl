@@ -8,5 +8,6 @@ __all__ = [
     'rf', 'rf_iz',
     'alif',
     'adrf', 'adrf_iz',
-    'sigma_delta'
+    'sigma_delta',
+    'cuba_hoyer',
 ]
