@@ -50,7 +50,9 @@ python = ">=3.10, <3.11"
 
 lava-nc = "0.10.0"
 
-torchvision = ">=0.18.0,<0.19.0"
+torch = {version = "==2.10.0", source = "pytorch-cu128"}
+torchvision = {version = "==0.25.0", source = "pytorch-cu128"}
+
 h5py = "^3.7.0"
 ninja = "^1.10.2.3"
 matplotlib = "^3.5.2"
@@ -59,7 +61,6 @@ scipy = "^1.8.1"
 pillow = ">=10.0.1,<11.0"
 pytest = "^7.2.0"
 unittest2 = "^1.1.0"
-torch = ">=2.3.1,<2.4.0"
 opencv-python-headless = "^4.8.1.78"
 
 [tool.poetry.dev-dependencies]
@@ -85,6 +86,11 @@ pep8-naming = "^0.11.1"
 poetry = "^1.1.13"
 pytest-cov = "^3.0.0"
 black = "^24.3.0"
+
+[[tool.poetry.source]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+priority = "explicit"
 
 [tool.black]
 line-length = 80

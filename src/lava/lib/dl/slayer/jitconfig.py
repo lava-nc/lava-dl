@@ -15,4 +15,4 @@ VERBOSE = False
 if torch.cuda.is_available():
     major, minor = torch.cuda.get_device_capability(0)
     if major >= 8:
-        TORCH_CUDA_ARCH_LIST = '8.0'
+        TORCH_CUDA_ARCH_LIST = '12.0'
