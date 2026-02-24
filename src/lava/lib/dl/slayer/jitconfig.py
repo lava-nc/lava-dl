@@ -9,10 +9,11 @@ import torch
 TORCH_CUDA_ARCH_LIST = None
 VERBOSE = False
 
-# following is temporary fix for new 3080 gpus until they get full support in
-# torch
-# TODO: remove when there is support
+# This code checks the CUDA compute capability
+# TODO: As new NVIDIA GPUs are release, the major version check should be
+#       updated to reflect support.
 if torch.cuda.is_available():
     major, minor = torch.cuda.get_device_capability(0)
-    if major >= 8:
-        TORCH_CUDA_ARCH_LIST = '8.0'
+    TORCH_CUDA_ARCH_LIST = f'{major}.{minor}'
+    if major > 12:
+        print('CUDA Compute Capability > 12 may not work.')
