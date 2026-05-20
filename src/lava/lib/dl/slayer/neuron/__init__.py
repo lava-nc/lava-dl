@@ -12,4 +12,5 @@ __all__ = [
     'adrf', 'adrf_iz',
     'sigma_delta',
     'Dropout', 'norm',
+    'cuda_hoyer',
 ]
